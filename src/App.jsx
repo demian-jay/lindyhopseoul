@@ -366,8 +366,8 @@ export default function App() {
         />
       ) : null}
 
-      <div className="min-h-screen bg-gradient-to-b from-sky-50 via-blue-50/40 to-white text-neutral-900">
-        <header className="sticky top-0 z-40 border-b border-blue-900/10 bg-white/85 backdrop-blur">
+      <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
+        <header className="top-0 z-40 border-b border-blue-900/10 bg-[rgb(222,240,255)] backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 md:px-8">
             <div className="flex items-center justify-between gap-4">
               <div>
