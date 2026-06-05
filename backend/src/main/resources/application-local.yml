@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://127.0.0.1:3307/lindyhopseoul}
+    username: ${DB_USERNAME:lindyhop_dev}
+    password: ${DB_PASSWORD:lindyhop_dev_password}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true

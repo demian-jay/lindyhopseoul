@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+import { memoApi } from "./api/memos";
+
 const CONTENT = {
   ko: {
     nav: ["스윙팝", "스윙댄스", "스윙팝의 춤", "서울 씬", "수업 등록"],
@@ -84,6 +86,30 @@ const CONTENT = {
         ctaSecondary: "문의하기",
       },
     ],
+    memoDemo: {
+      eyebrow: "API 연동 예시",
+      title: "메모",
+      description: "Spring Boot API와 MariaDB에 저장되는 간단한 메모입니다.",
+      formTitle: "메모 작성",
+      editFormTitle: "메모 수정",
+      titleLabel: "제목",
+      titlePlaceholder: "예: 오늘 배운 리듬",
+      contentLabel: "내용",
+      contentPlaceholder: "짧은 메모를 남겨보세요.",
+      createButton: "저장",
+      updateButton: "수정 완료",
+      cancelButton: "취소",
+      editButton: "수정",
+      deleteButton: "삭제",
+      listTitle: "저장된 메모",
+      loading: "메모를 불러오는 중...",
+      emptyTitle: "아직 저장된 메모가 없습니다.",
+      emptyDescription: "백엔드를 실행한 뒤 첫 메모를 저장해보세요.",
+      requiredMessage: "제목과 내용을 모두 입력해주세요.",
+      createdMessage: "메모가 저장되었습니다.",
+      updatedMessage: "메모가 수정되었습니다.",
+      deletedMessage: "메모가 삭제되었습니다.",
+    },
     footer: "SwingPop · Dance, Music, Community",
   },
   en: {
@@ -169,6 +195,30 @@ const CONTENT = {
         ctaSecondary: "Contact Us",
       },
     ],
+    memoDemo: {
+      eyebrow: "API Demo",
+      title: "Memos",
+      description: "Simple memos persisted through the Spring Boot API and MariaDB.",
+      formTitle: "Write a memo",
+      editFormTitle: "Edit memo",
+      titleLabel: "Title",
+      titlePlaceholder: "E.g. Rhythm from today",
+      contentLabel: "Content",
+      contentPlaceholder: "Leave a short memo.",
+      createButton: "Save",
+      updateButton: "Update",
+      cancelButton: "Cancel",
+      editButton: "Edit",
+      deleteButton: "Delete",
+      listTitle: "Saved memos",
+      loading: "Loading memos...",
+      emptyTitle: "No memos yet.",
+      emptyDescription: "Start the backend, then save your first memo.",
+      requiredMessage: "Please enter both title and content.",
+      createdMessage: "Memo saved.",
+      updatedMessage: "Memo updated.",
+      deletedMessage: "Memo deleted.",
+    },
     footer: "SwingPop · Dance, Music, Community",
   },
 };
@@ -327,6 +377,252 @@ function MobileStickyApplyButton({ label, href = "#register", onClick }) {
       >
         {label}
       </a>
+    </div>
+  );
+}
+
+function createEmptyMemoForm() {
+  return {
+    title: "",
+    content: "",
+  };
+}
+
+function formatMemoDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function MemoBoard({ labels }) {
+  const [memos, setMemos] = useState([]);
+  const [form, setForm] = useState(createEmptyMemoForm);
+  const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const isEditing = editingId !== null;
+
+  const loadMemos = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const nextMemos = await memoApi.findAll();
+      setMemos(nextMemos);
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMemos();
+  }, []);
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setForm(createEmptyMemoForm());
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+
+    const payload = {
+      title: form.title.trim(),
+      content: form.content.trim(),
+    };
+
+    if (!payload.title || !payload.content) {
+      setError(labels.requiredMessage);
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (isEditing) {
+        await memoApi.update(editingId, payload);
+        setNotice(labels.updatedMessage);
+      } else {
+        await memoApi.create(payload);
+        setNotice(labels.createdMessage);
+      }
+
+      resetForm();
+      await loadMemos();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = (memo) => {
+    setEditingId(memo.id);
+    setForm({
+      title: memo.title,
+      content: memo.content,
+    });
+    setError("");
+    setNotice("");
+  };
+
+  const handleDelete = async (memoId) => {
+    setError("");
+    setNotice("");
+
+    try {
+      await memoApi.remove(memoId);
+      if (editingId === memoId) {
+        resetForm();
+      }
+      setNotice(labels.deletedMessage);
+      await loadMemos();
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <div>
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
+          {labels.eyebrow}
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
+          {labels.title}
+        </h2>
+        <p className="mt-4 max-w-xl text-base leading-8 text-blue-950/70">
+          {labels.description}
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-8 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+          <h3 className="text-xl font-semibold text-blue-950">
+            {isEditing ? labels.editFormTitle : labels.formTitle}
+          </h3>
+
+          <label className="mt-5 block text-sm font-medium text-blue-950/75" htmlFor="memo-title">
+            {labels.titleLabel}
+          </label>
+          <input
+            id="memo-title"
+            name="title"
+            type="text"
+            value={form.title}
+            onChange={handleFormChange}
+            placeholder={labels.titlePlaceholder}
+            className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+
+          <label className="mt-4 block text-sm font-medium text-blue-950/75" htmlFor="memo-content">
+            {labels.contentLabel}
+          </label>
+          <textarea
+            id="memo-content"
+            name="content"
+            value={form.content}
+            onChange={handleFormChange}
+            placeholder={labels.contentPlaceholder}
+            rows={5}
+            className="mt-2 w-full resize-none rounded-2xl border border-blue-200 px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {isEditing ? labels.updateButton : labels.createButton}
+            </button>
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50"
+              >
+                {labels.cancelButton}
+              </button>
+            ) : null}
+          </div>
+        </form>
+      </div>
+
+      <div className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="text-xl font-semibold text-blue-950">{labels.listTitle}</h3>
+          {isLoading ? <span className="text-sm text-blue-950/50">{labels.loading}</span> : null}
+        </div>
+
+        <div className="mt-4 space-y-3" aria-live="polite">
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+              {error}
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+              {notice}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-4">
+          {!isLoading && memos.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/70 p-6">
+              <div className="text-base font-semibold text-blue-950">{labels.emptyTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-blue-950/65">{labels.emptyDescription}</p>
+            </div>
+          ) : null}
+
+          {memos.map((memo) => (
+            <article key={memo.id} className="rounded-3xl border border-blue-100 bg-blue-50/50 p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-blue-950">{memo.title}</h4>
+                  <p className="mt-1 text-xs text-blue-950/45">{formatMemoDate(memo.updatedAt)}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(memo)}
+                    className="rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-950 transition hover:bg-blue-50"
+                  >
+                    {labels.editButton}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(memo.id)}
+                    className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                  >
+                    {labels.deleteButton}
+                  </button>
+                </div>
+              </div>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-blue-950/70">{memo.content}</p>
+            </article>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -602,6 +898,10 @@ export default function App() {
                 </a>
               </div>
             </div>
+          </SectionWrapper>
+
+          <SectionWrapper id="memos" className="bg-white/75">
+            <MemoBoard labels={t.memoDemo} />
           </SectionWrapper>
         </main>
 
