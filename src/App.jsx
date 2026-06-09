@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+import AdminApp from "./AdminApp";
 import { memoApi } from "./api/memos";
 
 const CONTENT = {
@@ -627,7 +628,7 @@ function MemoBoard({ labels }) {
   );
 }
 
-export default function App() {
+function PublicApp() {
   const [language, setLanguage] = useState(null);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -914,4 +915,14 @@ export default function App() {
       </div>
     </>
   );
+}
+
+export default function App() {
+  const isAdminPath = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+
+  if (isAdminPath) {
+    return <AdminApp />;
+  }
+
+  return <PublicApp />;
 }

@@ -36,6 +36,40 @@ PUT    /api/memos/{id}
 DELETE /api/memos/{id}
 ```
 
+The backend also exposes admin authentication and account-management APIs:
+
+```text
+POST   /api/admin/auth/login
+GET    /api/admin/auth/me
+POST   /api/admin/auth/logout
+GET    /api/admin/users/admins
+POST   /api/admin/users/admins
+PUT    /api/admin/users/admins/{adminUserCd}
+PATCH  /api/admin/users/admins/{adminUserCd}/deactivate
+GET    /api/admin/users/teachers
+POST   /api/admin/users/teachers
+PUT    /api/admin/users/teachers/{teacherUserCd}
+PATCH  /api/admin/users/teachers/{teacherUserCd}/deactivate
+```
+
+Admin users are stored in `ADMIN_USER_M`, and teacher login users are stored in `TEACHER_USER_M`.
+Passwords are stored as salted PBKDF2 hashes, never as plaintext.
+Both tables include `LANG_CD` for admin UI language settings. Supported values are `Kor` and `Eng`.
+When the backend starts, it seeds the first super administrator if missing:
+
+```text
+id:       admin
+password: 1234
+```
+
+The admin UI is intentionally hidden from the public page navigation. Open it directly at:
+
+```text
+http://localhost:5173/admin
+```
+
+Admin UI internationalization guidelines are documented in `docs/admin-i18n.md`.
+
 Example request body:
 
 ```json
