@@ -2,6 +2,17 @@ const DEFAULT_API_BASE_URL = "http://localhost:8080";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, "");
 
+function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, value);
+    }
+  });
+  const queryString = query.toString();
+  return queryString ? `?${queryString}` : "";
+}
+
 async function request(path, options = {}) {
   const { token, body, headers, ...fetchOptions } = options;
 
@@ -88,5 +99,148 @@ export const adminApi = {
       method: "PATCH",
       token,
     });
+  },
+  bootstrapKnowledgeBase(token) {
+    return request("/api/admin/knowledge-base/bootstrap", { token });
+  },
+  findKnowledgeCategories(token) {
+    return request("/api/admin/knowledge-categories", { token });
+  },
+  createKnowledgeCategory(token, payload) {
+    return request("/api/admin/knowledge-categories", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateKnowledgeCategory(token, id, payload) {
+    return request(`/api/admin/knowledge-categories/${id}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteKnowledgeCategory(token, id) {
+    return request(`/api/admin/knowledge-categories/${id}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  findKnowledgeItems(token) {
+    return request("/api/admin/knowledge-items", { token });
+  },
+  findKnowledgeItem(token, id) {
+    return request(`/api/admin/knowledge-items/${id}`, { token });
+  },
+  createKnowledgeItem(token, payload) {
+    return request("/api/admin/knowledge-items", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateKnowledgeItem(token, id, payload) {
+    return request(`/api/admin/knowledge-items/${id}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteKnowledgeItem(token, id) {
+    return request(`/api/admin/knowledge-items/${id}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  findEvents(token, params = {}) {
+    return request(`/api/admin/events${buildQuery(params)}`, { token });
+  },
+  findEvent(token, eventId) {
+    return request(`/api/admin/events/${eventId}`, { token });
+  },
+  createEvent(token, payload) {
+    return request("/api/admin/events", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateEvent(token, eventId, payload) {
+    return request(`/api/admin/events/${eventId}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteEvent(token, eventId) {
+    return request(`/api/admin/events/${eventId}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  findEventLessons(token, eventId) {
+    return request(`/api/admin/events/${eventId}/lessons`, { token });
+  },
+  createLesson(token, eventId, payload) {
+    return request(`/api/admin/events/${eventId}/lessons`, {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateLesson(token, lessonId, payload) {
+    return request(`/api/admin/lessons/${lessonId}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteLesson(token, lessonId) {
+    return request(`/api/admin/lessons/${lessonId}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  findActiveTeachers(token) {
+    return request("/api/admin/teachers/active", { token });
+  },
+  findMessageTemplates(token) {
+    return request("/api/admin/message-templates", { token });
+  },
+  findMessageTemplate(token, templateId) {
+    return request(`/api/admin/message-templates/${templateId}`, { token });
+  },
+  createMessageTemplate(token, payload) {
+    return request("/api/admin/message-templates", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateMessageTemplate(token, templateId, payload) {
+    return request(`/api/admin/message-templates/${templateId}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteMessageTemplate(token, templateId) {
+    return request(`/api/admin/message-templates/${templateId}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  renderMessageTemplate(token, templateId, payload) {
+    return request(`/api/admin/message-templates/${templateId}/render`, {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  findTeacherDashboard(token) {
+    return request("/api/teacher/dashboard", { token });
+  },
+  findTeacherLessons(token, params) {
+    return request(`/api/teacher/dashboard/my-lessons${buildQuery(params)}`, { token });
   },
 };

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminApi } from "./api/admin";
+import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
+import KnowledgeBasePanel from "./KnowledgeBasePanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 const LOGIN_LANGUAGE_STORAGE_KEY = "swingpop-admin-login-language";
@@ -13,6 +15,9 @@ const I18N = {
     checkingSession: "관리자 세션 확인 중",
     menus: {
       DASHBOARD: "관리자 홈",
+      EVENT_MANAGEMENT: "이벤트/강습 관리",
+      KNOWLEDGE_BASE: "운영 매뉴얼",
+      MESSAGE_TEMPLATES: "메시지 템플릿",
       ADMIN_USERS: "운영진 관리",
       TEACHER_USERS: "강사 관리",
     },
@@ -43,6 +48,7 @@ const I18N = {
       edit: "수정",
       save: "수정 완료",
       saving: "저장 중",
+      delete: "삭제",
       deactivate: "비활성화",
       logout: "로그아웃",
       loading: "불러오는 중",
@@ -59,6 +65,50 @@ const I18N = {
       language: "표시 언어",
       updatedAt: "수정일",
       actions: "작업",
+    },
+    knowledgeBase: {
+      searchLabel: "검색",
+      searchPlaceholder: "카테고리, 제목, 요약, 본문, 태그로 검색",
+      categoryFilter: "카테고리",
+      allCategories: "전체 카테고리",
+      manualLanguage: "매뉴얼 언어",
+      translationMissing: "Translation missing",
+      resultsTitle: "검색 결과",
+      noResults: "검색 결과가 없습니다.",
+      selectItem: "왼쪽 목록에서 문서를 선택해주세요.",
+      category: "카테고리",
+      categoryName: "카테고리명",
+      categoryDescription: "설명",
+      categoryListTitle: "카테고리 목록",
+      title: "제목",
+      summary: "요약",
+      content: "본문",
+      tags: "태그",
+      tagsPlaceholder: "쉼표로 구분해 입력",
+      status: "상태",
+      statuses: {
+        DRAFT: "초안",
+        PUBLISHED: "게시",
+        ARCHIVED: "보관",
+      },
+      displayOrder: "표시 순서",
+      decisionDate: "결정일",
+      effectiveFrom: "적용 시작일",
+      effectiveTo: "적용 종료일",
+      sourceNote: "출처 메모",
+      lastUpdated: "마지막 수정일",
+      createItemTitle: "문서 등록",
+      editItemTitle: "문서 수정",
+      createCategoryTitle: "카테고리 등록",
+      editCategoryTitle: "카테고리 수정",
+      itemCreated: "운영 매뉴얼 문서가 등록되었습니다.",
+      itemUpdated: "운영 매뉴얼 문서가 수정되었습니다.",
+      itemDeleted: "운영 매뉴얼 문서가 삭제되었습니다.",
+      categoryCreated: "카테고리가 등록되었습니다.",
+      categoryUpdated: "카테고리가 수정되었습니다.",
+      categoryDeleted: "카테고리가 삭제되었습니다.",
+      confirmDeleteItem: (title) => `${title} 문서를 삭제할까요?`,
+      confirmDeleteCategory: (name) => `${name} 카테고리를 삭제할까요?`,
     },
     dashboard: {
       title: "관리자 홈",
@@ -88,6 +138,9 @@ const I18N = {
     checkingSession: "Checking admin session",
     menus: {
       DASHBOARD: "Dashboard",
+      EVENT_MANAGEMENT: "Events & Lessons",
+      KNOWLEDGE_BASE: "Operations Manual",
+      MESSAGE_TEMPLATES: "Message Templates",
       ADMIN_USERS: "Staff Users",
       TEACHER_USERS: "Teacher Users",
     },
@@ -118,6 +171,7 @@ const I18N = {
       edit: "Edit",
       save: "Save Changes",
       saving: "Saving",
+      delete: "Delete",
       deactivate: "Deactivate",
       logout: "Log Out",
       loading: "Loading",
@@ -134,6 +188,50 @@ const I18N = {
       language: "Display Language",
       updatedAt: "Updated",
       actions: "Actions",
+    },
+    knowledgeBase: {
+      searchLabel: "Search",
+      searchPlaceholder: "Search categories, titles, summaries, content, and tags",
+      categoryFilter: "Category",
+      allCategories: "All Categories",
+      manualLanguage: "Manual Language",
+      translationMissing: "Translation missing",
+      resultsTitle: "Results",
+      noResults: "No matching documents.",
+      selectItem: "Select a document from the list.",
+      category: "Category",
+      categoryName: "Category Name",
+      categoryDescription: "Description",
+      categoryListTitle: "Categories",
+      title: "Title",
+      summary: "Summary",
+      content: "Content",
+      tags: "Tags",
+      tagsPlaceholder: "Separate tags with commas",
+      status: "Status",
+      statuses: {
+        DRAFT: "Draft",
+        PUBLISHED: "Published",
+        ARCHIVED: "Archived",
+      },
+      displayOrder: "Display Order",
+      decisionDate: "Decision Date",
+      effectiveFrom: "Effective From",
+      effectiveTo: "Effective To",
+      sourceNote: "Source Note",
+      lastUpdated: "Last Updated",
+      createItemTitle: "Create Document",
+      editItemTitle: "Edit Document",
+      createCategoryTitle: "Create Category",
+      editCategoryTitle: "Edit Category",
+      itemCreated: "Knowledge base document has been created.",
+      itemUpdated: "Knowledge base document has been updated.",
+      itemDeleted: "Knowledge base document has been deleted.",
+      categoryCreated: "Category has been created.",
+      categoryUpdated: "Category has been updated.",
+      categoryDeleted: "Category has been deleted.",
+      confirmDeleteItem: (title) => `Delete ${title}?`,
+      confirmDeleteCategory: (name) => `Delete ${name} category?`,
     },
     dashboard: {
       title: "Dashboard",
@@ -1031,7 +1129,21 @@ export default function AdminApp() {
         </aside>
 
         <main>
-          {activeMenu === "DASHBOARD" ? <DashboardPanel session={session} labels={labels} /> : null}
+          {activeMenu === "DASHBOARD" && session.user.role === "TEACHER" ? (
+            <TeacherDashboardPanel token={token} langCd={langCd} />
+          ) : null}
+          {activeMenu === "DASHBOARD" && session.user.role !== "TEACHER" ? (
+            <DashboardPanel session={session} labels={labels} />
+          ) : null}
+          {activeMenu === "EVENT_MANAGEMENT" ? (
+            <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
+          {activeMenu === "KNOWLEDGE_BASE" ? (
+            <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
+          ) : null}
+          {activeMenu === "MESSAGE_TEMPLATES" ? (
+            <MessageTemplatePanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
           {activeMenu === "ADMIN_USERS" ? (
             <AdminUsersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}

@@ -54,7 +54,14 @@ class AdminAuthServiceTest {
         assertThat(response.accessToken()).isNotBlank();
         assertThat(response.user().role()).isEqualTo(AdminRole.SUPER_ADMIN);
         assertThat(response.user().langCd()).isEqualTo(AdminLanguage.Kor);
-        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD, AdminMenu.ADMIN_USERS, AdminMenu.TEACHER_USERS);
+        assertThat(response.menus()).containsExactly(
+                AdminMenu.DASHBOARD,
+                AdminMenu.EVENT_MANAGEMENT,
+                AdminMenu.KNOWLEDGE_BASE,
+                AdminMenu.MESSAGE_TEMPLATES,
+                AdminMenu.ADMIN_USERS,
+                AdminMenu.TEACHER_USERS
+        );
     }
 
     @Test
@@ -74,7 +81,7 @@ class AdminAuthServiceTest {
 
         assertThat(response.user().role()).isEqualTo(AdminRole.TEACHER);
         assertThat(response.user().langCd()).isEqualTo(AdminLanguage.Eng);
-        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD);
+        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD, AdminMenu.KNOWLEDGE_BASE);
     }
 
     @Test

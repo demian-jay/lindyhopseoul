@@ -1,6 +1,6 @@
 # lindyhopseoul
 
-A mobile-first React page for introducing Lindy Hop and the swing dance community in Seoul. The repository now also includes a minimal Spring Boot + MariaDB backend so the app can save and load example memo data.
+A mobile-first React page for introducing Lindy Hop and the swing dance community in Seoul. The repository now also includes a Spring Boot + MariaDB backend for memo examples, admin login, SwingPop operations manual management, and event/lesson operations.
 
 ## Project Structure
 
@@ -52,6 +52,163 @@ PUT    /api/admin/users/teachers/{teacherUserCd}
 PATCH  /api/admin/users/teachers/{teacherUserCd}/deactivate
 ```
 
+The admin operations manual is implemented with the code/domain name `KnowledgeBase`:
+
+```text
+GET    /api/admin/knowledge-base/bootstrap
+GET    /api/admin/knowledge-categories
+POST   /api/admin/knowledge-categories
+PUT    /api/admin/knowledge-categories/{id}
+DELETE /api/admin/knowledge-categories/{id}
+GET    /api/admin/knowledge-items
+GET    /api/admin/knowledge-items/{id}
+POST   /api/admin/knowledge-items
+PUT    /api/admin/knowledge-items/{id}
+DELETE /api/admin/knowledge-items/{id}
+```
+
+`GET /api/admin/knowledge-base/bootstrap` returns the data needed by the operations manual screen in one response, including all supported translations:
+
+```json
+{
+  "defaultLanguage": "ko",
+  "supportedLanguages": ["ko", "en"],
+  "categories": [
+    {
+      "id": 1,
+      "displayOrder": 10,
+      "translations": {
+        "ko": {
+          "name": "수업 정책",
+          "description": "수업 가격, 수강 기준, 레벨 이동 규칙"
+        },
+        "en": {
+          "name": "Class Policy",
+          "description": "Class prices, attendance rules, and level-up policies"
+        }
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": 1,
+      "categoryId": 1,
+      "status": "PUBLISHED",
+      "translations": {
+        "ko": {
+          "title": "Level 1 수업 가격",
+          "summary": "Level 1 4주 수업료 및 댄스홀 입장료 안내",
+          "content": "Level 1 수업은 4주 과정이며...",
+          "tags": ["level1", "가격", "수업료"]
+        },
+        "en": {
+          "title": "Level 1 Class Price",
+          "summary": "Information about the 4-week Level 1 class fee and dance hall entrance fee",
+          "content": "The Level 1 class is a 4-week course...",
+          "tags": ["level1", "price", "class fee"]
+        }
+      }
+    }
+  ]
+}
+```
+
+By default, bootstrap returns only `PUBLISHED` knowledge items. The React admin screen loads this bootstrap payload once when the page opens, then filters in browser JavaScript by category, title, summary, content, and tags without calling the server on every search keystroke.
+Search covers all translations, so Korean and English terms can find the same rule. Display falls back to `ko` when a selected translation is missing.
+
+SwingPop event and lesson management is available through the admin API:
+
+```text
+GET    /api/admin/teachers/active
+GET    /api/admin/events?from=yyyy-MM-dd&to=yyyy-MM-dd&eventType=PARTY&status=PUBLISHED
+GET    /api/admin/events/{eventId}
+POST   /api/admin/events
+PUT    /api/admin/events/{eventId}
+DELETE /api/admin/events/{eventId}
+GET    /api/admin/events/{eventId}/lessons
+POST   /api/admin/events/{eventId}/lessons
+PUT    /api/admin/lessons/{lessonId}
+DELETE /api/admin/lessons/{lessonId}
+GET    /api/admin/message-templates
+GET    /api/admin/message-templates/{templateId}
+POST   /api/admin/message-templates
+PUT    /api/admin/message-templates/{templateId}
+DELETE /api/admin/message-templates/{templateId}
+POST   /api/admin/message-templates/{templateId}/render
+GET    /api/teacher/dashboard
+GET    /api/teacher/dashboard/active-lessons
+GET    /api/teacher/dashboard/my-lessons?from=yyyy-MM-dd&to=yyyy-MM-dd
+```
+
+Event and lesson display text is multilingual. `EventTranslation` stores `title`, `shortDescription`, and `description`; `LessonTranslation` stores `title` and `description`.
+The supported language codes are `ko` and `en`. Admin forms capture Korean and English text separately.
+Events store `startDate` and `endDate`. Single-day events store the same date in both fields.
+Lessons store `scheduleType`, `startDate`, and `endDate`; `SINGLE_DAY` lessons store the same date in both fields, while `PERIOD` lessons can span multiple dates.
+The teacher dashboard returns `PUBLISHED` lessons assigned to the logged-in teacher where `lesson.endDate >= today`, with `lessonDisplayStatus` calculated as `UPCOMING`, `ACTIVE`, or `ENDED`. The default dashboard excludes ended lessons.
+
+Lesson teachers are linked to `TEACHER_USER_M` through `LESSON_TEACHER.TEACHER_USER_ID`.
+Only teachers with `TEACHER_USER_M.USE_YN = 'Y'` can be assigned to a lesson. Lesson create/update requests fail when a missing or inactive teacher ID is included.
+
+Event permissions:
+
+```text
+SUPER_ADMIN: event/lesson create, update, delete; message template create, update, delete; promotion render
+STAFF:       event/lesson create, update; promotion render
+TEACHER:     own lesson dashboard
+```
+
+Message template render requests accept `eventId` and `languageCode`, then return `renderedText`.
+Available template variables:
+
+```text
+{{event.title.ko}}
+{{event.title.en}}
+{{event.shortDescription.ko}}
+{{event.shortDescription.en}}
+{{event.description.ko}}
+{{event.description.en}}
+{{event.date}}
+{{event.startDate}}
+{{event.endDate}}
+{{event.startTime}}
+{{event.endTime}}
+{{event.location}}
+{{lessons.all.ko}}
+{{lessons.all.en}}
+{{lessons.level1.title.ko}}
+{{lessons.level1.title.en}}
+{{lessons.level1.time}}
+{{lessons.level1.fee}}
+{{lessons.level1.teachers}}
+{{lessons.level2.title.ko}}
+{{lessons.level2.title.en}}
+{{lessons.level2.time}}
+{{lessons.level2.fee}}
+{{lessons.level2.teachers}}
+{{lessons.level3.title.ko}}
+{{lessons.level3.title.en}}
+{{lessons.level3.time}}
+{{lessons.level3.fee}}
+{{lessons.level3.teachers}}
+{{lessons.level4.title.ko}}
+{{lessons.level4.title.en}}
+{{lessons.level4.time}}
+{{lessons.level4.fee}}
+{{lessons.level4.teachers}}
+{{lessons.workshop.title.ko}}
+{{lessons.workshop.title.en}}
+{{lessons.workshop.time}}
+{{lessons.workshop.fee}}
+{{lessons.workshop.teachers}}
+{{lessons.experience.title.ko}}
+{{lessons.experience.title.en}}
+{{lessons.experience.time}}
+{{lessons.experience.fee}}
+{{lessons.experience.teachers}}
+```
+
+When multiple lessons match the same lesson-type variable, rendered values are joined with line breaks.
+
 Admin users are stored in `ADMIN_USER_M`, and teacher login users are stored in `TEACHER_USER_M`.
 Passwords are stored as salted PBKDF2 hashes, never as plaintext.
 Both tables include `LANG_CD` for admin UI language settings. Supported values are `Kor` and `Eng`.
@@ -69,6 +226,22 @@ http://localhost:5173/admin
 ```
 
 Admin UI internationalization guidelines are documented in `docs/admin-i18n.md`.
+
+The operations manual is available from the admin sidebar as `운영 매뉴얼` / `Operations Manual`.
+Initial sample categories include class policy, level rules, staff work, teacher work, curriculum, venue rules, party operations, and partnerships.
+Initial sample documents include Level 1 pricing, Level 2 promotion criteria, staff responsibilities, teacher class preparation, Level 1 curriculum content, and dance hall entrance fee policy. Samples include both Korean and English translations.
+
+Event sample data includes:
+
+- 스윙팝 토요 정규수업 / Swingpop Saturday Regular Class
+- 스윙팝 11주년 파티 / Swingpop 11th Anniversary Party
+- Level 1 Beginner Class
+- Level 2 Class
+- Charleston Workshop
+- Beginner Taster Class
+- 파티 홍보글 초안
+- 정규수업 홍보글 초안
+- 강습 안내글 초안
 
 Example request body:
 
@@ -135,7 +308,7 @@ Vite reads `VITE_API_BASE_URL` from `.env`. The default API base URL is `http://
 2. Start MariaDB: `docker compose up -d mariadb`.
 3. Start the backend from `backend/`: `mvn spring-boot:run`.
 4. Start the frontend from the repository root: `npm run dev`.
-5. Open the Vite URL and use the memo section to create, edit, and delete memos.
+5. Open the Vite URL and use the memo section, or open `/admin` and log in with the seeded admin account.
 
 ## Build And Test
 
@@ -154,14 +327,22 @@ mvn test
 
 ## Backend Notes
 
-- JPA is configured with `ddl-auto: update` for local development so the `memos` table can be created automatically.
+- JPA is configured with `ddl-auto: update` for local development so tables such as `memos`, `ADMIN_USER_M`, `TEACHER_USER_M`, `KNOWLEDGE_CATEGORY`, `KNOWLEDGE_CATEGORY_TRANSLATION`, `KNOWLEDGE_ITEM`, `KNOWLEDGE_ITEM_TRANSLATION`, `SWINGPOP_EVENT`, `SWINGPOP_EVENT_TRANSLATION`, `LESSON`, `LESSON_TRANSLATION`, `LESSON_TEACHER`, and `MESSAGE_TEMPLATE` can be created automatically.
 - CORS allows `http://localhost:5173` by default through `APP_CORS_ALLOWED_ORIGINS`.
 - The current exception handling returns a small JSON error response for validation failures, missing resources, and unexpected errors.
+- KnowledgeBase sample data is seeded only when no knowledge categories exist.
+- Event/lesson sample data is seeded only when no events exist. Message template sample data is seeded only when no message templates exist.
+- If no active teacher exists, local seed data creates `teacher1 / 1234` and `teacher2 / 1234` sample teacher accounts.
 
 ## Future Work
 
-- Add authentication, login, and authorization.
 - Add production-safe secret management.
 - Replace `ddl-auto: update` with explicit migrations such as Flyway.
+- Add member signup and member username/password login.
+- Add Kakao and Google social signup/login.
+- Add lesson enrollment, manual participant registration, and payment status management.
+- Add teacher participant list views backed by a future `LessonParticipant` or `LessonEnrollment` table.
+- Add calendar views for events and lessons.
+- Add external public event pages.
 - Add deployment configuration.
 - Expand validation and API test coverage.

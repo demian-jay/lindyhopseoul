@@ -1,0 +1,1586 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+
+import { adminApi } from "./api/admin";
+
+const SUPPORTED_LANGUAGES = ["ko", "en"];
+const EVENT_TYPES = ["PARTY", "REGULAR_CLASS"];
+const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"];
+const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPERIENCE"];
+const LESSON_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED", "ARCHIVED"];
+const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
+const TEMPLATE_VARIABLES = [
+  "{{event.title.ko}}",
+  "{{event.title.en}}",
+  "{{event.shortDescription.ko}}",
+  "{{event.shortDescription.en}}",
+  "{{event.description.ko}}",
+  "{{event.description.en}}",
+  "{{event.date}}",
+  "{{event.startDate}}",
+  "{{event.endDate}}",
+  "{{event.startTime}}",
+  "{{event.endTime}}",
+  "{{event.location}}",
+  "{{lessons.all.ko}}",
+  "{{lessons.all.en}}",
+  "{{lessons.level1.title.ko}}",
+  "{{lessons.level1.title.en}}",
+  "{{lessons.level1.time}}",
+  "{{lessons.level1.fee}}",
+  "{{lessons.level1.teachers}}",
+  "{{lessons.level2.title.ko}}",
+  "{{lessons.level2.title.en}}",
+  "{{lessons.level2.time}}",
+  "{{lessons.level2.fee}}",
+  "{{lessons.level2.teachers}}",
+  "{{lessons.level3.title.ko}}",
+  "{{lessons.level3.title.en}}",
+  "{{lessons.level3.time}}",
+  "{{lessons.level3.fee}}",
+  "{{lessons.level3.teachers}}",
+  "{{lessons.level4.title.ko}}",
+  "{{lessons.level4.title.en}}",
+  "{{lessons.level4.time}}",
+  "{{lessons.level4.fee}}",
+  "{{lessons.level4.teachers}}",
+  "{{lessons.workshop.title.ko}}",
+  "{{lessons.workshop.title.en}}",
+  "{{lessons.workshop.time}}",
+  "{{lessons.workshop.fee}}",
+  "{{lessons.workshop.teachers}}",
+  "{{lessons.experience.title.ko}}",
+  "{{lessons.experience.title.en}}",
+  "{{lessons.experience.time}}",
+  "{{lessons.experience.fee}}",
+  "{{lessons.experience.teachers}}",
+];
+
+const COPY_TEXT = {
+  Kor: {
+    filters: "검색 조건",
+    from: "시작일",
+    to: "종료일",
+    eventType: "이벤트 타입",
+    eventStatus: "이벤트 상태",
+    all: "전체",
+    events: "이벤트",
+    createEvent: "이벤트 등록",
+    edit: "수정",
+    editEvent: "이벤트 수정",
+    eventDetail: "이벤트 상세",
+    noEvents: "이벤트가 없습니다.",
+    selectEvent: "이벤트를 선택해주세요.",
+    addLesson: "강습 추가",
+    editLesson: "강습 수정",
+    promotion: "홍보 메시지 만들기",
+    save: "저장",
+    create: "등록",
+    cancel: "취소",
+    delete: "삭제",
+    render: "미리보기 생성",
+    copy: "복사하기",
+    copied: "클립보드에 복사되었습니다.",
+    loading: "불러오는 중",
+    eventStartDate: "이벤트 시작일",
+    eventEndDate: "이벤트 종료일",
+    startTime: "시작 시간",
+    endTime: "종료 시간",
+    location: "장소",
+    displayOrder: "정렬 순서",
+    languageInfo: "한국어/영어 정보",
+    title: "제목",
+    shortDescription: "간단 설명",
+    description: "설명",
+    lessons: "강습",
+    lessonType: "강습 타입",
+    scheduleType: "스케줄 타입",
+    lessonStartDate: "강습 시작일",
+    lessonEndDate: "강습 종료일",
+    lessonStatus: "강습 상태",
+    fee: "강습비",
+    currency: "통화",
+    teachers: "강사",
+    templates: "메시지 템플릿",
+    templateName: "템플릿명",
+    templateType: "템플릿 유형",
+    useYn: "사용 여부",
+    content: "본문",
+    variables: "사용 가능한 변수",
+    preview: "미리보기",
+    event: "이벤트",
+    language: "언어",
+    todayLessons: "오늘 진행되는 강습",
+    activeRegularLessons: "진행 중인 정규수업",
+    upcomingLessons: "예정된 강습",
+    myLessons: "내 강습 목록",
+    participants: "수강생",
+    noLessons: "강습이 없습니다.",
+    eventSaved: "이벤트가 저장되었습니다.",
+    lessonSaved: "강습이 저장되었습니다.",
+    templateSaved: "템플릿이 저장되었습니다.",
+    eventDeleted: "이벤트가 삭제되었습니다.",
+    lessonDeleted: "강습이 삭제되었습니다.",
+    templateDeleted: "템플릿이 삭제되었습니다.",
+    confirmDeleteEvent: "이 이벤트를 삭제할까요?",
+    confirmDeleteLesson: "이 강습을 삭제할까요?",
+    confirmDeleteTemplate: "이 템플릿을 삭제할까요?",
+  },
+  Eng: {
+    filters: "Filters",
+    from: "From",
+    to: "To",
+    eventType: "Event Type",
+    eventStatus: "Event Status",
+    all: "All",
+    events: "Events",
+    createEvent: "Create Event",
+    edit: "Edit",
+    editEvent: "Edit Event",
+    eventDetail: "Event Detail",
+    noEvents: "No events.",
+    selectEvent: "Select an event.",
+    addLesson: "Add Lesson",
+    editLesson: "Edit Lesson",
+    promotion: "Create Promotion Message",
+    save: "Save",
+    create: "Create",
+    cancel: "Cancel",
+    delete: "Delete",
+    render: "Generate Preview",
+    copy: "Copy",
+    copied: "Copied to clipboard.",
+    loading: "Loading",
+    eventStartDate: "Event Start Date",
+    eventEndDate: "Event End Date",
+    startTime: "Start Time",
+    endTime: "End Time",
+    location: "Location",
+    displayOrder: "Display Order",
+    languageInfo: "Korean / English Info",
+    title: "Title",
+    shortDescription: "Short Description",
+    description: "Description",
+    lessons: "Lessons",
+    lessonType: "Lesson Type",
+    scheduleType: "Schedule Type",
+    lessonStartDate: "Lesson Start Date",
+    lessonEndDate: "Lesson End Date",
+    lessonStatus: "Lesson Status",
+    fee: "Fee",
+    currency: "Currency",
+    teachers: "Teachers",
+    templates: "Message Templates",
+    templateName: "Template Name",
+    templateType: "Template Type",
+    useYn: "Use",
+    content: "Content",
+    variables: "Available Variables",
+    preview: "Preview",
+    event: "Event",
+    language: "Language",
+    todayLessons: "Lessons Today",
+    activeRegularLessons: "Active Regular Classes",
+    upcomingLessons: "Upcoming Lessons",
+    myLessons: "My Lessons",
+    participants: "Participants",
+    noLessons: "No lessons.",
+    eventSaved: "Event has been saved.",
+    lessonSaved: "Lesson has been saved.",
+    templateSaved: "Template has been saved.",
+    eventDeleted: "Event has been deleted.",
+    lessonDeleted: "Lesson has been deleted.",
+    templateDeleted: "Template has been deleted.",
+    confirmDeleteEvent: "Delete this event?",
+    confirmDeleteLesson: "Delete this lesson?",
+    confirmDeleteTemplate: "Delete this template?",
+  },
+};
+
+function t(langCd) {
+  return COPY_TEXT[langCd] || COPY_TEXT.Kor;
+}
+
+function toManualLanguage(langCd) {
+  return langCd === "Eng" ? "en" : "ko";
+}
+
+function monthRange() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    from: toDateInput(first),
+    to: toDateInput(last),
+    eventType: "",
+    status: "",
+  };
+}
+
+function toDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeInput(value) {
+  return value ? String(value).slice(0, 5) : "";
+}
+
+function formatDateRange(startDate, endDate) {
+  if (!startDate && !endDate) {
+    return "-";
+  }
+  if (!endDate || startDate === endDate) {
+    return startDate;
+  }
+  return `${startDate} - ${endDate}`;
+}
+
+function emptyEventForm() {
+  return {
+    eventType: "REGULAR_CLASS",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    status: "DRAFT",
+    displayOrder: 10,
+    translations: {
+      ko: { title: "", shortDescription: "", description: "" },
+      en: { title: "", shortDescription: "", description: "" },
+    },
+  };
+}
+
+function emptyLessonForm() {
+  return {
+    lessonType: "LEVEL1",
+    scheduleType: "SINGLE_DAY",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
+    fee: "0",
+    currency: "KRW",
+    status: "DRAFT",
+    displayOrder: 10,
+    teacherUserIds: [],
+    translations: {
+      ko: { title: "", description: "" },
+      en: { title: "", description: "" },
+    },
+  };
+}
+
+function emptyTemplateForm() {
+  return {
+    templateName: "",
+    templateType: "EVENT_PROMOTION",
+    content: "",
+    useYn: "Y",
+  };
+}
+
+function translation(entity, languageCode) {
+  return entity?.translations?.[languageCode] || entity?.translations?.ko || {};
+}
+
+function eventTitle(event, languageCode) {
+  return translation(event, languageCode).title || "-";
+}
+
+function lessonTitle(lesson, languageCode) {
+  return translation(lesson, languageCode).title || "-";
+}
+
+function localizedTitle(titles, languageCode) {
+  return titles?.[languageCode] || titles?.ko || "-";
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold text-zinc-600">{label}</span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+function TextInput(props) {
+  return (
+    <input
+      {...props}
+      className="min-h-[40px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+    />
+  );
+}
+
+function SelectInput(props) {
+  return (
+    <select
+      {...props}
+      className="min-h-[40px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+    />
+  );
+}
+
+function TextArea(props) {
+  return (
+    <textarea
+      {...props}
+      className="min-h-[96px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+    />
+  );
+}
+
+function Notice({ type = "error", children }) {
+  if (!children) {
+    return null;
+  }
+  const className =
+    type === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-red-200 bg-red-50 text-red-700";
+  return <div className={`rounded-lg border px-3 py-2 text-sm ${className}`}>{children}</div>;
+}
+
+function Badge({ children }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+      {children}
+    </span>
+  );
+}
+
+function PrimaryButton(props) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 ${props.className || ""}`}
+    />
+  );
+}
+
+function SecondaryButton(props) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+    />
+  );
+}
+
+function DangerButton(props) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+    />
+  );
+}
+
+function LanguageTabs({ activeLanguage, onChange }) {
+  return (
+    <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+      {SUPPORTED_LANGUAGES.map((languageCode) => (
+        <button
+          key={languageCode}
+          type="button"
+          onClick={() => onChange(languageCode)}
+          className={`min-h-[32px] rounded-md px-3 text-xs font-semibold ${
+            activeLanguage === languageCode ? "bg-white text-teal-700 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
+          }`}
+        >
+          {languageCode === "ko" ? "한국어" : "English"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
+  const copy = t(langCd);
+  const [form, setForm] = useState(initialValue || emptyEventForm());
+  const [activeLanguage, setActiveLanguage] = useState("ko");
+
+  useEffect(() => {
+    setForm(initialValue || emptyEventForm());
+  }, [initialValue]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleTranslationChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      translations: {
+        ...current.translations,
+        [activeLanguage]: {
+          ...current.translations[activeLanguage],
+          [name]: value,
+        },
+      },
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({
+      ...form,
+      displayOrder: Number(form.displayOrder || 0),
+      translations: normalizeTranslations(form.translations),
+    });
+  };
+
+  const activeTranslation = form.translations[activeLanguage];
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+        <h2 className="text-lg font-bold text-zinc-950">{initialValue?.id ? copy.editEvent : copy.createEvent}</h2>
+        <SecondaryButton type="button" onClick={onCancel}>
+          {copy.cancel}
+        </SecondaryButton>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Field label={copy.eventType}>
+          <SelectInput name="eventType" value={form.eventType} onChange={handleChange}>
+            {EVENT_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label={copy.eventStatus}>
+          <SelectInput name="status" value={form.status} onChange={handleChange}>
+            {EVENT_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label={copy.eventStartDate}>
+          <TextInput type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+        </Field>
+        <Field label={copy.eventEndDate}>
+          <TextInput type="date" name="endDate" value={form.endDate} onChange={handleChange} />
+        </Field>
+        <Field label={copy.displayOrder}>
+          <TextInput type="number" name="displayOrder" value={form.displayOrder} onChange={handleChange} />
+        </Field>
+        <Field label={copy.startTime}>
+          <TextInput type="time" name="startTime" value={toTimeInput(form.startTime)} onChange={handleChange} />
+        </Field>
+        <Field label={copy.endTime}>
+          <TextInput type="time" name="endTime" value={toTimeInput(form.endTime)} onChange={handleChange} />
+        </Field>
+        <div className="md:col-span-2">
+          <Field label={copy.location}>
+            <TextInput name="location" value={form.location} onChange={handleChange} />
+          </Field>
+        </div>
+      </div>
+      <div className="mt-5 border-t border-zinc-200 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold text-zinc-950">{copy.languageInfo}</h3>
+          <LanguageTabs activeLanguage={activeLanguage} onChange={setActiveLanguage} />
+        </div>
+        <div className="mt-4 grid gap-4">
+          <Field label={activeLanguage === "ko" ? "한국어 제목" : "English Title"}>
+            <TextInput name="title" value={activeTranslation.title} onChange={handleTranslationChange} />
+          </Field>
+          <Field label={activeLanguage === "ko" ? "한국어 간단 설명" : "English Short Description"}>
+            <TextInput name="shortDescription" value={activeTranslation.shortDescription} onChange={handleTranslationChange} />
+          </Field>
+          <Field label={activeLanguage === "ko" ? "한국어 설명" : "English Description"}>
+            <TextArea name="description" value={activeTranslation.description} onChange={handleTranslationChange} rows={5} />
+          </Field>
+        </div>
+      </div>
+      <PrimaryButton type="submit" disabled={isSaving} className="mt-5 w-full">
+        {initialValue?.id ? copy.save : copy.create}
+      </PrimaryButton>
+    </form>
+  );
+}
+
+function LessonForm({ langCd, teachers, initialValue, onSubmit, onCancel, isSaving }) {
+  const copy = t(langCd);
+  const [form, setForm] = useState(initialValue || emptyLessonForm());
+  const [activeLanguage, setActiveLanguage] = useState("ko");
+
+  useEffect(() => {
+    setForm(initialValue || emptyLessonForm());
+  }, [initialValue]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => {
+      if (name === "scheduleType" && value === "SINGLE_DAY") {
+        return { ...current, scheduleType: value, endDate: current.startDate };
+      }
+      if (name === "startDate" && current.scheduleType === "SINGLE_DAY") {
+        return { ...current, startDate: value, endDate: value };
+      }
+      return { ...current, [name]: value };
+    });
+  };
+
+  const handleTeacherToggle = (teacherUserId) => {
+    setForm((current) => {
+      const exists = current.teacherUserIds.includes(teacherUserId);
+      return {
+        ...current,
+        teacherUserIds: exists
+          ? current.teacherUserIds.filter((id) => id !== teacherUserId)
+          : [...current.teacherUserIds, teacherUserId],
+      };
+    });
+  };
+
+  const handleTranslationChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      translations: {
+        ...current.translations,
+        [activeLanguage]: {
+          ...current.translations[activeLanguage],
+          [name]: value,
+        },
+      },
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({
+      ...form,
+      endDate: form.scheduleType === "SINGLE_DAY" ? form.startDate : form.endDate,
+      fee: Number(form.fee || 0),
+      displayOrder: Number(form.displayOrder || 0),
+      translations: normalizeLessonTranslations(form.translations),
+    });
+  };
+
+  const activeTranslation = form.translations[activeLanguage];
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+        <h2 className="text-lg font-bold text-zinc-950">{initialValue?.id ? copy.editLesson : copy.addLesson}</h2>
+        <SecondaryButton type="button" onClick={onCancel}>
+          {copy.cancel}
+        </SecondaryButton>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Field label={copy.lessonType}>
+          <SelectInput name="lessonType" value={form.lessonType} onChange={handleChange}>
+            {LESSON_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label={copy.scheduleType}>
+          <SelectInput name="scheduleType" value={form.scheduleType} onChange={handleChange}>
+            <option value="SINGLE_DAY">SINGLE_DAY</option>
+            <option value="PERIOD">PERIOD</option>
+          </SelectInput>
+        </Field>
+        <Field label={copy.lessonStatus}>
+          <SelectInput name="status" value={form.status} onChange={handleChange}>
+            {LESSON_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label={copy.lessonStartDate}>
+          <TextInput type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+        </Field>
+        {form.scheduleType === "PERIOD" ? (
+          <Field label={copy.lessonEndDate}>
+            <TextInput type="date" name="endDate" value={form.endDate} onChange={handleChange} />
+          </Field>
+        ) : null}
+        <Field label={copy.startTime}>
+          <TextInput type="time" name="startTime" value={toTimeInput(form.startTime)} onChange={handleChange} />
+        </Field>
+        <Field label={copy.endTime}>
+          <TextInput type="time" name="endTime" value={toTimeInput(form.endTime)} onChange={handleChange} />
+        </Field>
+        <Field label={copy.fee}>
+          <TextInput type="number" name="fee" value={form.fee} onChange={handleChange} />
+        </Field>
+        <Field label={copy.currency}>
+          <TextInput name="currency" value={form.currency} onChange={handleChange} />
+        </Field>
+        <Field label={copy.displayOrder}>
+          <TextInput type="number" name="displayOrder" value={form.displayOrder} onChange={handleChange} />
+        </Field>
+      </div>
+      <div className="mt-5">
+        <div className="text-xs font-semibold text-zinc-600">{copy.teachers}</div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {teachers.map((teacher) => (
+            <label key={teacher.teacherUserId} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.teacherUserIds.includes(teacher.teacherUserId)}
+                onChange={() => handleTeacherToggle(teacher.teacherUserId)}
+              />
+              <span className="font-semibold text-zinc-800">{teacher.teacherUserNm}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 border-t border-zinc-200 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold text-zinc-950">{copy.languageInfo}</h3>
+          <LanguageTabs activeLanguage={activeLanguage} onChange={setActiveLanguage} />
+        </div>
+        <div className="mt-4 grid gap-4">
+          <Field label={activeLanguage === "ko" ? "한국어 제목" : "English Title"}>
+            <TextInput name="title" value={activeTranslation.title} onChange={handleTranslationChange} />
+          </Field>
+          <Field label={activeLanguage === "ko" ? "한국어 설명" : "English Description"}>
+            <TextArea name="description" value={activeTranslation.description} onChange={handleTranslationChange} rows={5} />
+          </Field>
+        </div>
+      </div>
+      <PrimaryButton type="submit" disabled={isSaving} className="mt-5 w-full">
+        {initialValue?.id ? copy.save : copy.create}
+      </PrimaryButton>
+    </form>
+  );
+}
+
+export default function EventManagementPanel({ token, currentUser, langCd }) {
+  const copy = t(langCd);
+  const languageCode = toManualLanguage(langCd);
+  const [filters, setFilters] = useState(() => monthRange());
+  const [events, setEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [teachers, setTeachers] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [mode, setMode] = useState("detail");
+  const [eventForm, setEventForm] = useState(null);
+  const [lessonForm, setLessonForm] = useState(null);
+  const [editingLessonId, setEditingLessonId] = useState(null);
+  const [promotion, setPromotion] = useState({ templateId: "", languageCode, renderedText: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const canDelete = currentUser.role === "SUPER_ADMIN";
+
+  const loadEvents = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await adminApi.findEvents(token, filters);
+      setEvents(data);
+      setSelectedEventId((currentId) => currentId || data[0]?.id || null);
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, token]);
+
+  const loadSupportData = useCallback(async () => {
+    try {
+      const [nextTeachers, nextTemplates] = await Promise.all([
+        adminApi.findActiveTeachers(token),
+        adminApi.findMessageTemplates(token),
+      ]);
+      setTeachers(nextTeachers);
+      setTemplates(nextTemplates.filter((template) => template.useYn === "Y"));
+      setPromotion((current) => ({
+        ...current,
+        templateId: current.templateId || nextTemplates.find((template) => template.useYn === "Y")?.id || "",
+      }));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  }, [token]);
+
+  const loadEventDetail = useCallback(async () => {
+    if (!selectedEventId) {
+      setSelectedEvent(null);
+      return;
+    }
+    try {
+      setSelectedEvent(await adminApi.findEvent(token, selectedEventId));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  }, [selectedEventId, token]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  useEffect(() => {
+    loadSupportData();
+  }, [loadSupportData]);
+
+  useEffect(() => {
+    loadEventDetail();
+  }, [loadEventDetail]);
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  const startCreateEvent = () => {
+    setMode("eventForm");
+    setEventForm(emptyEventForm());
+    setNotice("");
+    setError("");
+  };
+
+  const startEditEvent = () => {
+    if (!selectedEvent) {
+      return;
+    }
+    setMode("eventForm");
+    setEventForm(toEventForm(selectedEvent));
+    setNotice("");
+    setError("");
+  };
+
+  const saveEvent = async (payload) => {
+    setIsSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const { id, ...body } = payload;
+      const saved = id ? await adminApi.updateEvent(token, id, body) : await adminApi.createEvent(token, body);
+      setNotice(copy.eventSaved);
+      setSelectedEventId(saved.id);
+      setMode("detail");
+      await loadEvents();
+      await loadEventDetail();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteEvent = async () => {
+    if (!selectedEvent || !window.confirm(copy.confirmDeleteEvent)) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      await adminApi.deleteEvent(token, selectedEvent.id);
+      setNotice(copy.eventDeleted);
+      setSelectedEventId(null);
+      setSelectedEvent(null);
+      await loadEvents();
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  const startCreateLesson = () => {
+    setMode("lessonForm");
+    setEditingLessonId(null);
+    setLessonForm(emptyLessonForm());
+    setNotice("");
+    setError("");
+  };
+
+  const startEditLesson = (lesson) => {
+    setMode("lessonForm");
+    setEditingLessonId(lesson.id);
+    setLessonForm(toLessonForm(lesson));
+    setNotice("");
+    setError("");
+  };
+
+  const saveLesson = async (payload) => {
+    if (!selectedEvent) {
+      return;
+    }
+    setIsSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const { id, ...body } = payload;
+      if (editingLessonId) {
+        await adminApi.updateLesson(token, editingLessonId, body);
+      } else {
+        await adminApi.createLesson(token, selectedEvent.id, body);
+      }
+      setNotice(copy.lessonSaved);
+      setMode("detail");
+      await loadEventDetail();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteLesson = async (lesson) => {
+    if (!window.confirm(copy.confirmDeleteLesson)) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      await adminApi.deleteLesson(token, lesson.id);
+      setNotice(copy.lessonDeleted);
+      await loadEventDetail();
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  const renderPromotion = async () => {
+    if (!selectedEvent || !promotion.templateId) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      const response = await adminApi.renderMessageTemplate(token, promotion.templateId, {
+        eventId: selectedEvent.id,
+        languageCode: promotion.languageCode,
+      });
+      setPromotion((current) => ({ ...current, renderedText: response.renderedText }));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  const copyPromotion = async () => {
+    await navigator.clipboard.writeText(promotion.renderedText);
+    setNotice(copy.copied);
+  };
+
+  const selectedTitle = selectedEvent ? eventTitle(selectedEvent, languageCode) : "";
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[330px_1fr]">
+      <aside className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.events}</h2>
+          <PrimaryButton type="button" onClick={startCreateEvent}>
+            {copy.createEvent}
+          </PrimaryButton>
+        </div>
+        <div className="mt-4 grid gap-3">
+          <Field label={copy.from}>
+            <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
+          </Field>
+          <Field label={copy.to}>
+            <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
+          </Field>
+          <Field label={copy.eventType}>
+            <SelectInput name="eventType" value={filters.eventType} onChange={handleFilterChange}>
+              <option value="">{copy.all}</option>
+              {EVENT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+          <Field label={copy.eventStatus}>
+            <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
+              <option value="">{copy.all}</option>
+              {EVENT_STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        </div>
+        <div className="mt-4 grid gap-2">
+          {isLoading ? <div className="text-sm text-zinc-500">{copy.loading}</div> : null}
+          {!isLoading && events.length === 0 ? <div className="text-sm text-zinc-500">{copy.noEvents}</div> : null}
+          {events.map((event) => (
+            <button
+              key={event.id}
+              type="button"
+              onClick={() => {
+                setSelectedEventId(event.id);
+                setMode("detail");
+              }}
+              className={`rounded-lg border px-3 py-3 text-left transition ${
+                selectedEventId === event.id
+                  ? "border-teal-600 bg-teal-50"
+                  : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
+              }`}
+            >
+              <div className="text-sm font-bold text-zinc-950">{eventTitle(event, languageCode)}</div>
+              <div className="mt-1 text-xs text-zinc-500">
+                {formatDateRange(event.startDate, event.endDate)} / {event.eventType}
+              </div>
+              <div className="mt-2">
+                <Badge>{event.status}</Badge>
+              </div>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <div className="grid gap-4">
+        <Notice>{error}</Notice>
+        <Notice type="success">{notice}</Notice>
+
+        {mode === "eventForm" ? (
+          <EventForm
+            langCd={langCd}
+            initialValue={eventForm}
+            onSubmit={saveEvent}
+            onCancel={() => setMode("detail")}
+            isSaving={isSaving}
+          />
+        ) : null}
+
+        {mode === "lessonForm" ? (
+          <LessonForm
+            langCd={langCd}
+            teachers={teachers}
+            initialValue={lessonForm}
+            onSubmit={saveLesson}
+            onCancel={() => setMode("detail")}
+            isSaving={isSaving}
+          />
+        ) : null}
+
+        {mode === "promotion" && selectedEvent ? (
+          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-950">{copy.promotion}</h2>
+                <div className="mt-1 text-sm text-zinc-500">{selectedTitle}</div>
+              </div>
+              <SecondaryButton type="button" onClick={() => setMode("detail")}>
+                {copy.cancel}
+              </SecondaryButton>
+            </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Field label={copy.templates}>
+                <SelectInput
+                  value={promotion.templateId}
+                  onChange={(event) => setPromotion((current) => ({ ...current, templateId: event.target.value }))}
+                >
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.templateName}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={copy.language}>
+                <SelectInput
+                  value={promotion.languageCode}
+                  onChange={(event) => setPromotion((current) => ({ ...current, languageCode: event.target.value }))}
+                >
+                  <option value="ko">한국어</option>
+                  <option value="en">English</option>
+                </SelectInput>
+              </Field>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <PrimaryButton type="button" onClick={renderPromotion}>
+                {copy.render}
+              </PrimaryButton>
+              <SecondaryButton type="button" onClick={copyPromotion} disabled={!promotion.renderedText}>
+                {copy.copy}
+              </SecondaryButton>
+            </div>
+            <pre className="mt-4 min-h-[240px] whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-800">
+              {promotion.renderedText}
+            </pre>
+          </div>
+        ) : null}
+
+        {mode === "detail" ? (
+          <EventDetail
+            copy={copy}
+            event={selectedEvent}
+            languageCode={languageCode}
+            canDelete={canDelete}
+            onEditEvent={startEditEvent}
+            onDeleteEvent={deleteEvent}
+            onAddLesson={startCreateLesson}
+            onEditLesson={startEditLesson}
+            onDeleteLesson={deleteLesson}
+            onPromotion={() => setMode("promotion")}
+          />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function EventDetail({
+  copy,
+  event,
+  languageCode,
+  canDelete,
+  onEditEvent,
+  onDeleteEvent,
+  onAddLesson,
+  onEditLesson,
+  onDeleteLesson,
+  onPromotion,
+}) {
+  if (!event) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 shadow-sm">
+        {copy.selectEvent}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-zinc-950">{eventTitle(event, languageCode)}</h2>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Badge>{event.eventType}</Badge>
+            <Badge>{event.status}</Badge>
+            <Badge>{formatDateRange(event.startDate, event.endDate)}</Badge>
+            <Badge>
+              {toTimeInput(event.startTime)}-{toTimeInput(event.endTime)}
+            </Badge>
+          </div>
+          <div className="mt-2 text-sm text-zinc-500">{event.location}</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <SecondaryButton type="button" onClick={onEditEvent}>
+            {copy.edit}
+          </SecondaryButton>
+          <SecondaryButton type="button" onClick={onPromotion}>
+            {copy.promotion}
+          </SecondaryButton>
+          {canDelete ? (
+            <DangerButton type="button" onClick={onDeleteEvent}>
+              {copy.delete}
+            </DangerButton>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        {SUPPORTED_LANGUAGES.map((languageCode) => {
+          const item = translation(event, languageCode);
+          return (
+            <section key={languageCode} className="rounded-lg border border-zinc-200 p-4">
+              <h3 className="text-sm font-bold text-zinc-950">{languageCode === "ko" ? "한국어" : "English"}</h3>
+              <div className="mt-3 text-sm font-semibold text-zinc-900">{item.title}</div>
+              <div className="mt-2 text-sm text-zinc-600">{item.shortDescription}</div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">{item.description}</p>
+            </section>
+          );
+        })}
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-3">
+          <h3 className="text-lg font-bold text-zinc-950">{copy.lessons}</h3>
+          <PrimaryButton type="button" onClick={onAddLesson}>
+            {copy.addLesson}
+          </PrimaryButton>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {event.lessons.length === 0 ? <div className="text-sm text-zinc-500">{copy.noLessons}</div> : null}
+          {event.lessons.map((lesson) => (
+            <div key={lesson.id} className="rounded-lg border border-zinc-200 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-base font-bold text-zinc-950">{lessonTitle(lesson, languageCode)}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge>{lesson.lessonType}</Badge>
+                    <Badge>{lesson.scheduleType}</Badge>
+                    <Badge>{lesson.status}</Badge>
+                    <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
+                    <Badge>
+                      {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
+                    </Badge>
+                    <Badge>
+                      {lesson.fee} {lesson.currency}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 text-sm text-zinc-600">
+                    {lesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <SecondaryButton type="button" onClick={() => onEditLesson(lesson)}>
+                    {copy.edit}
+                  </SecondaryButton>
+                  {canDelete ? (
+                    <DangerButton type="button" onClick={() => onDeleteLesson(lesson)}>
+                      {copy.delete}
+                    </DangerButton>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function MessageTemplatePanel({ token, currentUser, langCd }) {
+  const copy = t(langCd);
+  const [templates, setTemplates] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [form, setForm] = useState(emptyTemplateForm());
+  const [editingId, setEditingId] = useState(null);
+  const [preview, setPreview] = useState({
+    templateId: "",
+    eventId: "",
+    languageCode: toManualLanguage(langCd),
+    renderedText: "",
+  });
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const canManage = currentUser.role === "SUPER_ADMIN";
+
+  const load = useCallback(async () => {
+    try {
+      const [nextTemplates, nextEvents] = await Promise.all([
+        adminApi.findMessageTemplates(token),
+        adminApi.findEvents(token, {}),
+      ]);
+      setTemplates(nextTemplates);
+      setEvents(nextEvents);
+      setPreview((current) => ({
+        ...current,
+        templateId: current.templateId || nextTemplates[0]?.id || "",
+        eventId: current.eventId || nextEvents[0]?.id || "",
+      }));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      if (editingId) {
+        await adminApi.updateMessageTemplate(token, editingId, form);
+      } else {
+        await adminApi.createMessageTemplate(token, form);
+      }
+      setForm(emptyTemplateForm());
+      setEditingId(null);
+      setNotice(copy.templateSaved);
+      await load();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const editTemplate = (template) => {
+    setEditingId(template.id);
+    setForm({
+      templateName: template.templateName,
+      templateType: template.templateType,
+      content: template.content,
+      useYn: template.useYn,
+    });
+    setPreview((current) => ({ ...current, templateId: template.id, renderedText: "" }));
+  };
+
+  const deleteTemplate = async (template) => {
+    if (!window.confirm(copy.confirmDeleteTemplate)) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    try {
+      await adminApi.deleteMessageTemplate(token, template.id);
+      setNotice(copy.templateDeleted);
+      await load();
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  const renderPreview = async () => {
+    const templateId = preview.templateId || editingId;
+    if (!templateId || !preview.eventId) {
+      return;
+    }
+    setError("");
+    try {
+      const response = await adminApi.renderMessageTemplate(token, templateId, {
+        eventId: preview.eventId,
+        languageCode: preview.languageCode,
+      });
+      setPreview((current) => ({ ...current, renderedText: response.renderedText }));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  };
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.templates}</h2>
+          {editingId ? (
+            <SecondaryButton
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setForm(emptyTemplateForm());
+              }}
+            >
+              {copy.cancel}
+            </SecondaryButton>
+          ) : null}
+        </div>
+        <div className="mt-4 grid gap-4">
+          <Field label={copy.templateName}>
+            <TextInput name="templateName" value={form.templateName} onChange={handleChange} disabled={!canManage} />
+          </Field>
+          <Field label={copy.templateType}>
+            <SelectInput name="templateType" value={form.templateType} onChange={handleChange} disabled={!canManage}>
+              {TEMPLATE_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+          <Field label={copy.useYn}>
+            <SelectInput name="useYn" value={form.useYn} onChange={handleChange} disabled={!canManage}>
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </SelectInput>
+          </Field>
+          <Field label={copy.content}>
+            <TextArea name="content" value={form.content} onChange={handleChange} rows={10} disabled={!canManage} />
+          </Field>
+        </div>
+        <Notice>{error}</Notice>
+        <Notice type="success">{notice}</Notice>
+        {canManage ? (
+          <PrimaryButton type="submit" disabled={isSaving} className="mt-4 w-full">
+            {editingId ? copy.save : copy.create}
+          </PrimaryButton>
+        ) : null}
+      </form>
+
+      <div className="grid gap-5">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.templates}</h2>
+          <div className="mt-4 grid gap-2">
+            {templates.map((template) => (
+              <div key={template.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3">
+                <div>
+                  <div className="font-semibold text-zinc-950">{template.templateName}</div>
+                  <div className="mt-1 text-xs text-zinc-500">
+                    {template.templateType} / {template.useYn}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <SecondaryButton type="button" onClick={() => editTemplate(template)}>
+                    {copy.edit}
+                  </SecondaryButton>
+                  {canManage ? (
+                    <DangerButton type="button" onClick={() => deleteTemplate(template)}>
+                      {copy.delete}
+                    </DangerButton>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.preview}</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Field label={copy.templates}>
+              <SelectInput
+                value={preview.templateId}
+                onChange={(event) => setPreview((current) => ({ ...current, templateId: event.target.value }))}
+              >
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.templateName}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+            <Field label={copy.event}>
+              <SelectInput
+                value={preview.eventId}
+                onChange={(event) => setPreview((current) => ({ ...current, eventId: event.target.value }))}
+              >
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {eventTitle(event, toManualLanguage(langCd))}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Field label={copy.language}>
+              <SelectInput
+                value={preview.languageCode}
+                onChange={(event) => setPreview((current) => ({ ...current, languageCode: event.target.value }))}
+              >
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+              </SelectInput>
+            </Field>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <PrimaryButton type="button" onClick={renderPreview}>
+              {copy.render}
+            </PrimaryButton>
+            <SecondaryButton
+              type="button"
+              disabled={!preview.renderedText}
+              onClick={() => navigator.clipboard.writeText(preview.renderedText)}
+            >
+              {copy.copy}
+            </SecondaryButton>
+          </div>
+          <pre className="mt-4 min-h-[180px] whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6">
+            {preview.renderedText}
+          </pre>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.variables}</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {TEMPLATE_VARIABLES.map((variable) => (
+              <code key={variable} className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
+                {variable}
+              </code>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function TeacherDashboardPanel({ token, langCd }) {
+  const copy = t(langCd);
+  const languageCode = toManualLanguage(langCd);
+  const [dashboard, setDashboard] = useState({ date: "", lessons: [] });
+  const [range, setRange] = useState(() => monthRange());
+  const [rangeLessons, setRangeLessons] = useState([]);
+  const [error, setError] = useState("");
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setDashboard(await adminApi.findTeacherDashboard(token));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  }, [token]);
+
+  const loadRange = useCallback(async () => {
+    try {
+      setRangeLessons(await adminApi.findTeacherLessons(token, { from: range.from, to: range.to }));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
+  }, [range.from, range.to, token]);
+
+  useEffect(() => {
+    loadDashboard();
+    loadRange();
+  }, [loadDashboard, loadRange]);
+
+  const handleRangeChange = (event) => {
+    const { name, value } = event.target;
+    setRange((current) => ({ ...current, [name]: value }));
+  };
+
+  const todayLessons = dashboard.lessons.filter(
+    (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "SINGLE_DAY"
+  );
+  const activeRegularLessons = dashboard.lessons.filter(
+    (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "PERIOD"
+  );
+  const upcomingLessons = dashboard.lessons.filter((lesson) => lesson.lessonDisplayStatus === "UPCOMING");
+
+  return (
+    <section className="grid gap-5">
+      <Notice>{error}</Notice>
+      <LessonDashboardList
+        title={`${copy.todayLessons}${dashboard.date ? ` / ${dashboard.date}` : ""}`}
+        lessons={todayLessons}
+        copy={copy}
+        languageCode={languageCode}
+      />
+      <LessonDashboardList
+        title={copy.activeRegularLessons}
+        lessons={activeRegularLessons}
+        copy={copy}
+        languageCode={languageCode}
+      />
+      <LessonDashboardList
+        title={copy.upcomingLessons}
+        lessons={upcomingLessons}
+        copy={copy}
+        languageCode={languageCode}
+      />
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{copy.myLessons}</h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <TextInput type="date" name="from" value={range.from} onChange={handleRangeChange} />
+            <TextInput type="date" name="to" value={range.to} onChange={handleRangeChange} />
+          </div>
+        </div>
+        <div className="mt-4">
+          <LessonDashboardRows lessons={rangeLessons} copy={copy} languageCode={languageCode} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LessonDashboardList({ title, lessons, copy, languageCode }) {
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <h2 className="border-b border-zinc-200 pb-4 text-lg font-bold text-zinc-950">{title}</h2>
+      <div className="mt-4">
+        <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} />
+      </div>
+    </div>
+  );
+}
+
+function LessonDashboardRows({ lessons, copy, languageCode }) {
+  if (lessons.length === 0) {
+    return <div className="text-sm text-zinc-500">{copy.noLessons}</div>;
+  }
+
+  return (
+    <div className="grid gap-3">
+      {lessons.map((lesson) => (
+        <div key={lesson.lessonId} className="rounded-lg border border-zinc-200 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-base font-bold text-zinc-950">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
+              <div className="mt-1 text-sm text-zinc-600">{localizedTitle(lesson.eventTitle, languageCode)}</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
+                <Badge>{lesson.lessonDisplayStatus}</Badge>
+                <Badge>{lesson.scheduleType}</Badge>
+                <Badge>{lesson.lessonType}</Badge>
+                <Badge>
+                  {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
+                </Badge>
+              </div>
+              <div className="mt-3 text-sm text-zinc-600">
+                {copy.teachers}: {lesson.teachers.map((teacher) => teacher.name).join(", ")}
+              </div>
+            </div>
+            <div className="min-w-[180px] rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <div className="text-xs font-semibold text-zinc-500">{copy.participants}</div>
+              <div className="mt-1 text-sm text-zinc-600">{lesson.participants?.length || 0}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function toEventForm(event) {
+  return {
+    id: event.id,
+    eventType: event.eventType,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    startTime: toTimeInput(event.startTime),
+    endTime: toTimeInput(event.endTime),
+    location: event.location,
+    status: event.status,
+    displayOrder: event.displayOrder,
+    translations: normalizeTranslations(event.translations),
+  };
+}
+
+function toLessonForm(lesson) {
+  return {
+    id: lesson.id,
+    lessonType: lesson.lessonType,
+    scheduleType: lesson.scheduleType || "SINGLE_DAY",
+    startDate: lesson.startDate || "",
+    endDate: lesson.endDate || lesson.startDate || "",
+    startTime: toTimeInput(lesson.startTime),
+    endTime: toTimeInput(lesson.endTime),
+    fee: lesson.fee,
+    currency: lesson.currency,
+    status: lesson.status,
+    displayOrder: lesson.displayOrder,
+    teacherUserIds: lesson.teachers.map((teacher) => teacher.teacherUserId),
+    translations: normalizeLessonTranslations(lesson.translations),
+  };
+}
+
+function normalizeTranslations(translations = {}) {
+  return SUPPORTED_LANGUAGES.reduce((next, languageCode) => {
+    next[languageCode] = {
+      title: translations[languageCode]?.title || "",
+      shortDescription: translations[languageCode]?.shortDescription || "",
+      description: translations[languageCode]?.description || "",
+    };
+    return next;
+  }, {});
+}
+
+function normalizeLessonTranslations(translations = {}) {
+  return SUPPORTED_LANGUAGES.reduce((next, languageCode) => {
+    next[languageCode] = {
+      title: translations[languageCode]?.title || "",
+      description: translations[languageCode]?.description || "",
+    };
+    return next;
+  }, {});
+}

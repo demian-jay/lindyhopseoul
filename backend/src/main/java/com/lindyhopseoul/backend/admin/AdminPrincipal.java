@@ -31,4 +31,20 @@ public record AdminPrincipal(
     public boolean canManageAccounts() {
         return role == AdminRole.SUPER_ADMIN || role == AdminRole.STAFF;
     }
+
+    public boolean canManageEvents() {
+        return role == AdminRole.SUPER_ADMIN || role == AdminRole.STAFF;
+    }
+
+    public boolean canDeleteEvents() {
+        return role == AdminRole.SUPER_ADMIN;
+    }
+
+    public boolean canManageMessageTemplates() {
+        return role == AdminRole.SUPER_ADMIN;
+    }
+
+    public boolean canRenderPromotionMessages() {
+        return role == AdminRole.SUPER_ADMIN || role == AdminRole.STAFF;
+    }
 }
