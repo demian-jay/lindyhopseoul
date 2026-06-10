@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
+    boolean existsByEventType(EventType eventType);
+
     @Query("""
             select distinct event from Event event
             left join fetch event.translations

@@ -145,6 +145,7 @@ The supported language codes are `ko` and `en`. Admin forms capture Korean and E
 Events store `startDate` and `endDate`. Single-day events store the same date in both fields.
 Lessons store `scheduleType`, `startDate`, and `endDate`; `SINGLE_DAY` lessons store the same date in both fields, while `PERIOD` lessons can span multiple dates.
 The teacher dashboard returns `PUBLISHED` lessons assigned to the logged-in teacher where `lesson.endDate >= today`, with `lessonDisplayStatus` calculated as `UPCOMING`, `ACTIVE`, or `ENDED`. The default dashboard excludes ended lessons.
+Supported `EventType` values are `REGULAR_CLASS`, `PARTY`, and `DIALOGUE_PARTY`. The admin UI displays them as Regular Class / 정규수업, Party / 파티, and Dialogue Party / Dialogue 파티.
 
 Lesson teachers are linked to `TEACHER_USER_M` through `LESSON_TEACHER.TEACHER_USER_ID`.
 Only teachers with `TEACHER_USER_M.USE_YN = 'Y'` can be assigned to a lesson. Lesson create/update requests fail when a missing or inactive teacher ID is included.
@@ -235,10 +236,12 @@ Event sample data includes:
 
 - 스윙팝 토요 정규수업 / Swingpop Saturday Regular Class
 - 스윙팝 11주년 파티 / Swingpop 11th Anniversary Party
+- Dialogue 소셜댄스 / Dialogue Social Dance
 - Level 1 Beginner Class
 - Level 2 Class
 - Charleston Workshop
 - Beginner Taster Class
+- 스윙댄스 체험수업 / Swing Dance Trial Class
 - 파티 홍보글 초안
 - 정규수업 홍보글 초안
 - 강습 안내글 초안

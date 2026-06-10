@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "./api/admin";
 
 const SUPPORTED_LANGUAGES = ["ko", "en"];
-const EVENT_TYPES = ["PARTY", "REGULAR_CLASS"];
+const EVENT_TYPES = ["REGULAR_CLASS", "PARTY", "DIALOGUE_PARTY"];
 const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"];
 const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPERIENCE"];
 const LESSON_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED", "ARCHIVED"];
@@ -53,6 +53,77 @@ const TEMPLATE_VARIABLES = [
   "{{lessons.experience.time}}",
   "{{lessons.experience.fee}}",
   "{{lessons.experience.teachers}}",
+];
+
+const EVENT_TYPE_LABELS = {
+  Kor: {
+    REGULAR_CLASS: "정규수업",
+    PARTY: "파티",
+    DIALOGUE_PARTY: "Dialogue 파티",
+  },
+  Eng: {
+    REGULAR_CLASS: "Regular Class",
+    PARTY: "Party",
+    DIALOGUE_PARTY: "Dialogue Party",
+  },
+};
+
+const EVENT_TYPE_DEFAULTS = {
+  REGULAR_CLASS: {
+    startTime: "16:00",
+    endTime: "22:00",
+    location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
+    translations: {
+      ko: {
+        title: "스윙팝 정규수업",
+        shortDescription: "학동역 KP 댄스홀에서 음악에 맞춰 즐겁게 배우는 스윙댄스 정규수업을 진행합니다.",
+        description:
+          "학동역 KP 댄스홀에서 스윙댄스 정규수업을 진행합니다. 기본 스텝부터 파트너와 함께 추는 연결 동작까지, 음악에 맞춰 자연스럽게 움직이며 스윙댄스의 즐거움을 배워가는 수업입니다. 수업은 4주간 매주 토요일에 진행되며, 자세한 수업 시간은 각 수업별 정보를 확인해주세요.",
+      },
+      en: {
+        title: "SwingPop Regular Class",
+        shortDescription:
+          "Join our regular swing dance class at KP Dance Hall near Hakdong Station and learn to dance with the music.",
+        description:
+          "SwingPop regular swing dance classes are held at KP Dance Hall near Hakdong Station. From basic steps to partner connection, you'll learn how to move naturally with the music and enjoy the fun of swing dancing. The class runs every Saturday for 4 weeks. Please check each class listing for the detailed schedule.",
+      },
+    },
+  },
+  PARTY: {
+    startTime: "16:00",
+    endTime: "22:00",
+    location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
+  },
+  DIALOGUE_PARTY: {
+    startTime: "19:30",
+    endTime: "22:00",
+    location: "Dialogue, 서울 용산구 신흥로 31 지하1층",
+    translations: {
+      ko: {
+        title: "Dialogue 소셜댄스",
+        shortDescription: "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다.",
+        description:
+          "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다. 처음 오시는 분들도 가볍게 참여할 수 있는 체험수업은 7:30~8:00에 진행되며, 이후 8:00~10:00에는 함께 음악을 즐기며 자유롭게 춤추는 소셜댄스 시간이 이어집니다. 스윙댄스를 처음 접하는 분들도 편하게 참여하실 수 있으니 많은 참여 부탁드립니다.",
+      },
+      en: {
+        title: "Dialogue Social Dance",
+        shortDescription: "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event.",
+        description:
+          "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event. The trial class will be held from 7:30 to 8:00, followed by social dancing from 8:00 to 10:00, where everyone can enjoy the music and dance freely together. Beginners are very welcome, so feel free to join us.",
+      },
+    },
+  },
+};
+
+const EVENT_DEFAULT_FIELD_KEYS = [
+  "startTime",
+  "endTime",
+  "location",
+  ...SUPPORTED_LANGUAGES.flatMap((languageCode) => [
+    `translations.${languageCode}.title`,
+    `translations.${languageCode}.shortDescription`,
+    `translations.${languageCode}.description`,
+  ]),
 ];
 
 const COPY_TEXT = {
@@ -200,6 +271,10 @@ function t(langCd) {
   return COPY_TEXT[langCd] || COPY_TEXT.Kor;
 }
 
+function eventTypeLabel(eventType, langCd) {
+  return EVENT_TYPE_LABELS[langCd]?.[eventType] || eventType;
+}
+
 function toManualLanguage(langCd) {
   return langCd === "Eng" ? "en" : "ko";
 }
@@ -238,7 +313,7 @@ function formatDateRange(startDate, endDate) {
 }
 
 function emptyEventForm() {
-  return {
+  return applyEventTypeDefaults({
     eventType: "REGULAR_CLASS",
     startDate: "",
     endDate: "",
@@ -251,15 +326,57 @@ function emptyEventForm() {
       ko: { title: "", shortDescription: "", description: "" },
       en: { title: "", shortDescription: "", description: "" },
     },
+  }, "REGULAR_CLASS", new Set(EVENT_DEFAULT_FIELD_KEYS));
+}
+
+function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) {
+  const defaults = EVENT_TYPE_DEFAULTS[eventType] || {};
+  const applyTextDefault = (fieldKey, currentValue, nextValue) => {
+    if (!currentValue || autoDefaultFields.has(fieldKey)) {
+      return nextValue || "";
+    }
+    return currentValue;
+  };
+
+  return {
+    ...form,
+    eventType,
+    startTime: applyTextDefault("startTime", form.startTime, defaults.startTime),
+    endTime: applyTextDefault("endTime", form.endTime, defaults.endTime),
+    location: applyTextDefault("location", form.location, defaults.location),
+    translations: SUPPORTED_LANGUAGES.reduce((translations, languageCode) => {
+      const currentTranslation = form.translations?.[languageCode] || {};
+      const defaultTranslation = defaults.translations?.[languageCode] || {};
+      translations[languageCode] = {
+        title: applyTextDefault(
+          `translations.${languageCode}.title`,
+          currentTranslation.title,
+          defaultTranslation.title
+        ),
+        shortDescription: applyTextDefault(
+          `translations.${languageCode}.shortDescription`,
+          currentTranslation.shortDescription,
+          defaultTranslation.shortDescription
+        ),
+        description: applyTextDefault(
+          `translations.${languageCode}.description`,
+          currentTranslation.description,
+          defaultTranslation.description
+        ),
+      };
+      return translations;
+    }, {}),
   };
 }
 
-function emptyLessonForm() {
+function emptyLessonForm(event = null, scheduleType = "SINGLE_DAY") {
+  const eventStartDate = event?.startDate || "";
+  const eventEndDate = event?.endDate || eventStartDate;
   return {
     lessonType: "LEVEL1",
-    scheduleType: "SINGLE_DAY",
-    startDate: "",
-    endDate: "",
+    scheduleType,
+    startDate: eventStartDate,
+    endDate: scheduleType === "PERIOD" ? eventEndDate : eventStartDate,
     startTime: "",
     endTime: "",
     fee: "0",
@@ -403,19 +520,37 @@ function LanguageTabs({ activeLanguage, onChange }) {
 function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
   const copy = t(langCd);
   const [form, setForm] = useState(initialValue || emptyEventForm());
+  const [autoDefaultFields, setAutoDefaultFields] = useState(
+    () => new Set(initialValue ? [] : EVENT_DEFAULT_FIELD_KEYS)
+  );
   const [activeLanguage, setActiveLanguage] = useState("ko");
 
   useEffect(() => {
     setForm(initialValue || emptyEventForm());
+    setAutoDefaultFields(new Set(initialValue ? [] : EVENT_DEFAULT_FIELD_KEYS));
   }, [initialValue]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+    if (name === "eventType") {
+      setForm((current) => applyEventTypeDefaults(current, value, autoDefaultFields));
+      return;
+    }
+    setAutoDefaultFields((current) => {
+      const next = new Set(current);
+      next.delete(name);
+      return next;
+    });
     setForm((current) => ({ ...current, [name]: value }));
   };
 
   const handleTranslationChange = (event) => {
     const { name, value } = event.target;
+    setAutoDefaultFields((current) => {
+      const next = new Set(current);
+      next.delete(`translations.${activeLanguage}.${name}`);
+      return next;
+    });
     setForm((current) => ({
       ...current,
       translations: {
@@ -452,7 +587,7 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
           <SelectInput name="eventType" value={form.eventType} onChange={handleChange}>
             {EVENT_TYPES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {eventTypeLabel(value, langCd)}
               </option>
             ))}
           </SelectInput>
@@ -511,20 +646,35 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
   );
 }
 
-function LessonForm({ langCd, teachers, initialValue, onSubmit, onCancel, isSaving }) {
+function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onCancel, isSaving }) {
   const copy = t(langCd);
-  const [form, setForm] = useState(initialValue || emptyLessonForm());
+  const isEditing = Boolean(initialValue?.id);
+  const [form, setForm] = useState(initialValue || emptyLessonForm(parentEvent));
   const [activeLanguage, setActiveLanguage] = useState("ko");
 
   useEffect(() => {
-    setForm(initialValue || emptyLessonForm());
-  }, [initialValue]);
+    setForm(initialValue || emptyLessonForm(parentEvent));
+  }, [parentEvent, initialValue]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => {
-      if (name === "scheduleType" && value === "SINGLE_DAY") {
-        return { ...current, scheduleType: value, endDate: current.startDate };
+      if (name === "scheduleType" && !isEditing) {
+        const previousDefaults = emptyLessonForm(parentEvent, current.scheduleType);
+        const nextDefaults = emptyLessonForm(parentEvent, value);
+        const nextStartDate =
+          !current.startDate || current.startDate === previousDefaults.startDate ? nextDefaults.startDate : current.startDate;
+        const nextEndDate =
+          !current.endDate || current.endDate === previousDefaults.endDate ? nextDefaults.endDate : current.endDate;
+        return {
+          ...current,
+          scheduleType: value,
+          startDate: nextStartDate,
+          endDate: nextEndDate,
+        };
+      }
+      if (name === "scheduleType") {
+        return { ...current, scheduleType: value };
       }
       if (name === "startDate" && current.scheduleType === "SINGLE_DAY") {
         return { ...current, startDate: value, endDate: value };
@@ -801,7 +951,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const startCreateLesson = () => {
     setMode("lessonForm");
     setEditingLessonId(null);
-    setLessonForm(emptyLessonForm());
+    setLessonForm(emptyLessonForm(selectedEvent));
     setNotice("");
     setError("");
   };
@@ -898,7 +1048,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
               <option value="">{copy.all}</option>
               {EVENT_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {eventTypeLabel(value, langCd)}
                 </option>
               ))}
             </SelectInput>
@@ -933,7 +1083,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             >
               <div className="text-sm font-bold text-zinc-950">{eventTitle(event, languageCode)}</div>
               <div className="mt-1 text-xs text-zinc-500">
-                {formatDateRange(event.startDate, event.endDate)} / {event.eventType}
+                {formatDateRange(event.startDate, event.endDate)} / {eventTypeLabel(event.eventType, langCd)}
               </div>
               <div className="mt-2">
                 <Badge>{event.status}</Badge>
@@ -961,6 +1111,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
           <LessonForm
             langCd={langCd}
             teachers={teachers}
+            parentEvent={selectedEvent}
             initialValue={lessonForm}
             onSubmit={saveLesson}
             onCancel={() => setMode("detail")}
@@ -1061,7 +1212,7 @@ function EventDetail({
         <div>
           <h2 className="text-xl font-bold text-zinc-950">{eventTitle(event, languageCode)}</h2>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Badge>{event.eventType}</Badge>
+            <Badge>{eventTypeLabel(event.eventType, languageCode === "en" ? "Eng" : "Kor")}</Badge>
             <Badge>{event.status}</Badge>
             <Badge>{formatDateRange(event.startDate, event.endDate)}</Badge>
             <Badge>

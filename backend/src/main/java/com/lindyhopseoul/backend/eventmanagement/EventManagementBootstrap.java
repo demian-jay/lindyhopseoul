@@ -34,6 +34,8 @@ public class EventManagementBootstrap {
 
             if (eventRepository.count() == 0) {
                 seedEvents(eventRepository, teachers);
+            } else if (!eventRepository.existsByEventType(EventType.DIALOGUE_PARTY)) {
+                seedDialogueParty(eventRepository, teachers);
             }
 
             if (messageTemplateRepository.count() == 0) {
@@ -302,7 +304,60 @@ public class EventManagementBootstrap {
                 "A free taster class that first-time visitors can join right away."
         ));
 
-        eventRepository.saveAll(List.of(regularClass, party));
+        Event dialogueParty = createDialogueParty(firstTeacher, secondTeacher);
+
+        eventRepository.saveAll(List.of(regularClass, party, dialogueParty));
+    }
+
+    private void seedDialogueParty(EventRepository eventRepository, List<TeacherUser> teachers) {
+        TeacherUser firstTeacher = teachers.get(0);
+        TeacherUser secondTeacher = teachers.size() > 1 ? teachers.get(1) : firstTeacher;
+        eventRepository.save(createDialogueParty(firstTeacher, secondTeacher));
+    }
+
+    private Event createDialogueParty(TeacherUser firstTeacher, TeacherUser secondTeacher) {
+        Event dialogueParty = Event.create(
+                EventType.DIALOGUE_PARTY,
+                LocalDate.of(2026, 8, 5),
+                LocalDate.of(2026, 8, 5),
+                LocalTime.of(19, 30),
+                LocalTime.of(22, 0),
+                "Dialogue, 서울 용산구 신흥로 31 지하1층",
+                EventStatus.PUBLISHED,
+                30
+        );
+        dialogueParty.replaceTranslations(Set.of(
+                new EventTranslation(
+                        "ko",
+                        "Dialogue 소셜댄스",
+                        "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다.",
+                        "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다. 처음 오시는 분들도 가볍게 참여할 수 있는 체험수업은 7:30~8:00에 진행되며, 이후 8:00~10:00에는 함께 음악을 즐기며 자유롭게 춤추는 소셜댄스 시간이 이어집니다. 스윙댄스를 처음 접하는 분들도 편하게 참여하실 수 있으니 많은 참여 부탁드립니다."
+                ),
+                new EventTranslation(
+                        "en",
+                        "Dialogue Social Dance",
+                        "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event.",
+                        "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event. The trial class will be held from 7:30 to 8:00, followed by social dancing from 8:00 to 10:00, where everyone can enjoy the music and dance freely together. Beginners are very welcome, so feel free to join us."
+                )
+        ));
+        dialogueParty.addLesson(sampleLesson(
+                LessonType.EXPERIENCE,
+                LessonScheduleType.SINGLE_DAY,
+                LocalDate.of(2026, 8, 5),
+                LocalDate.of(2026, 8, 5),
+                LocalTime.of(19, 30),
+                LocalTime.of(20, 0),
+                BigDecimal.ZERO,
+                LessonStatus.PUBLISHED,
+                10,
+                firstTeacher,
+                secondTeacher,
+                "스윙댄스 체험수업",
+                "스윙댄스를 처음 접하는 분들도 편하게 참여할 수 있는 체험수업입니다.",
+                "Swing Dance Trial Class",
+                "A beginner-friendly trial class for people trying swing dance for the first time."
+        ));
+        return dialogueParty;
     }
 
     private Lesson sampleLesson(
