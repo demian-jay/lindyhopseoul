@@ -115,17 +115,6 @@ const EVENT_TYPE_DEFAULTS = {
   },
 };
 
-const EVENT_DEFAULT_FIELD_KEYS = [
-  "startTime",
-  "endTime",
-  "location",
-  ...SUPPORTED_LANGUAGES.flatMap((languageCode) => [
-    `translations.${languageCode}.title`,
-    `translations.${languageCode}.shortDescription`,
-    `translations.${languageCode}.description`,
-  ]),
-];
-
 const COPY_TEXT = {
   Kor: {
     filters: "검색 조건",
@@ -133,6 +122,8 @@ const COPY_TEXT = {
     to: "종료일",
     eventType: "이벤트 타입",
     eventStatus: "이벤트 상태",
+    showFilters: "검색 조건",
+    hideFilters: "검색 조건 닫기",
     all: "전체",
     events: "이벤트",
     createEvent: "이벤트 등록",
@@ -195,6 +186,7 @@ const COPY_TEXT = {
     confirmDeleteEvent: "이 이벤트를 삭제할까요?",
     confirmDeleteLesson: "이 강습을 삭제할까요?",
     confirmDeleteTemplate: "이 템플릿을 삭제할까요?",
+    confirmLoadEventDefaults: "선택한 이벤트 타입의 기본 정보를 불러올까요? 현재 입력한 기본 정보가 덮어쓰기 됩니다.",
   },
   Eng: {
     filters: "Filters",
@@ -202,6 +194,8 @@ const COPY_TEXT = {
     to: "To",
     eventType: "Event Type",
     eventStatus: "Event Status",
+    showFilters: "Filters",
+    hideFilters: "Hide Filters",
     all: "All",
     events: "Events",
     createEvent: "Create Event",
@@ -264,6 +258,7 @@ const COPY_TEXT = {
     confirmDeleteEvent: "Delete this event?",
     confirmDeleteLesson: "Delete this lesson?",
     confirmDeleteTemplate: "Delete this template?",
+    confirmLoadEventDefaults: "Load the default information for the selected event type? Current basic information will be overwritten.",
   },
 };
 
@@ -286,6 +281,15 @@ function monthRange() {
   return {
     from: toDateInput(first),
     to: toDateInput(last),
+    eventType: "",
+    status: "",
+  };
+}
+
+function emptyEventFilters() {
+  return {
+    from: "",
+    to: "",
     eventType: "",
     status: "",
   };
@@ -326,7 +330,34 @@ function emptyEventForm() {
       ko: { title: "", shortDescription: "", description: "" },
       en: { title: "", shortDescription: "", description: "" },
     },
-  }, "REGULAR_CLASS", new Set(EVENT_DEFAULT_FIELD_KEYS));
+  }, "REGULAR_CLASS", eventDefaultFieldKeys("REGULAR_CLASS"));
+}
+
+function eventDefaultFieldKeys(eventType) {
+  const defaults = EVENT_TYPE_DEFAULTS[eventType] || {};
+  const keys = [];
+  if (defaults.startTime !== undefined) {
+    keys.push("startTime");
+  }
+  if (defaults.endTime !== undefined) {
+    keys.push("endTime");
+  }
+  if (defaults.location !== undefined) {
+    keys.push("location");
+  }
+  SUPPORTED_LANGUAGES.forEach((languageCode) => {
+    const translation = defaults.translations?.[languageCode];
+    if (translation?.title !== undefined) {
+      keys.push(`translations.${languageCode}.title`);
+    }
+    if (translation?.shortDescription !== undefined) {
+      keys.push(`translations.${languageCode}.shortDescription`);
+    }
+    if (translation?.description !== undefined) {
+      keys.push(`translations.${languageCode}.description`);
+    }
+  });
+  return new Set(keys);
 }
 
 function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) {
@@ -369,17 +400,33 @@ function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) 
   };
 }
 
-function emptyLessonForm(event = null, scheduleType = "SINGLE_DAY") {
+function defaultLessonScheduleType(event = null) {
+  return event?.eventType === "REGULAR_CLASS" ? "PERIOD" : "SINGLE_DAY";
+}
+
+function defaultLessonFee(event = null) {
+  return event?.eventType === "DIALOGUE_PARTY" ? "15000" : "0";
+}
+
+function defaultLessonStartTime(event = null) {
+  return event?.eventType === "DIALOGUE_PARTY" ? "19:30" : "";
+}
+
+function defaultLessonEndTime(event = null) {
+  return event?.eventType === "DIALOGUE_PARTY" ? "20:00" : "";
+}
+
+function emptyLessonForm(event = null, scheduleType = defaultLessonScheduleType(event)) {
   const eventStartDate = event?.startDate || "";
   const eventEndDate = event?.endDate || eventStartDate;
   return {
     lessonType: "LEVEL1",
     scheduleType,
     startDate: eventStartDate,
-    endDate: scheduleType === "PERIOD" ? eventEndDate : eventStartDate,
-    startTime: "",
-    endTime: "",
-    fee: "0",
+    endDate: scheduleType === "PERIOD" || event?.eventType === "DIALOGUE_PARTY" ? eventEndDate : eventStartDate,
+    startTime: defaultLessonStartTime(event),
+    endTime: defaultLessonEndTime(event),
+    fee: defaultLessonFee(event),
     currency: "KRW",
     status: "DRAFT",
     displayOrder: 10,
@@ -520,37 +567,28 @@ function LanguageTabs({ activeLanguage, onChange }) {
 function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
   const copy = t(langCd);
   const [form, setForm] = useState(initialValue || emptyEventForm());
-  const [autoDefaultFields, setAutoDefaultFields] = useState(
-    () => new Set(initialValue ? [] : EVENT_DEFAULT_FIELD_KEYS)
-  );
   const [activeLanguage, setActiveLanguage] = useState("ko");
 
   useEffect(() => {
     setForm(initialValue || emptyEventForm());
-    setAutoDefaultFields(new Set(initialValue ? [] : EVENT_DEFAULT_FIELD_KEYS));
   }, [initialValue]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     if (name === "eventType") {
-      setForm((current) => applyEventTypeDefaults(current, value, autoDefaultFields));
+      const shouldApplyDefaults = window.confirm(copy.confirmLoadEventDefaults);
+      setForm((current) =>
+        shouldApplyDefaults
+          ? applyEventTypeDefaults(current, value, eventDefaultFieldKeys(value))
+          : { ...current, eventType: value }
+      );
       return;
     }
-    setAutoDefaultFields((current) => {
-      const next = new Set(current);
-      next.delete(name);
-      return next;
-    });
     setForm((current) => ({ ...current, [name]: value }));
   };
 
   const handleTranslationChange = (event) => {
     const { name, value } = event.target;
-    setAutoDefaultFields((current) => {
-      const next = new Set(current);
-      next.delete(`translations.${activeLanguage}.${name}`);
-      return next;
-    });
     setForm((current) => ({
       ...current,
       translations: {
@@ -711,9 +749,10 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    const shouldMirrorStartDate = form.scheduleType === "SINGLE_DAY" && parentEvent?.eventType !== "DIALOGUE_PARTY";
     onSubmit({
       ...form,
-      endDate: form.scheduleType === "SINGLE_DAY" ? form.startDate : form.endDate,
+      endDate: shouldMirrorStartDate ? form.startDate : form.endDate,
       fee: Number(form.fee || 0),
       displayOrder: Number(form.displayOrder || 0),
       translations: normalizeLessonTranslations(form.translations),
@@ -818,7 +857,8 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
 export default function EventManagementPanel({ token, currentUser, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
-  const [filters, setFilters] = useState(() => monthRange());
+  const [filters, setFilters] = useState(() => emptyEventFilters());
+  const [showEventFilters, setShowEventFilters] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -898,6 +938,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const startCreateEvent = () => {
     setMode("eventForm");
     setEventForm(emptyEventForm());
+    setShowEventFilters(false);
     setNotice("");
     setError("");
   };
@@ -921,6 +962,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
       const saved = id ? await adminApi.updateEvent(token, id, body) : await adminApi.createEvent(token, body);
       setNotice(copy.eventSaved);
       setSelectedEventId(saved.id);
+      setSelectedEvent(saved);
       setMode("detail");
       await loadEvents();
       await loadEventDetail();
@@ -948,12 +990,21 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
     }
   };
 
-  const startCreateLesson = () => {
-    setMode("lessonForm");
-    setEditingLessonId(null);
-    setLessonForm(emptyLessonForm(selectedEvent));
-    setNotice("");
+  const startCreateLesson = async () => {
+    if (!selectedEvent) {
+      return;
+    }
     setError("");
+    setNotice("");
+    try {
+      const freshEvent = await adminApi.findEvent(token, selectedEvent.id);
+      setSelectedEvent(freshEvent);
+      setMode("lessonForm");
+      setEditingLessonId(null);
+      setLessonForm(emptyLessonForm(freshEvent));
+    } catch (nextError) {
+      setError(nextError.message);
+    }
   };
 
   const startEditLesson = (lesson) => {
@@ -1030,40 +1081,47 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   return (
     <section className="grid gap-5 xl:grid-cols-[330px_1fr]">
       <aside className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
           <h2 className="text-lg font-bold text-zinc-950">{copy.events}</h2>
-          <PrimaryButton type="button" onClick={startCreateEvent}>
-            {copy.createEvent}
-          </PrimaryButton>
+          <div className="flex flex-wrap gap-2">
+            <SecondaryButton type="button" onClick={() => setShowEventFilters((current) => !current)}>
+              {showEventFilters ? copy.hideFilters : copy.showFilters}
+            </SecondaryButton>
+            <PrimaryButton type="button" onClick={startCreateEvent}>
+              {copy.createEvent}
+            </PrimaryButton>
+          </div>
         </div>
-        <div className="mt-4 grid gap-3">
-          <Field label={copy.from}>
-            <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-          </Field>
-          <Field label={copy.to}>
-            <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-          </Field>
-          <Field label={copy.eventType}>
-            <SelectInput name="eventType" value={filters.eventType} onChange={handleFilterChange}>
-              <option value="">{copy.all}</option>
-              {EVENT_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {eventTypeLabel(value, langCd)}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-          <Field label={copy.eventStatus}>
-            <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
-              <option value="">{copy.all}</option>
-              {EVENT_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        </div>
+        {showEventFilters ? (
+          <div className="mt-4 grid gap-3">
+            <Field label={copy.from}>
+              <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
+            </Field>
+            <Field label={copy.to}>
+              <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
+            </Field>
+            <Field label={copy.eventType}>
+              <SelectInput name="eventType" value={filters.eventType} onChange={handleFilterChange}>
+                <option value="">{copy.all}</option>
+                {EVENT_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {eventTypeLabel(value, langCd)}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+            <Field label={copy.eventStatus}>
+              <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
+                <option value="">{copy.all}</option>
+                {EVENT_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+          </div>
+        ) : null}
         <div className="mt-4 grid gap-2">
           {isLoading ? <div className="text-sm text-zinc-500">{copy.loading}</div> : null}
           {!isLoading && events.length === 0 ? <div className="text-sm text-zinc-500">{copy.noEvents}</div> : null}
