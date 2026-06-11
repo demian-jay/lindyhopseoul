@@ -145,7 +145,7 @@ public class KnowledgeBaseService {
     }
 
     private void requireKnowledgeManager(AdminPrincipal actor) {
-        if (actor.role() != AdminRole.SUPER_ADMIN && actor.role() != AdminRole.STAFF) {
+        if (!actor.hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF)) {
             throw new ForbiddenException("This account cannot manage the knowledge base.");
         }
     }

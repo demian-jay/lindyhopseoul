@@ -5,19 +5,16 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(
-        name = "TEACHER_USER_M",
-        uniqueConstraints = @UniqueConstraint(name = "UK_TEACHER_USER_M_LOGIN_ID", columnNames = "LOGIN_ID")
-)
+@Table(name = "TEACHER_USER_M")
 public class TeacherUser {
 
     @Id
@@ -27,15 +24,9 @@ public class TeacherUser {
     @Column(name = "TEACHER_USER_NM", nullable = false, length = 100)
     private String teacherUserNm;
 
-    @Column(name = "LOGIN_ID", nullable = false, length = 60)
-    private String loginId;
-
-    @Column(name = "LOGIN_PW_HASH", nullable = false, length = 220)
-    private String loginPwHash;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "LANG_CD", length = 3)
-    private AdminLanguage langCd;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "USER_ID")
+    private UserAccount userAccount;
 
     @Column(name = "USE_YN", nullable = false, length = 1)
     private String useYn;
@@ -55,36 +46,31 @@ public class TeacherUser {
     protected TeacherUser() {
     }
 
-    public static TeacherUser create(
+    public static TeacherUser createProfile(
             String teacherUserCd,
             String teacherUserNm,
-            String loginId,
-            String loginPwHash,
-            AdminLanguage langCd,
+            UserAccount userAccount,
             String actorCd
     ) {
         TeacherUser teacherUser = new TeacherUser();
         teacherUser.teacherUserCd = teacherUserCd;
         teacherUser.teacherUserNm = teacherUserNm;
-        teacherUser.loginId = loginId;
-        teacherUser.loginPwHash = loginPwHash;
-        teacherUser.langCd = langCd == null ? AdminLanguage.Kor : langCd;
+        teacherUser.userAccount = userAccount;
         teacherUser.useYn = "Y";
         teacherUser.insUs = actorCd;
         teacherUser.modUs = actorCd;
         return teacherUser;
     }
 
-    public void update(String teacherUserNm, String loginId, AdminLanguage langCd, String useYn, String actorCd) {
+    public void updateProfile(String teacherUserNm, UserAccount userAccount, String useYn, String actorCd) {
         this.teacherUserNm = teacherUserNm;
-        this.loginId = loginId;
-        this.langCd = langCd == null ? AdminLanguage.Kor : langCd;
+        this.userAccount = userAccount;
         this.useYn = useYn;
         this.modUs = actorCd;
     }
 
-    public void changePassword(String loginPwHash, String actorCd) {
-        this.loginPwHash = loginPwHash;
+    public void linkUserAccount(UserAccount userAccount, String actorCd) {
+        this.userAccount = userAccount;
         this.modUs = actorCd;
     }
 
@@ -101,9 +87,6 @@ public class TeacherUser {
         }
         if (useYn == null || useYn.isBlank()) {
             useYn = "Y";
-        }
-        if (langCd == null) {
-            langCd = AdminLanguage.Kor;
         }
         if (insUs == null || insUs.isBlank()) {
             insUs = "SYSTEM";
@@ -128,16 +111,20 @@ public class TeacherUser {
         return teacherUserNm;
     }
 
-    public String getLoginId() {
-        return loginId;
+    public UserAccount getUserAccount() {
+        return userAccount;
     }
 
-    public String getLoginPwHash() {
-        return loginPwHash;
+    public String getUserId() {
+        return userAccount == null ? null : userAccount.getUserId();
+    }
+
+    public String getLoginId() {
+        return userAccount == null ? null : userAccount.getLoginId();
     }
 
     public AdminLanguage getLangCd() {
-        return langCd == null ? AdminLanguage.Kor : langCd;
+        return userAccount == null ? AdminLanguage.Kor : userAccount.getLangCd();
     }
 
     public String getUseYn() {

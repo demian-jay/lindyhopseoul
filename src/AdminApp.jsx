@@ -18,13 +18,14 @@ const I18N = {
       EVENT_MANAGEMENT: "이벤트/강습 관리",
       KNOWLEDGE_BASE: "운영 매뉴얼",
       MESSAGE_TEMPLATES: "메시지 템플릿",
-      ADMIN_USERS: "운영진 관리",
-      TEACHER_USERS: "강사 관리",
+      ADMIN_USERS: "사용자 계정 관리",
+      TEACHER_USERS: "강사 프로필 관리",
     },
     roles: {
       SUPER_ADMIN: "수퍼관리자",
       STAFF: "동호회 운영진",
       TEACHER: "강사",
+      MEMBER: "회원",
     },
     statuses: {
       Y: "사용",
@@ -115,22 +116,22 @@ const I18N = {
       accessMenus: "접근 메뉴",
     },
     adminUsers: {
-      createTitle: "운영진 등록",
-      editTitle: "운영진 수정",
-      listTitle: "운영진 계정",
-      created: "운영진 계정이 등록되었습니다.",
-      updated: "운영진 계정이 수정되었습니다.",
-      deactivated: "운영진 계정이 비활성화되었습니다.",
+      createTitle: "사용자 계정 등록",
+      editTitle: "사용자 계정 수정",
+      listTitle: "사용자 계정",
+      created: "사용자 계정이 등록되었습니다.",
+      updated: "사용자 계정이 수정되었습니다.",
+      deactivated: "사용자 계정이 비활성화되었습니다.",
       confirmDeactivate: (name) => `${name} 계정을 비활성화할까요?`,
     },
     teacherUsers: {
-      createTitle: "강사 등록",
-      editTitle: "강사 수정",
-      listTitle: "강사 계정",
-      created: "강사 계정이 등록되었습니다.",
-      updated: "강사 계정이 수정되었습니다.",
-      deactivated: "강사 계정이 비활성화되었습니다.",
-      confirmDeactivate: (name) => `${name} 계정을 비활성화할까요?`,
+      createTitle: "강사 프로필 등록",
+      editTitle: "강사 프로필 수정",
+      listTitle: "강사 프로필",
+      created: "강사 프로필이 등록되었습니다.",
+      updated: "강사 프로필이 수정되었습니다.",
+      deactivated: "강사 프로필이 비활성화되었습니다.",
+      confirmDeactivate: (name) => `${name} 강사 프로필을 비활성화할까요?`,
     },
   },
   Eng: {
@@ -141,13 +142,14 @@ const I18N = {
       EVENT_MANAGEMENT: "Events & Lessons",
       KNOWLEDGE_BASE: "Operations Manual",
       MESSAGE_TEMPLATES: "Message Templates",
-      ADMIN_USERS: "Staff Users",
-      TEACHER_USERS: "Teacher Users",
+      ADMIN_USERS: "User Accounts",
+      TEACHER_USERS: "Teacher Profiles",
     },
     roles: {
       SUPER_ADMIN: "Super Admin",
       STAFF: "Staff",
       TEACHER: "Teacher",
+      MEMBER: "Member",
     },
     statuses: {
       Y: "Active",
@@ -238,22 +240,22 @@ const I18N = {
       accessMenus: "Available Menus",
     },
     adminUsers: {
-      createTitle: "Create Staff User",
-      editTitle: "Edit Staff User",
-      listTitle: "Staff Accounts",
-      created: "Staff account has been created.",
-      updated: "Staff account has been updated.",
-      deactivated: "Staff account has been deactivated.",
+      createTitle: "Create User Account",
+      editTitle: "Edit User Account",
+      listTitle: "User Accounts",
+      created: "User account has been created.",
+      updated: "User account has been updated.",
+      deactivated: "User account has been deactivated.",
       confirmDeactivate: (name) => `Deactivate ${name}?`,
     },
     teacherUsers: {
-      createTitle: "Create Teacher User",
-      editTitle: "Edit Teacher User",
-      listTitle: "Teacher Accounts",
-      created: "Teacher account has been created.",
-      updated: "Teacher account has been updated.",
-      deactivated: "Teacher account has been deactivated.",
-      confirmDeactivate: (name) => `Deactivate ${name}?`,
+      createTitle: "Create Teacher Profile",
+      editTitle: "Edit Teacher Profile",
+      listTitle: "Teacher Profiles",
+      created: "Teacher profile has been created.",
+      updated: "Teacher profile has been updated.",
+      deactivated: "Teacher profile has been deactivated.",
+      confirmDeactivate: (name) => `Deactivate ${name}'s teacher profile?`,
     },
   },
 };
@@ -273,12 +275,32 @@ function formatDate(value, langCd) {
   }).format(new Date(value));
 }
 
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+
+function normalizeRoles(userLike) {
+  const roles = Array.isArray(userLike?.roles) && userLike.roles.length > 0 ? userLike.roles : [userLike?.role].filter(Boolean);
+  return ROLE_ORDER.filter((role) => roles.includes(role));
+}
+
+function primaryRole(userLike) {
+  return normalizeRoles(userLike)[0] || "MEMBER";
+}
+
+function hasRole(userLike, role) {
+  return normalizeRoles(userLike).includes(role);
+}
+
+function hasAnyRole(userLike, roles) {
+  return roles.some((role) => hasRole(userLike, role));
+}
+
 function createAdminForm() {
   return {
     adminUserNm: "",
     loginId: "",
     password: "",
     role: "STAFF",
+    roles: ["STAFF"],
     langCd: "Kor",
     useYn: "Y",
   };
@@ -316,12 +338,26 @@ function RoleBadge({ role, labels }) {
       ? "border-amber-200 bg-amber-50 text-amber-800"
       : role === "STAFF"
         ? "border-teal-200 bg-teal-50 text-teal-800"
-        : "border-violet-200 bg-violet-50 text-violet-800";
+        : role === "TEACHER"
+          ? "border-violet-200 bg-violet-50 text-violet-800"
+          : "border-zinc-200 bg-zinc-50 text-zinc-700";
 
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
       {labels.roles[role] || role}
     </span>
+  );
+}
+
+function RoleBadges({ item, labels }) {
+  const roles = normalizeRoles(item);
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {roles.map((role) => (
+        <RoleBadge key={role} role={role} labels={labels} />
+      ))}
+    </div>
   );
 }
 
@@ -489,7 +525,7 @@ function DashboardPanel({ session, labels }) {
             <h2 className="text-xl font-bold tracking-tight text-zinc-950">{labels.dashboard.title}</h2>
             <div className="mt-2 text-sm text-zinc-500">{session.user.userNm}</div>
           </div>
-          <RoleBadge role={session.user.role} labels={labels} />
+          <RoleBadges item={session.user} labels={labels} />
         </div>
 
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -499,7 +535,11 @@ function DashboardPanel({ session, labels }) {
           </div>
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <dt className="text-xs font-semibold text-zinc-500">{labels.fields.role}</dt>
-            <dd className="mt-1 text-sm font-semibold text-zinc-900">{labels.roles[session.user.role]}</dd>
+            <dd className="mt-1 text-sm font-semibold text-zinc-900">
+              {normalizeRoles(session.user)
+                .map((role) => labels.roles[role] || role)
+                .join(", ")}
+            </dd>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <dt className="text-xs font-semibold text-zinc-500">{labels.fields.language}</dt>
@@ -533,14 +573,14 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
   const [notice, setNotice] = useState("");
 
   const isEditing = editingId !== null;
-  const canManageSuperAdmin = currentUser.role === "SUPER_ADMIN";
+  const canManageSuperAdmin = hasRole(currentUser, "SUPER_ADMIN");
 
   const roleOptions = useMemo(() => {
-    if (canManageSuperAdmin || form.role === "SUPER_ADMIN") {
-      return ["SUPER_ADMIN", "STAFF"];
+    if (canManageSuperAdmin || form.roles.includes("SUPER_ADMIN")) {
+      return ROLE_ORDER;
     }
-    return ["STAFF"];
-  }, [canManageSuperAdmin, form.role]);
+    return ["STAFF", "TEACHER", "MEMBER"];
+  }, [canManageSuperAdmin, form.roles]);
 
   const loadItems = useCallback(async () => {
     setIsLoading(true);
@@ -569,13 +609,32 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
   };
 
+  const handleRoleToggle = (role) => {
+    setForm((currentForm) => {
+      const nextRoles = currentForm.roles.includes(role)
+        ? currentForm.roles.filter((currentRole) => currentRole !== role)
+        : [...currentForm.roles, role];
+      const normalizedRoles = normalizeRoles({ roles: nextRoles }).filter(
+        (nextRole) => canManageSuperAdmin || nextRole !== "SUPER_ADMIN",
+      );
+      const safeRoles = normalizedRoles.length > 0 ? normalizedRoles : ["STAFF"];
+      return {
+        ...currentForm,
+        role: primaryRole({ roles: safeRoles }),
+        roles: safeRoles,
+      };
+    });
+  };
+
   const handleEdit = (item) => {
     setEditingId(item.adminUserCd);
+    const roles = normalizeRoles(item);
     setForm({
       adminUserNm: item.adminUserNm,
       loginId: item.loginId,
       password: "",
-      role: item.role,
+      role: primaryRole(item),
+      roles,
       langCd: item.langCd || "Kor",
       useYn: item.useYn,
     });
@@ -593,7 +652,8 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
       adminUserNm: form.adminUserNm.trim(),
       loginId: form.loginId.trim(),
       password: form.password.trim() || null,
-      role: form.role,
+      role: primaryRole(form),
+      roles: form.roles,
       langCd: form.langCd,
       useYn: form.useYn,
     };
@@ -608,6 +668,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
           loginId: payload.loginId,
           password: form.password,
           role: payload.role,
+          roles: payload.roles,
           langCd: payload.langCd,
         });
         setNotice(labels.adminUsers.created);
@@ -669,18 +730,20 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
             />
           </Field>
           <Field label={labels.fields.role}>
-            <SelectInput
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              disabled={!canManageSuperAdmin && form.role === "SUPER_ADMIN"}
-            >
+            <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
               {roleOptions.map((role) => (
-                <option key={role} value={role}>
+                <label key={role} className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={form.roles.includes(role)}
+                    onChange={() => handleRoleToggle(role)}
+                    disabled={!canManageSuperAdmin && role === "SUPER_ADMIN"}
+                    className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                  />
                   {labels.roles[role]}
-                </option>
+                </label>
               ))}
-            </SelectInput>
+            </div>
           </Field>
           <Field label={labels.fields.language}>
             <SelectInput name="langCd" value={form.langCd} onChange={handleChange}>
@@ -722,10 +785,10 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
         getCode={(item) => item.adminUserCd}
         onEdit={handleEdit}
         onDeactivate={handleDeactivate}
-        canEdit={(item) => canManageSuperAdmin || item.role !== "SUPER_ADMIN"}
+        canEdit={(item) => canManageSuperAdmin || !hasRole(item, "SUPER_ADMIN")}
         canDeactivate={(item) =>
-          (canManageSuperAdmin || item.role !== "SUPER_ADMIN") &&
-          item.adminUserCd !== currentUser.userCd &&
+          (canManageSuperAdmin || !hasRole(item, "SUPER_ADMIN")) &&
+          (item.userId || item.adminUserCd) !== (currentUser.userId || currentUser.userCd) &&
           item.useYn !== "N"
         }
       />
@@ -952,7 +1015,7 @@ function AccountTable({
                 <td className="border-b border-zinc-100 px-3 py-3 font-semibold text-zinc-900">{getName(item)}</td>
                 <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">{item.loginId}</td>
                 <td className="border-b border-zinc-100 px-3 py-3">
-                  <RoleBadge role={item.role} labels={labels} />
+                  <RoleBadges item={item} labels={labels} />
                 </td>
                 <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
                   {labels.languages[item.langCd || "Kor"]}
@@ -1001,6 +1064,8 @@ export default function AdminApp() {
       user: {
         ...nextSession.user,
         langCd: nextSession.user?.langCd || "Kor",
+        roles: normalizeRoles(nextSession.user),
+        role: primaryRole(nextSession.user),
       },
       menus: nextSession.menus || [],
     });
@@ -1092,7 +1157,7 @@ export default function AdminApp() {
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-950">{pageTitle}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <RoleBadge role={session.user.role} labels={labels} />
+            <RoleBadges item={session.user} labels={labels} />
             <span className="text-sm font-semibold text-zinc-700">{session.user.userNm}</span>
             <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-600">
               {labels.languages[langCd]}
@@ -1129,11 +1194,13 @@ export default function AdminApp() {
         </aside>
 
         <main>
-          {activeMenu === "DASHBOARD" && session.user.role === "TEACHER" ? (
-            <TeacherDashboardPanel token={token} langCd={langCd} />
-          ) : null}
-          {activeMenu === "DASHBOARD" && session.user.role !== "TEACHER" ? (
-            <DashboardPanel session={session} labels={labels} />
+          {activeMenu === "DASHBOARD" ? (
+            <div className="grid gap-5">
+              {hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) || !hasRole(session.user, "TEACHER") ? (
+                <DashboardPanel session={session} labels={labels} />
+              ) : null}
+              {hasRole(session.user, "TEACHER") ? <TeacherDashboardPanel token={token} langCd={langCd} /> : null}
+            </div>
           ) : null}
           {activeMenu === "EVENT_MANAGEMENT" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />

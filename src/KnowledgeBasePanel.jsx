@@ -4,11 +4,22 @@ import { adminApi } from "./api/admin";
 
 const STATUS_OPTIONS = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 const FALLBACK_SUPPORTED_LANGUAGES = ["ko", "en"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
 
 const LANGUAGE_LABELS = {
   ko: "한국어",
   en: "English",
 };
+
+function normalizeRoles(userLike) {
+  const roles = Array.isArray(userLike?.roles) && userLike.roles.length > 0 ? userLike.roles : [userLike?.role].filter(Boolean);
+  return ROLE_ORDER.filter((role) => roles.includes(role));
+}
+
+function hasAnyRole(userLike, roles) {
+  const userRoles = normalizeRoles(userLike);
+  return roles.some((role) => userRoles.includes(role));
+}
 
 function createTranslationForm() {
   return {
@@ -203,7 +214,7 @@ function TagList({ tags }) {
 
 export default function KnowledgeBasePanel({ token, currentUser, labels, langCd }) {
   const kb = labels.knowledgeBase;
-  const canManage = currentUser.role === "SUPER_ADMIN" || currentUser.role === "STAFF";
+  const canManage = hasAnyRole(currentUser, ["SUPER_ADMIN", "STAFF"]);
   const preferredLanguage = langCd === "Eng" ? "en" : "ko";
 
   const [defaultLanguage, setDefaultLanguage] = useState("ko");

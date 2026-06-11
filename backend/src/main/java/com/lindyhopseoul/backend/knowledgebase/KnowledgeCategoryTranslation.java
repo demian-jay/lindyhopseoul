@@ -53,6 +53,11 @@ public class KnowledgeCategoryTranslation {
         this.category = category;
     }
 
+    void update(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
     public Long getId() {
         return id;
     }

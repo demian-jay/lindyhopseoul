@@ -1,7 +1,8 @@
 package com.lindyhopseoul.backend.admin;
 
+import java.util.List;
+
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -18,10 +19,10 @@ public record AdminAccountCreateRequest(
         @Size(min = 4, max = 72, message = "Password must be 4-72 characters.")
         String password,
 
-        @NotNull(message = "Role is required.")
         AdminRole role,
 
-        @NotNull(message = "Language is required.")
+        List<AdminRole> roles,
+
         AdminLanguage langCd
 ) {
 }

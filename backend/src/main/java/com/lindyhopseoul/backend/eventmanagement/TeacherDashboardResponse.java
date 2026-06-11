@@ -5,6 +5,7 @@ import java.util.List;
 
 public record TeacherDashboardResponse(
         LocalDate date,
+        String message,
         List<TeacherDashboardLessonResponse> lessons
 ) {
 }

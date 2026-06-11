@@ -12,7 +12,7 @@ public record AdminAuthResponse(
         return new AdminAuthResponse(
                 accessToken,
                 AdminSessionUserResponse.from(principal),
-                AdminMenu.forRole(principal.role())
+                AdminMenu.forRoles(principal.roles())
         );
     }
 }

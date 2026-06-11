@@ -8,19 +8,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminAuthService {
 
-    private final AdminUserRepository adminUserRepository;
-    private final TeacherUserRepository teacherUserRepository;
+    private final UserAccountRepository userAccountRepository;
     private final PasswordHasher passwordHasher;
     private final AdminSessionService adminSessionService;
 
     public AdminAuthService(
-            AdminUserRepository adminUserRepository,
-            TeacherUserRepository teacherUserRepository,
+            UserAccountRepository userAccountRepository,
             PasswordHasher passwordHasher,
             AdminSessionService adminSessionService
     ) {
-        this.adminUserRepository = adminUserRepository;
-        this.teacherUserRepository = teacherUserRepository;
+        this.userAccountRepository = userAccountRepository;
         this.passwordHasher = passwordHasher;
         this.adminSessionService = adminSessionService;
     }
@@ -28,32 +25,19 @@ public class AdminAuthService {
     public AdminAuthResponse login(AdminLoginRequest request) {
         String loginId = request.loginId().trim();
 
-        return adminUserRepository.findByLoginId(loginId)
-                .map(adminUser -> authenticateAdmin(adminUser, request.password()))
-                .or(() -> teacherUserRepository.findByLoginId(loginId)
-                        .map(teacherUser -> authenticateTeacher(teacherUser, request.password())))
+        return userAccountRepository.findByLoginId(loginId)
+                .map(user -> authenticate(user, request.password()))
                 .orElseThrow(() -> new UnauthorizedException("Login ID or password is invalid."));
     }
 
-    private AdminAuthResponse authenticateAdmin(AdminUser adminUser, String password) {
-        if (!passwordHasher.matches(password, adminUser.getLoginPwHash())) {
+    private AdminAuthResponse authenticate(UserAccount user, String password) {
+        if (!passwordHasher.matches(password, user.getPassword())) {
             throw new UnauthorizedException("Login ID or password is invalid.");
         }
-        if (!adminUser.isActive()) {
+        if (!user.isActive()) {
             throw new UnauthorizedException("Account is inactive.");
         }
 
-        return adminSessionService.createSession(AdminPrincipal.from(adminUser));
-    }
-
-    private AdminAuthResponse authenticateTeacher(TeacherUser teacherUser, String password) {
-        if (!passwordHasher.matches(password, teacherUser.getLoginPwHash())) {
-            throw new UnauthorizedException("Login ID or password is invalid.");
-        }
-        if (!teacherUser.isActive()) {
-            throw new UnauthorizedException("Account is inactive.");
-        }
-
-        return adminSessionService.createSession(AdminPrincipal.from(teacherUser));
+        return adminSessionService.createSession(AdminPrincipal.from(user));
     }
 }

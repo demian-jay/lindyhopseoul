@@ -182,7 +182,7 @@ public class EventManagementService {
 
     public List<ActiveTeacherResponse> findActiveTeachers(AdminPrincipal actor) {
         requireEventReader(actor);
-        return teacherUserRepository.findByUseYnOrderByTeacherUserNmAsc("Y")
+        return teacherUserRepository.findActiveTeacherRoleProfiles()
                 .stream()
                 .map(ActiveTeacherResponse::from)
                 .toList();
@@ -248,9 +248,15 @@ public class EventManagementService {
     public TeacherDashboardResponse findTeacherDashboard(AdminPrincipal actor) {
         LocalDate today = LocalDate.now(SEOUL_ZONE);
         requireTeacher(actor);
+        Optional<TeacherUser> teacherUser = teacherUserRepository
+                .findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc(actor.userCd(), "Y");
+        if (teacherUser.isEmpty()) {
+            return new TeacherDashboardResponse(today, "등록된 강사 정보가 없습니다.", List.of());
+        }
         return new TeacherDashboardResponse(
                 today,
-                lessonRepository.findActiveTeacherLessons(actor.userCd(), today)
+                null,
+                lessonRepository.findActiveTeacherLessons(teacherUser.get().getTeacherUserCd(), today)
                         .stream()
                         .map(lesson -> toTeacherDashboardLessonResponse(lesson, today))
                         .filter(lesson -> lesson.lessonDisplayStatus() != LessonDisplayStatus.ENDED)
@@ -261,7 +267,12 @@ public class EventManagementService {
     public List<TeacherDashboardLessonResponse> findTeacherLessons(AdminPrincipal actor, LocalDate from, LocalDate to) {
         requireTeacher(actor);
         LocalDate today = LocalDate.now(SEOUL_ZONE);
-        return lessonRepository.findTeacherLessons(actor.userCd(), from, to)
+        Optional<TeacherUser> teacherUser = teacherUserRepository
+                .findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc(actor.userCd(), "Y");
+        if (teacherUser.isEmpty()) {
+            return List.of();
+        }
+        return lessonRepository.findTeacherLessons(teacherUser.get().getTeacherUserCd(), from, to)
                 .stream()
                 .map(lesson -> toTeacherDashboardLessonResponse(lesson, today))
                 .toList();
@@ -570,7 +581,7 @@ public class EventManagementService {
     }
 
     private void requireEventReader(AdminPrincipal actor) {
-        if (actor.role() != AdminRole.SUPER_ADMIN && actor.role() != AdminRole.STAFF) {
+        if (!actor.hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF)) {
             throw new ForbiddenException("This account cannot access event management.");
         }
     }
@@ -600,7 +611,7 @@ public class EventManagementService {
     }
 
     private void requireTeacher(AdminPrincipal actor) {
-        if (actor.role() != AdminRole.TEACHER) {
+        if (!actor.hasRole(AdminRole.TEACHER)) {
             throw new ForbiddenException("Teacher dashboard is available only for teacher accounts.");
         }
     }

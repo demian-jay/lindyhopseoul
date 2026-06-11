@@ -17,6 +17,7 @@ import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.admin.TeacherUser;
 import com.lindyhopseoul.backend.admin.TeacherUserRepository;
+import com.lindyhopseoul.backend.admin.UserAccount;
 import com.lindyhopseoul.backend.exception.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,14 @@ class EventManagementServiceTest {
                 messageTemplateRepository,
                 teacherUserRepository
         );
-        superAdmin = new AdminPrincipal("A1", "Admin", "admin", AdminRole.SUPER_ADMIN, AdminLanguage.Kor);
+        superAdmin = new AdminPrincipal(
+                "A1",
+                "Admin",
+                "admin",
+                AdminRole.SUPER_ADMIN,
+                List.of(AdminRole.SUPER_ADMIN),
+                AdminLanguage.Kor
+        );
     }
 
     @Test
@@ -65,12 +73,19 @@ class EventManagementServiceTest {
                 EventStatus.PUBLISHED,
                 10
         );
-        TeacherUser inactiveTeacher = TeacherUser.create(
-                "T1",
+        UserAccount teacherAccount = UserAccount.create(
+                "U1",
                 "Teacher",
                 "teacher",
+                null,
                 "hash",
                 AdminLanguage.Kor,
+                List.of(AdminRole.TEACHER)
+        );
+        TeacherUser inactiveTeacher = TeacherUser.createProfile(
+                "T1",
+                "Teacher",
+                teacherAccount,
                 "SYSTEM"
         );
         inactiveTeacher.deactivate("SYSTEM");

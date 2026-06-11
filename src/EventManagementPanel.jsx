@@ -8,6 +8,7 @@ const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"];
 const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPERIENCE"];
 const LESSON_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED", "ARCHIVED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
 const TEMPLATE_VARIABLES = [
   "{{event.title.ko}}",
   "{{event.title.en}}",
@@ -54,6 +55,15 @@ const TEMPLATE_VARIABLES = [
   "{{lessons.experience.fee}}",
   "{{lessons.experience.teachers}}",
 ];
+
+function normalizeRoles(userLike) {
+  const roles = Array.isArray(userLike?.roles) && userLike.roles.length > 0 ? userLike.roles : [userLike?.role].filter(Boolean);
+  return ROLE_ORDER.filter((role) => roles.includes(role));
+}
+
+function hasRole(userLike, role) {
+  return normalizeRoles(userLike).includes(role);
+}
 
 const EVENT_TYPE_LABELS = {
   Kor: {
@@ -873,7 +883,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const canDelete = currentUser.role === "SUPER_ADMIN";
+  const canDelete = hasRole(currentUser, "SUPER_ADMIN");
 
   const loadEvents = useCallback(async () => {
     setIsLoading(true);
@@ -1372,7 +1382,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const canManage = currentUser.role === "SUPER_ADMIN";
+  const canManage = hasRole(currentUser, "SUPER_ADMIN");
 
   const load = useCallback(async () => {
     try {
@@ -1616,7 +1626,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
 export function TeacherDashboardPanel({ token, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
-  const [dashboard, setDashboard] = useState({ date: "", lessons: [] });
+  const [dashboard, setDashboard] = useState({ date: "", message: "", lessons: [] });
   const [range, setRange] = useState(() => monthRange());
   const [rangeLessons, setRangeLessons] = useState([]);
   const [error, setError] = useState("");
@@ -1647,17 +1657,19 @@ export function TeacherDashboardPanel({ token, langCd }) {
     setRange((current) => ({ ...current, [name]: value }));
   };
 
-  const todayLessons = dashboard.lessons.filter(
+  const dashboardLessons = dashboard.lessons || [];
+  const todayLessons = dashboardLessons.filter(
     (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "SINGLE_DAY"
   );
-  const activeRegularLessons = dashboard.lessons.filter(
+  const activeRegularLessons = dashboardLessons.filter(
     (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "PERIOD"
   );
-  const upcomingLessons = dashboard.lessons.filter((lesson) => lesson.lessonDisplayStatus === "UPCOMING");
+  const upcomingLessons = dashboardLessons.filter((lesson) => lesson.lessonDisplayStatus === "UPCOMING");
 
   return (
     <section className="grid gap-5">
       <Notice>{error}</Notice>
+      <Notice type="success">{dashboard.message}</Notice>
       <LessonDashboardList
         title={`${copy.todayLessons}${dashboard.date ? ` / ${dashboard.date}` : ""}`}
         lessons={todayLessons}

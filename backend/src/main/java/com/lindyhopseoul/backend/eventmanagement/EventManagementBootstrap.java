@@ -9,9 +9,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.lindyhopseoul.backend.admin.AdminLanguage;
+import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.admin.PasswordHasher;
 import com.lindyhopseoul.backend.admin.TeacherUser;
 import com.lindyhopseoul.backend.admin.TeacherUserRepository;
+import com.lindyhopseoul.backend.admin.UserAccount;
+import com.lindyhopseoul.backend.admin.UserAccountRepository;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,12 +28,13 @@ public class EventManagementBootstrap {
             EventRepository eventRepository,
             MessageTemplateRepository messageTemplateRepository,
             TeacherUserRepository teacherUserRepository,
+            UserAccountRepository userAccountRepository,
             PasswordHasher passwordHasher,
             JdbcTemplate jdbcTemplate
     ) {
         return args -> {
             migrateLegacyDates(jdbcTemplate);
-            List<TeacherUser> teachers = ensureSampleTeachers(teacherUserRepository, passwordHasher);
+            List<TeacherUser> teachers = ensureSampleTeachers(teacherUserRepository, userAccountRepository, passwordHasher);
 
             if (eventRepository.count() == 0) {
                 seedEvents(eventRepository, teachers);
@@ -142,44 +146,74 @@ public class EventManagementBootstrap {
 
     private List<TeacherUser> ensureSampleTeachers(
             TeacherUserRepository teacherUserRepository,
+            UserAccountRepository userAccountRepository,
             PasswordHasher passwordHasher
     ) {
-        List<TeacherUser> activeTeachers = teacherUserRepository.findByUseYnOrderByTeacherUserNmAsc("Y");
+        List<TeacherUser> activeTeachers = teacherUserRepository.findActiveTeacherRoleProfiles();
         if (!activeTeachers.isEmpty()) {
             return activeTeachers;
         }
 
-        TeacherUser firstTeacher = teacherUserRepository.findById("SAMPLE_TEACHER_1")
-                .or(() -> teacherUserRepository.findByLoginId("teacher1"))
+        TeacherUser firstTeacher = ensureSampleTeacher(
+                teacherUserRepository,
+                userAccountRepository,
+                passwordHasher,
+                "SAMPLE_TEACHER_1",
+                "Sample Teacher 1",
+                "teacher1",
+                AdminLanguage.Eng
+        );
+        TeacherUser secondTeacher = ensureSampleTeacher(
+                teacherUserRepository,
+                userAccountRepository,
+                passwordHasher,
+                "SAMPLE_TEACHER_2",
+                "Sample Teacher 2",
+                "teacher2",
+                AdminLanguage.Kor
+        );
+
+        return List.of(firstTeacher, secondTeacher);
+    }
+
+    private TeacherUser ensureSampleTeacher(
+            TeacherUserRepository teacherUserRepository,
+            UserAccountRepository userAccountRepository,
+            PasswordHasher passwordHasher,
+            String teacherUserId,
+            String teacherName,
+            String loginId,
+            AdminLanguage langCd
+    ) {
+        UserAccount user = userAccountRepository.findByLoginId(loginId)
+                .orElseGet(() -> userAccountRepository.save(UserAccount.create(
+                        null,
+                        teacherName,
+                        loginId,
+                        null,
+                        passwordHasher.hash("1234"),
+                        langCd,
+                        List.of(AdminRole.TEACHER)
+                )));
+        if (!user.hasRole(AdminRole.TEACHER)) {
+            user.addRole(AdminRole.TEACHER);
+            userAccountRepository.save(user);
+        }
+
+        TeacherUser teacherUser = teacherUserRepository.findById(teacherUserId)
+                .or(() -> teacherUserRepository.findFirstByUserAccount_UserIdOrderByTeacherUserNmAsc(user.getUserId()))
                 .map(teacher -> {
-                    teacher.update("Sample Teacher 1", "teacher1", AdminLanguage.Eng, "Y", "SYSTEM");
+                    teacher.updateProfile(teacherName, user, "Y", "SYSTEM");
                     return teacher;
                 })
-                .orElseGet(() -> TeacherUser.create(
-                        "SAMPLE_TEACHER_1",
-                        "Sample Teacher 1",
-                        "teacher1",
-                        passwordHasher.hash("1234"),
-                        AdminLanguage.Eng,
+                .orElseGet(() -> TeacherUser.createProfile(
+                        teacherUserId,
+                        teacherName,
+                        user,
                         "SYSTEM"
                 ));
 
-        TeacherUser secondTeacher = teacherUserRepository.findById("SAMPLE_TEACHER_2")
-                .or(() -> teacherUserRepository.findByLoginId("teacher2"))
-                .map(teacher -> {
-                    teacher.update("Sample Teacher 2", "teacher2", AdminLanguage.Kor, "Y", "SYSTEM");
-                    return teacher;
-                })
-                .orElseGet(() -> TeacherUser.create(
-                        "SAMPLE_TEACHER_2",
-                        "Sample Teacher 2",
-                        "teacher2",
-                        passwordHasher.hash("1234"),
-                        AdminLanguage.Kor,
-                        "SYSTEM"
-                ));
-
-        return teacherUserRepository.saveAll(List.of(firstTeacher, secondTeacher));
+        return teacherUserRepository.save(teacherUser);
     }
 
     private void seedEvents(EventRepository eventRepository, List<TeacherUser> teachers) {

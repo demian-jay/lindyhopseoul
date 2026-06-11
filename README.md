@@ -52,6 +52,25 @@ PUT    /api/admin/users/teachers/{teacherUserCd}
 PATCH  /api/admin/users/teachers/{teacherUserCd}/deactivate
 ```
 
+Login accounts are stored in `USER_M`, and roles are stored in `USER_ROLE_M`.
+One user account can have multiple roles, such as `STAFF` and `TEACHER`.
+The login and `me` responses include both a compatibility `role` field and the canonical `roles` array:
+
+```json
+{
+  "user": {
+    "userId": "10",
+    "name": "Hernan",
+    "loginId": "hernan",
+    "role": "STAFF",
+    "roles": ["STAFF", "TEACHER"]
+  }
+}
+```
+
+`TEACHER_USER_M` is used as a teacher profile table, not as a separate login table.
+Teacher profiles link back to `USER_M.USER_ID`, and teacher dashboard queries resolve lessons through `USER_M -> TEACHER_USER_M -> LESSON_TEACHER`.
+
 The admin operations manual is implemented with the code/domain name `KnowledgeBase`:
 
 ```text
@@ -156,6 +175,7 @@ Event permissions:
 SUPER_ADMIN: event/lesson create, update, delete; message template create, update, delete; promotion render
 STAFF:       event/lesson create, update; promotion render
 TEACHER:     own lesson dashboard
+MEMBER:      reserved for future member-facing features
 ```
 
 Message template render requests accept `eventId` and `languageCode`, then return `renderedText`.
@@ -210,9 +230,11 @@ Available template variables:
 
 When multiple lessons match the same lesson-type variable, rendered values are joined with line breaks.
 
-Admin users are stored in `ADMIN_USER_M`, and teacher login users are stored in `TEACHER_USER_M`.
+Login users are stored in `USER_M`, and each user's roles are stored in `USER_ROLE_M`.
 Passwords are stored as salted PBKDF2 hashes, never as plaintext.
-Both tables include `LANG_CD` for admin UI language settings. Supported values are `Kor` and `Eng`.
+Legacy `ADMIN_USER_M` rows are migrated into `USER_M` on backend startup.
+`TEACHER_USER_M` stores teacher profiles and links to `USER_M.USER_ID`; legacy teacher-login rows are migrated into linked user accounts on startup.
+`USER_M` includes `LANG_CD` for admin UI language settings. Supported values are `Kor` and `Eng`.
 When the backend starts, it seeds the first super administrator if missing:
 
 ```text
@@ -330,8 +352,8 @@ mvn test
 
 ## Backend Notes
 
-- JPA is configured with `ddl-auto: update` for local development so tables such as `memos`, `ADMIN_USER_M`, `TEACHER_USER_M`, `KNOWLEDGE_CATEGORY`, `KNOWLEDGE_CATEGORY_TRANSLATION`, `KNOWLEDGE_ITEM`, `KNOWLEDGE_ITEM_TRANSLATION`, `SWINGPOP_EVENT`, `SWINGPOP_EVENT_TRANSLATION`, `LESSON`, `LESSON_TRANSLATION`, `LESSON_TEACHER`, and `MESSAGE_TEMPLATE` can be created automatically.
-- CORS allows `http://localhost:5173` by default through `APP_CORS_ALLOWED_ORIGINS`.
+- JPA is configured with `ddl-auto: update` for local development so tables such as `memos`, `USER_M`, `USER_ROLE_M`, `ADMIN_USER_M`, `TEACHER_USER_M`, `KNOWLEDGE_CATEGORY`, `KNOWLEDGE_CATEGORY_TRANSLATION`, `KNOWLEDGE_ITEM`, `KNOWLEDGE_ITEM_TRANSLATION`, `SWINGPOP_EVENT`, `SWINGPOP_EVENT_TRANSLATION`, `LESSON`, `LESSON_TRANSLATION`, `LESSON_TEACHER`, and `MESSAGE_TEMPLATE` can be created automatically.
+- CORS allows local Vite origins `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:5174`, and `http://127.0.0.1:5174` by default through `APP_CORS_ALLOWED_ORIGINS`.
 - The current exception handling returns a small JSON error response for validation failures, missing resources, and unexpected errors.
 - KnowledgeBase sample data is seeded only when no knowledge categories exist.
 - Event/lesson sample data is seeded only when no events exist. Message template sample data is seeded only when no message templates exist.

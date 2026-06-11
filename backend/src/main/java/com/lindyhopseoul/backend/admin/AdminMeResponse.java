@@ -10,7 +10,7 @@ public record AdminMeResponse(
     public static AdminMeResponse from(AdminPrincipal principal) {
         return new AdminMeResponse(
                 AdminSessionUserResponse.from(principal),
-                AdminMenu.forRole(principal.role())
+                AdminMenu.forRoles(principal.roles())
         );
     }
 }

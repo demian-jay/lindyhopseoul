@@ -94,8 +94,25 @@ public class KnowledgeItem {
     }
 
     public void replaceTranslations(Set<KnowledgeItemTranslation> nextTranslations) {
-        translations.clear();
-        nextTranslations.forEach(this::addTranslation);
+        Set<String> nextLanguageCodes = new LinkedHashSet<>();
+        nextTranslations.forEach(translation -> nextLanguageCodes.add(translation.getLanguageCode()));
+
+        translations.removeIf(translation -> !nextLanguageCodes.contains(translation.getLanguageCode()));
+
+        for (KnowledgeItemTranslation nextTranslation : nextTranslations) {
+            translations.stream()
+                    .filter(translation -> translation.getLanguageCode().equals(nextTranslation.getLanguageCode()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            translation -> translation.update(
+                                    nextTranslation.getTitle(),
+                                    nextTranslation.getSummary(),
+                                    nextTranslation.getContent(),
+                                    nextTranslation.getTags()
+                            ),
+                            () -> addTranslation(nextTranslation)
+                    );
+        }
     }
 
     public void addTranslation(KnowledgeItemTranslation translation) {

@@ -1,5 +1,7 @@
 package com.lindyhopseoul.backend.admin;
 
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,16 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminAccountService {
 
-    private final AdminUserRepository adminUserRepository;
+    private final UserAccountRepository userAccountRepository;
     private final TeacherUserRepository teacherUserRepository;
     private final PasswordHasher passwordHasher;
 
     public AdminAccountService(
-            AdminUserRepository adminUserRepository,
+            UserAccountRepository userAccountRepository,
             TeacherUserRepository teacherUserRepository,
             PasswordHasher passwordHasher
     ) {
-        this.adminUserRepository = adminUserRepository;
+        this.userAccountRepository = userAccountRepository;
         this.teacherUserRepository = teacherUserRepository;
         this.passwordHasher = passwordHasher;
     }
@@ -31,7 +33,7 @@ public class AdminAccountService {
     public List<AdminAccountResponse> findAdminUsers(AdminPrincipal actor) {
         requireAccountManager(actor);
 
-        return adminUserRepository.findAll(Sort.by(Sort.Direction.ASC, "adminUserNm"))
+        return userAccountRepository.findAll(Sort.by(Sort.Direction.ASC, "name"))
                 .stream()
                 .map(AdminAccountResponse::from)
                 .toList();
@@ -40,70 +42,74 @@ public class AdminAccountService {
     @Transactional
     public AdminAccountResponse createAdminUser(AdminPrincipal actor, AdminAccountCreateRequest request) {
         requireAccountManager(actor);
-        requireAdminRole(actor, request.role());
-        validateLoginIdAvailable(request.loginId(), Optional.empty(), Optional.empty());
+        List<AdminRole> roles = normalizeRoles(request.roles(), request.role(), AdminRole.STAFF);
+        requireRoleChangeAllowed(actor, roles);
+        validateLoginIdAvailable(request.loginId(), Optional.empty());
 
-        AdminUser adminUser = adminUserRepository.save(AdminUser.create(
+        UserAccount user = userAccountRepository.save(UserAccount.create(
                 null,
-                request.adminUserNm().trim(),
-                request.loginId().trim(),
+                clean(request.adminUserNm()),
+                clean(request.loginId()),
+                null,
                 passwordHasher.hash(request.password()),
-                request.role(),
-                request.langCd(),
-                actor.userCd()
+                normalizeLanguage(request.langCd()),
+                roles
         ));
+        syncTeacherProfile(user, roles.contains(AdminRole.TEACHER) && user.isActive(), actor.userCd());
 
-        return AdminAccountResponse.from(adminUser);
+        return AdminAccountResponse.from(user);
     }
 
     @Transactional
     public AdminAccountResponse updateAdminUser(
             AdminPrincipal actor,
-            String adminUserCd,
+            String userId,
             AdminAccountUpdateRequest request
     ) {
         requireAccountManager(actor);
-        requireAdminRole(actor, request.role());
-        AdminUser adminUser = findAdminUser(adminUserCd);
+        UserAccount user = findUser(userId);
+        List<AdminRole> roles = normalizeRoles(request.roles(), request.role(), AdminRole.STAFF);
+        requireRoleChangeAllowed(actor, user.getRoleCodes(), roles);
+        validateSelfProtection(actor, user, roles, request.useYn());
+        validateLastSuperAdminProtection(user, roles, request.useYn());
+        validateLoginIdAvailable(request.loginId(), Optional.of(user.getUserId()));
 
-        validateSelfProtection(actor, adminUser, request);
-        validateLastSuperAdminProtection(adminUser, request.role(), request.useYn());
-        validateLoginIdAvailable(request.loginId(), Optional.of(adminUserCd), Optional.empty());
-
-        adminUser.update(
-                request.adminUserNm().trim(),
-                request.loginId().trim(),
-                request.role(),
-                request.langCd(),
-                request.useYn(),
-                actor.userCd()
+        user.update(
+                clean(request.adminUserNm()),
+                clean(request.loginId()),
+                user.getEmail(),
+                normalizeLanguage(request.langCd()),
+                request.useYn()
         );
+        user.replaceRoles(roles);
 
         if (request.password() != null && !request.password().isBlank()) {
-            adminUser.changePassword(passwordHasher.hash(request.password()), actor.userCd());
+            user.changePassword(passwordHasher.hash(request.password()));
         }
+        syncTeacherProfile(user, roles.contains(AdminRole.TEACHER) && user.isActive(), actor.userCd());
 
-        return AdminAccountResponse.from(adminUser);
+        return AdminAccountResponse.from(user);
     }
 
     @Transactional
-    public AdminAccountResponse deactivateAdminUser(AdminPrincipal actor, String adminUserCd) {
+    public AdminAccountResponse deactivateAdminUser(AdminPrincipal actor, String userId) {
         requireAccountManager(actor);
-        AdminUser adminUser = findAdminUser(adminUserCd);
+        UserAccount user = findUser(userId);
 
-        if (adminUser.getAdminUserCd().equals(actor.userCd())) {
+        if (user.getUserId().equals(actor.userCd())) {
             throw new ForbiddenException("You cannot deactivate your own account.");
         }
-        validateLastSuperAdminProtection(adminUser, adminUser.getRole(), "N");
+        validateLastSuperAdminProtection(user, user.getRoleCodes(), "N");
 
-        adminUser.deactivate(actor.userCd());
-        return AdminAccountResponse.from(adminUser);
+        user.deactivate();
+        syncTeacherProfile(user, false, actor.userCd());
+        return AdminAccountResponse.from(user);
     }
 
     public List<TeacherAccountResponse> findTeacherUsers(AdminPrincipal actor) {
         requireAccountManager(actor);
 
-        return teacherUserRepository.findAll(Sort.by(Sort.Direction.ASC, "teacherUserNm"))
+        return teacherUserRepository.findTeacherRoleProfiles()
                 .stream()
                 .map(TeacherAccountResponse::from)
                 .toList();
@@ -112,14 +118,21 @@ public class AdminAccountService {
     @Transactional
     public TeacherAccountResponse createTeacherUser(AdminPrincipal actor, TeacherAccountCreateRequest request) {
         requireAccountManager(actor);
-        validateLoginIdAvailable(request.loginId(), Optional.empty(), Optional.empty());
+        UserAccount user = resolveTeacherAccountForCreate(request);
+        ensureRole(user, AdminRole.TEACHER);
 
-        TeacherUser teacherUser = teacherUserRepository.save(TeacherUser.create(
+        Optional<TeacherUser> existingProfile = teacherUserRepository
+                .findFirstByUserAccount_UserIdOrderByTeacherUserNmAsc(user.getUserId());
+        if (existingProfile.isPresent()) {
+            TeacherUser teacherUser = existingProfile.get();
+            teacherUser.updateProfile(clean(request.teacherUserNm()), user, "Y", actor.userCd());
+            return TeacherAccountResponse.from(teacherUser);
+        }
+
+        TeacherUser teacherUser = teacherUserRepository.save(TeacherUser.createProfile(
                 null,
-                request.teacherUserNm().trim(),
-                request.loginId().trim(),
-                passwordHasher.hash(request.password()),
-                request.langCd(),
+                clean(request.teacherUserNm()),
+                user,
                 actor.userCd()
         ));
 
@@ -134,18 +147,13 @@ public class AdminAccountService {
     ) {
         requireAccountManager(actor);
         TeacherUser teacherUser = findTeacherUser(teacherUserCd);
-        validateLoginIdAvailable(request.loginId(), Optional.empty(), Optional.of(teacherUserCd));
+        UserAccount user = resolveTeacherAccountForUpdate(teacherUser, request);
+        ensureRole(user, AdminRole.TEACHER);
+        validateTeacherProfileLinkAvailable(user, teacherUser);
 
-        teacherUser.update(
-                request.teacherUserNm().trim(),
-                request.loginId().trim(),
-                request.langCd(),
-                request.useYn(),
-                actor.userCd()
-        );
-
+        teacherUser.updateProfile(clean(request.teacherUserNm()), user, request.useYn(), actor.userCd());
         if (request.password() != null && !request.password().isBlank()) {
-            teacherUser.changePassword(passwordHasher.hash(request.password()), actor.userCd());
+            user.changePassword(passwordHasher.hash(request.password()));
         }
 
         return TeacherAccountResponse.from(teacherUser);
@@ -160,14 +168,97 @@ public class AdminAccountService {
         return TeacherAccountResponse.from(teacherUser);
     }
 
-    private AdminUser findAdminUser(String adminUserCd) {
-        return adminUserRepository.findById(adminUserCd)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin user not found: " + adminUserCd));
+    private UserAccount resolveTeacherAccountForCreate(TeacherAccountCreateRequest request) {
+        String requestedUserId = cleanNullable(request.userId());
+        if (requestedUserId != null) {
+            return findUser(requestedUserId);
+        }
+
+        String loginId = cleanNullable(request.loginId());
+        if (loginId == null) {
+            throw new ConflictException("Login ID is required when a teacher is not linked to an existing user.");
+        }
+
+        Optional<UserAccount> existingUser = userAccountRepository.findByLoginId(loginId);
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+        if (request.password() == null || request.password().isBlank()) {
+            throw new ConflictException("Password is required when creating a new user account.");
+        }
+
+        return userAccountRepository.save(UserAccount.create(
+                null,
+                clean(request.teacherUserNm()),
+                loginId,
+                null,
+                passwordHasher.hash(request.password()),
+                normalizeLanguage(request.langCd()),
+                List.of(AdminRole.TEACHER)
+        ));
+    }
+
+    private UserAccount resolveTeacherAccountForUpdate(TeacherUser teacherUser, TeacherAccountUpdateRequest request) {
+        String requestedUserId = cleanNullable(request.userId());
+        if (requestedUserId != null) {
+            return findUser(requestedUserId);
+        }
+
+        String loginId = cleanNullable(request.loginId());
+        if (loginId != null) {
+            Optional<UserAccount> existingUser = userAccountRepository.findByLoginId(loginId);
+            if (existingUser.isPresent()
+                    && (teacherUser.getUserAccount() == null
+                    || !existingUser.get().getUserId().equals(teacherUser.getUserAccount().getUserId()))) {
+                return existingUser.get();
+            }
+        }
+
+        UserAccount currentUser = teacherUser.getUserAccount();
+        if (currentUser != null) {
+            if (loginId != null) {
+                validateLoginIdAvailable(loginId, Optional.of(currentUser.getUserId()));
+                currentUser.update(
+                        clean(request.teacherUserNm()),
+                        loginId,
+                        currentUser.getEmail(),
+                        normalizeLanguage(request.langCd()),
+                        currentUser.getUseYn()
+                );
+            }
+            return currentUser;
+        }
+
+        if (loginId == null || request.password() == null || request.password().isBlank()) {
+            throw new ConflictException("Login ID and password are required when linking a legacy teacher profile.");
+        }
+        return userAccountRepository.save(UserAccount.create(
+                null,
+                clean(request.teacherUserNm()),
+                loginId,
+                null,
+                passwordHasher.hash(request.password()),
+                normalizeLanguage(request.langCd()),
+                List.of(AdminRole.TEACHER)
+        ));
+    }
+
+    private void validateTeacherProfileLinkAvailable(UserAccount user, TeacherUser currentTeacherUser) {
+        teacherUserRepository.findFirstByUserAccount_UserIdOrderByTeacherUserNmAsc(user.getUserId())
+                .filter(existing -> !existing.getTeacherUserCd().equals(currentTeacherUser.getTeacherUserCd()))
+                .ifPresent(existing -> {
+                    throw new ConflictException("This user is already linked to another teacher profile.");
+                });
+    }
+
+    private UserAccount findUser(String userId) {
+        return userAccountRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
     }
 
     private TeacherUser findTeacherUser(String teacherUserCd) {
         return teacherUserRepository.findById(teacherUserCd)
-                .orElseThrow(() -> new ResourceNotFoundException("Teacher user not found: " + teacherUserCd));
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher profile not found: " + teacherUserCd));
     }
 
     private void requireAccountManager(AdminPrincipal actor) {
@@ -176,61 +267,125 @@ public class AdminAccountService {
         }
     }
 
-    private void requireAdminRole(AdminPrincipal actor, AdminRole requestedRole) {
-        if (requestedRole == AdminRole.TEACHER) {
-            throw new ConflictException("Teacher role must be managed from teacher users.");
-        }
-        if (requestedRole == AdminRole.SUPER_ADMIN && actor.role() != AdminRole.SUPER_ADMIN) {
+    private void requireRoleChangeAllowed(AdminPrincipal actor, List<AdminRole> nextRoles) {
+        requireRoleChangeAllowed(actor, List.of(), nextRoles);
+    }
+
+    private void requireRoleChangeAllowed(
+            AdminPrincipal actor,
+            List<AdminRole> currentRoles,
+            List<AdminRole> nextRoles
+    ) {
+        boolean touchesSuperAdmin = nextRoles.contains(AdminRole.SUPER_ADMIN)
+                || currentRoles.contains(AdminRole.SUPER_ADMIN);
+        if (touchesSuperAdmin && !actor.hasRole(AdminRole.SUPER_ADMIN)) {
             throw new ForbiddenException("Only a super administrator can create or modify super administrators.");
         }
     }
 
     private void validateSelfProtection(
             AdminPrincipal actor,
-            AdminUser target,
-            AdminAccountUpdateRequest request
+            UserAccount target,
+            List<AdminRole> nextRoles,
+            String nextUseYn
     ) {
-        if (!target.getAdminUserCd().equals(actor.userCd())) {
+        if (!target.getUserId().equals(actor.userCd())) {
             return;
         }
 
-        if (!target.getRole().equals(request.role()) || !"Y".equals(request.useYn())) {
-            throw new ForbiddenException("You cannot change your own role or deactivate your own account.");
+        if (!sameRoles(target.getRoleCodes(), nextRoles) || !"Y".equals(nextUseYn)) {
+            throw new ForbiddenException("You cannot change your own roles or deactivate your own account.");
         }
     }
 
-    private void validateLastSuperAdminProtection(AdminUser target, AdminRole nextRole, String nextUseYn) {
-        if (target.getRole() != AdminRole.SUPER_ADMIN || !target.isActive()) {
+    private void validateLastSuperAdminProtection(UserAccount target, List<AdminRole> nextRoles, String nextUseYn) {
+        if (!target.hasRole(AdminRole.SUPER_ADMIN) || !target.isActive()) {
             return;
         }
 
-        boolean remainsActiveSuperAdmin = nextRole == AdminRole.SUPER_ADMIN && "Y".equals(nextUseYn);
-        if (!remainsActiveSuperAdmin && adminUserRepository.countByRoleAndUseYn(AdminRole.SUPER_ADMIN, "Y") <= 1) {
+        boolean remainsActiveSuperAdmin = nextRoles.contains(AdminRole.SUPER_ADMIN) && "Y".equals(nextUseYn);
+        if (!remainsActiveSuperAdmin
+                && userAccountRepository.countDistinctByRoles_RoleCodeAndUseYn(AdminRole.SUPER_ADMIN, "Y") <= 1) {
             throw new ForbiddenException("At least one active super administrator is required.");
         }
     }
 
-    private void validateLoginIdAvailable(
-            String loginId,
-            Optional<String> currentAdminUserCd,
-            Optional<String> currentTeacherUserCd
-    ) {
-        String nextLoginId = loginId.trim();
+    private void validateLoginIdAvailable(String loginId, Optional<String> currentUserId) {
+        String nextLoginId = clean(loginId);
 
-        adminUserRepository.findByLoginId(nextLoginId)
-                .filter(adminUser -> currentAdminUserCd
-                        .map(currentCd -> !currentCd.equals(adminUser.getAdminUserCd()))
+        userAccountRepository.findByLoginId(nextLoginId)
+                .filter(user -> currentUserId
+                        .map(currentId -> !currentId.equals(user.getUserId()))
                         .orElse(true))
-                .ifPresent(adminUser -> {
+                .ifPresent(user -> {
                     throw new ConflictException("Login ID already exists.");
                 });
+    }
 
-        teacherUserRepository.findByLoginId(nextLoginId)
-                .filter(teacherUser -> currentTeacherUserCd
-                        .map(currentCd -> !currentCd.equals(teacherUser.getTeacherUserCd()))
-                        .orElse(true))
-                .ifPresent(teacherUser -> {
-                    throw new ConflictException("Login ID already exists.");
-                });
+    private void ensureRole(UserAccount user, AdminRole role) {
+        if (!user.hasRole(role)) {
+            user.addRole(role);
+            userAccountRepository.save(user);
+        }
+    }
+
+    private void syncTeacherProfile(UserAccount user, boolean shouldBeActive, String actorCd) {
+        Optional<TeacherUser> existingProfile = teacherUserRepository
+                .findFirstByUserAccount_UserIdOrderByTeacherUserNmAsc(user.getUserId());
+        if (existingProfile.isPresent()) {
+            existingProfile.get().updateProfile(user.getName(), user, shouldBeActive ? "Y" : "N", actorCd);
+            return;
+        }
+
+        if (shouldBeActive) {
+            teacherUserRepository.save(TeacherUser.createProfile(
+                    null,
+                    user.getName(),
+                    user,
+                    actorCd
+            ));
+        }
+    }
+
+    private List<AdminRole> normalizeRoles(Collection<AdminRole> roles, AdminRole fallbackRole, AdminRole defaultRole) {
+        Collection<AdminRole> source = roles == null || roles.isEmpty()
+                ? (fallbackRole == null ? List.of() : List.of(fallbackRole))
+                : roles;
+        List<AdminRole> normalized = source
+                .stream()
+                .filter(role -> role != null)
+                .distinct()
+                .sorted(Comparator.comparingInt(this::rolePriority))
+                .toList();
+        return normalized.isEmpty() ? List.of(defaultRole) : normalized;
+    }
+
+    private boolean sameRoles(List<AdminRole> left, List<AdminRole> right) {
+        return normalizeRoles(left, null, AdminRole.MEMBER).equals(normalizeRoles(right, null, AdminRole.MEMBER));
+    }
+
+    private AdminLanguage normalizeLanguage(AdminLanguage langCd) {
+        return langCd == null ? AdminLanguage.Kor : langCd;
+    }
+
+    private int rolePriority(AdminRole role) {
+        return switch (role) {
+            case SUPER_ADMIN -> 0;
+            case STAFF -> 1;
+            case TEACHER -> 2;
+            case MEMBER -> 3;
+        };
+    }
+
+    private String clean(String value) {
+        return value.trim();
+    }
+
+    private String cleanNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
     }
 }

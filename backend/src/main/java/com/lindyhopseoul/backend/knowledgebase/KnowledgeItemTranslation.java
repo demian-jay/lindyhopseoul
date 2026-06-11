@@ -61,6 +61,13 @@ public class KnowledgeItemTranslation {
         this.knowledgeItem = knowledgeItem;
     }
 
+    void update(String title, String summary, String content, String tags) {
+        this.title = title;
+        this.summary = summary;
+        this.content = content;
+        this.tags = tags;
+    }
+
     public Long getId() {
         return id;
     }

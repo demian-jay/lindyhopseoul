@@ -49,8 +49,20 @@ public class KnowledgeCategory {
     }
 
     public void replaceTranslations(Set<KnowledgeCategoryTranslation> nextTranslations) {
-        translations.clear();
-        nextTranslations.forEach(this::addTranslation);
+        Set<String> nextLanguageCodes = new LinkedHashSet<>();
+        nextTranslations.forEach(translation -> nextLanguageCodes.add(translation.getLanguageCode()));
+
+        translations.removeIf(translation -> !nextLanguageCodes.contains(translation.getLanguageCode()));
+
+        for (KnowledgeCategoryTranslation nextTranslation : nextTranslations) {
+            translations.stream()
+                    .filter(translation -> translation.getLanguageCode().equals(nextTranslation.getLanguageCode()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            translation -> translation.update(nextTranslation.getName(), nextTranslation.getDescription()),
+                            () -> addTranslation(nextTranslation)
+                    );
+        }
     }
 
     public void addTranslation(KnowledgeCategoryTranslation translation) {
