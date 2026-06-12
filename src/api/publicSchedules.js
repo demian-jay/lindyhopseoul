@@ -1,0 +1,35 @@
+const DEFAULT_API_BASE_URL = "http://localhost:8080";
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, "");
+
+function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, value);
+    }
+  });
+  const queryString = query.toString();
+  return queryString ? `?${queryString}` : "";
+}
+
+async function request(path) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.message || `API request failed with status ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+export const publicScheduleApi = {
+  findOpenSchedules(params = {}) {
+    return request(`/api/public/schedules${buildQuery(params)}`);
+  },
+};

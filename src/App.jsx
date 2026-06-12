@@ -2,21 +2,93 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import AdminApp from "./AdminApp";
 import { memoApi } from "./api/memos";
+import { publicScheduleApi } from "./api/publicSchedules";
 
 const CONTENT = {
   ko: {
-    nav: ["스윙팝", "스윙댄스", "스윙팝의 춤", "서울 씬", "수업 등록"],
+    nav: ["스윙팝", "스윙댄스", "스윙팝의 춤", "서울 씬", "일정", "신청"],
     heroBadge: "SwingPop Community",
     heroTitle: "서울에서 만나는 따뜻한 스윙댄스 커뮤니티",
     heroDesc:
       "스윙팝은 한국인과 외국인이 함께 어울리며 춤과 음악, 사람 사이의 연결을 즐기는 스윙댄스 커뮤니티입니다. 처음 온 사람도 편안하게 분위기를 느끼고, 서울의 스윙 문화를 자연스럽게 만나볼 수 있도록 구성했습니다.",
-    heroPrimary: "수업 보러가기",
+    heroPrimary: "신청 가능한 수업 보기",
     heroSecondary: "커뮤니티 소개 보기",
-    mobileApply: "지금 신청하기",
+    mobileApply: "신청하기",
+    mobileSchedule: "일정 보기",
     languageTitle: "언어를 선택해주세요",
     languageDesc: "Choose your preferred language to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    quickStart: {
+      eyebrow: "처음이라면 여기부터",
+      title: "내게 맞는 SwingPop 일정 찾기",
+      description: "처음 온 분은 Level 1을 먼저 보면 가장 자연스럽고, 기존 회원은 날짜순 일정에서 원하는 수업이나 이벤트를 바로 고를 수 있습니다.",
+      cards: [
+        {
+          title: "처음 방문했어요",
+          desc: "스윙댄스를 처음 시작한다면 Level 1 정규수업을 추천합니다.",
+          cta: "Level 1 보기",
+          filter: "beginner",
+        },
+        {
+          title: "이미 배운 적이 있어요",
+          desc: "Level 2~4, 워크샵, 특별 이벤트를 날짜순으로 확인할 수 있습니다.",
+          cta: "기존회원 일정 보기",
+          filter: "regular",
+        },
+        {
+          title: "소셜이나 파티가 궁금해요",
+          desc: "격주 수요일 Dialogue Party와 특별 이벤트를 따로 모아볼 수 있습니다.",
+          cta: "파티 일정 보기",
+          filter: "social",
+        },
+      ],
+    },
+    application: {
+      scheduleEyebrow: "Schedule",
+      applyEyebrow: "Apply",
+      filtersTitle: "신청 가능한 일정",
+      filters: [
+        { id: "all", label: "전체" },
+        { id: "beginner", label: "처음 추천" },
+        { id: "regular", label: "정규수업" },
+        { id: "workshop", label: "워크샵" },
+        { id: "social", label: "Dialogue Party" },
+        { id: "event", label: "특별 이벤트" },
+      ],
+      recommended: "처음 추천",
+      scheduleButton: "일정으로 이동",
+      applyButton: "신청하기",
+      details: {
+        date: "날짜",
+        time: "시간",
+        location: "장소",
+        price: "가격",
+        teacher: "강사",
+        event: "이벤트",
+      },
+      noResults: "선택한 조건에 맞는 일정이 없습니다.",
+      loading: "등록된 일정과 강습을 불러오는 중입니다.",
+      empty: "현재 신청 가능한 공개 일정이 없습니다.",
+      loadError: "등록된 일정과 강습을 불러오지 못했습니다.",
+      free: "무료",
+      toBeAnnounced: "추후 안내",
+      levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 안내 메시지로 한 번 더 확인할 예정입니다.",
+    },
+    applicationModal: {
+      title: "신청 정보 입력",
+      close: "닫기",
+      nameLabel: "이름",
+      namePlaceholder: "예: 홍길동",
+      phoneLabel: "전화번호",
+      phonePlaceholder: "예: 010-1234-5678",
+      submit: "신청하기",
+      submitting: "확인 중",
+      required: "이름과 전화번호를 모두 입력해주세요.",
+      successTitle: "신청 흐름이 확인되었습니다.",
+      successBody: "실제 저장 기능은 다음 단계에서 연결됩니다. 지금은 신청 UX와 모달 흐름만 확인할 수 있습니다.",
+      chooseAnother: "다른 일정 보기",
+    },
     sections: [
       {
         id: "about",
@@ -76,14 +148,23 @@ const CONTENT = {
         highlight: "서울은 스윙댄스를 배우고 즐기기에 매력적인 도시이며, 스윙팝은 그 입구가 되어줄 수 있습니다.",
       },
       {
-        id: "register",
-        eyebrow: "5. 수업 등록",
-        title: "이제 직접 경험해보세요",
+        id: "schedule",
+        eyebrow: "5. 일정",
+        title: "다가오는 수업과 이벤트",
         body: [
-          "처음이어도 괜찮습니다. 수업과 커뮤니티를 통해 춤, 음악, 사람을 함께 만나는 경험을 시작해보세요.",
-          "아래 버튼과 링크 영역은 나중에 실제 신청 페이지로 연결할 수 있도록 비워두었습니다.",
+          "날짜순으로 먼저 확인하고, 필요하면 수업 종류별 필터로 좁혀볼 수 있습니다.",
+          "월간 달력은 이후 단계에서 별도 보기로 연결할 수 있도록 두고, 지금은 신청 가능한 일정 리스트에 집중합니다.",
         ],
-        ctaPrimary: "수업 신청 링크",
+      },
+      {
+        id: "register",
+        eyebrow: "6. 신청",
+        title: "원하는 수업이나 이벤트를 선택하세요",
+        body: [
+          "처음이라면 Level 1을 먼저 추천합니다. 기존 회원은 날짜와 수업 종류를 기준으로 바로 선택할 수 있습니다.",
+          "각 카드에서 신청 버튼을 누르면 이름과 전화번호를 입력하는 모달 흐름을 확인할 수 있습니다.",
+        ],
+        ctaPrimary: "신청하기",
         ctaSecondary: "문의하기",
       },
     ],
@@ -114,18 +195,89 @@ const CONTENT = {
     footer: "SwingPop · Dance, Music, Community",
   },
   en: {
-    nav: ["SwingPop", "Swing Dance", "Our Style", "Seoul Scene", "Register"],
+    nav: ["SwingPop", "Swing Dance", "Our Style", "Seoul Scene", "Schedule", "Apply"],
     heroBadge: "SwingPop Community",
     heroTitle: "A warm swing dance community in Seoul",
     heroDesc:
       "SwingPop is a swing dance community where Koreans and internationals connect through dance, music, and shared experiences. This page is designed to help first-time visitors quickly understand who we are and why Seoul’s swing dance culture is worth exploring.",
-    heroPrimary: "View Classes",
+    heroPrimary: "View Open Classes",
     heroSecondary: "About the Community",
-    mobileApply: "Apply Now",
+    mobileApply: "Apply",
+    mobileSchedule: "Schedule",
     languageTitle: "Choose your language",
     languageDesc: "Select Korean or English to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    quickStart: {
+      eyebrow: "Start here",
+      title: "Find the right SwingPop schedule",
+      description: "If this is your first visit, Level 1 is the clearest starting point. Returning dancers can jump straight into the date-based schedule.",
+      cards: [
+        {
+          title: "I am new here",
+          desc: "If you are new to swing dance, start with the Level 1 regular class.",
+          cta: "View Level 1",
+          filter: "beginner",
+        },
+        {
+          title: "I have danced before",
+          desc: "Check Level 2-4 classes, workshops, and special events by date.",
+          cta: "View member schedule",
+          filter: "regular",
+        },
+        {
+          title: "I want social dancing",
+          desc: "Find the biweekly Wednesday Dialogue Party and special events.",
+          cta: "View parties",
+          filter: "social",
+        },
+      ],
+    },
+    application: {
+      scheduleEyebrow: "Schedule",
+      applyEyebrow: "Apply",
+      filtersTitle: "Open schedules",
+      filters: [
+        { id: "all", label: "All" },
+        { id: "beginner", label: "First-timer" },
+        { id: "regular", label: "Regular Class" },
+        { id: "workshop", label: "Workshop" },
+        { id: "social", label: "Dialogue Party" },
+        { id: "event", label: "Special Event" },
+      ],
+      recommended: "Recommended first",
+      scheduleButton: "Go to schedule",
+      applyButton: "Apply",
+      details: {
+        date: "Date",
+        time: "Time",
+        location: "Location",
+        price: "Price",
+        teacher: "Teacher",
+        event: "Event",
+      },
+      noResults: "No schedules match this filter.",
+      loading: "Loading registered schedules and lessons.",
+      empty: "There are no open public schedules right now.",
+      loadError: "Could not load registered schedules and lessons.",
+      free: "Free",
+      toBeAnnounced: "TBA",
+      levelNotice: "Level 2+ classes have recommended experience guidelines. A reminder message can be shown during application later.",
+    },
+    applicationModal: {
+      title: "Enter application details",
+      close: "Close",
+      nameLabel: "Name",
+      namePlaceholder: "E.g. Alex Kim",
+      phoneLabel: "Phone number",
+      phonePlaceholder: "E.g. 010-1234-5678",
+      submit: "Apply",
+      submitting: "Checking",
+      required: "Please enter both your name and phone number.",
+      successTitle: "Application flow confirmed.",
+      successBody: "The save step will be connected later. For now, this verifies the UX and modal flow only.",
+      chooseAnother: "Choose another schedule",
+    },
     sections: [
       {
         id: "about",
@@ -185,14 +337,23 @@ const CONTENT = {
         highlight: "Seoul is an exciting city for learning and enjoying swing dance, and SwingPop can be your welcoming starting point.",
       },
       {
-        id: "register",
-        eyebrow: "5. Register for Class",
-        title: "Come experience it for yourself",
+        id: "schedule",
+        eyebrow: "5. Schedule",
+        title: "Upcoming classes and events",
         body: [
-          "It is okay if this is your first time. Through class and community, you can begin meeting dance, music, and people all at once.",
-          "The button and link area below are left ready for you to connect to a real registration page later.",
+          "Start with the date-based list, then narrow it down by class or event type when needed.",
+          "A monthly calendar can be connected later as a separate view. For now, this page focuses on open schedules people can apply for.",
         ],
-        ctaPrimary: "Class Registration Link",
+      },
+      {
+        id: "register",
+        eyebrow: "6. Apply",
+        title: "Choose a class or event",
+        body: [
+          "If you are new, Level 1 is the recommended starting point. Returning members can choose by date and class type.",
+          "Select Apply on a card to preview the name and phone number modal flow.",
+        ],
+        ctaPrimary: "Apply",
         ctaSecondary: "Contact Us",
       },
     ],
@@ -224,7 +385,7 @@ const CONTENT = {
   },
 };
 
-const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "register"];
+const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule", "register"];
 const STORAGE_KEY = "swingpop-language";
 
 function validateContentShape(content) {
@@ -265,8 +426,16 @@ function runComponentTests() {
     throw new Error("Register section CTA labels are required in both languages.");
   }
 
-  if (!CONTENT.ko.mobileApply || !CONTENT.en.mobileApply) {
-    throw new Error("Mobile sticky CTA label is required in both languages.");
+  if (!CONTENT.ko.mobileApply || !CONTENT.en.mobileApply || !CONTENT.ko.mobileSchedule || !CONTENT.en.mobileSchedule) {
+    throw new Error("Mobile sticky CTA labels are required in both languages.");
+  }
+
+  if (!CONTENT.ko.application?.filters?.length || !CONTENT.en.application?.filters?.length) {
+    throw new Error("Application filters are required in both languages.");
+  }
+
+  if (!CONTENT.ko.application.filters.some((filter) => filter.id === "beginner")) {
+    throw new Error("A beginner filter is required.");
   }
 
   if (typeof window !== "undefined") {
@@ -352,32 +521,36 @@ function LanguageSelectionModal({ title, description, onSelect }) {
   );
 }
 
-function MobileStickyApplyButton({ label, href = "#register", onClick }) {
-  const handleClick = (event) => {
-    if (onClick) {
-      onClick(event);
-      return;
-    }
+function scrollToHash(hash) {
+  if (!hash?.startsWith("#")) {
+    return;
+  }
 
-    if (href?.startsWith("#")) {
-      event.preventDefault();
-      const target = document.querySelector(href);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
-  };
+  const target = document.querySelector(hash);
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
 
+function MobileStickyCta({ primaryLabel, secondaryLabel, onPrimaryClick, onSecondaryClick }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blue-900/10 bg-white/90 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-      <a
-        href={href}
-        onClick={handleClick}
-        className="flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        aria-label={label}
+    <div className="fixed inset-x-0 bottom-0 z-[90] grid grid-cols-[0.9fr_1.1fr] gap-3 border-t border-blue-900/10 bg-white/90 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+      <button
+        type="button"
+        onClick={onSecondaryClick}
+        className="flex min-h-[52px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label={secondaryLabel}
       >
-        {label}
-      </a>
+        {secondaryLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onPrimaryClick}
+        className="flex min-h-[52px] items-center justify-center rounded-2xl bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label={primaryLabel}
+      >
+        {primaryLabel}
+      </button>
     </div>
   );
 }
@@ -628,9 +801,531 @@ function MemoBoard({ labels }) {
   );
 }
 
+function QuickStartGuide({ labels, onSelect }) {
+  return (
+    <SectionWrapper id="start" className="-mt-6 pt-0">
+      <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{labels.eyebrow}</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-blue-950 md:text-4xl">{labels.title}</h2>
+          <p className="mt-4 text-base leading-8 text-blue-950/70">{labels.description}</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {labels.cards.map((card) => (
+            <article key={card.title} className="flex min-h-[220px] flex-col rounded-3xl border border-blue-200 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-blue-950">{card.title}</h3>
+              <p className="mt-3 flex-1 text-sm leading-7 text-blue-950/70">{card.desc}</p>
+              <button
+                type="button"
+                onClick={() => onSelect(card.filter)}
+                className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                {card.cta}
+              </button>
+            </article>
+          ))}
+        </div>
+      </div>
+    </SectionWrapper>
+  );
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/45">{label}</dt>
+      <dd className="mt-1 text-sm leading-6 text-blue-950/75">{value}</dd>
+    </div>
+  );
+}
+
+const EVENT_TYPE_LABELS = {
+  ko: {
+    REGULAR_CLASS: "정규수업",
+    PARTY: "특별 이벤트",
+    DIALOGUE_PARTY: "Dialogue Party",
+  },
+  en: {
+    REGULAR_CLASS: "Regular Class",
+    PARTY: "Special Event",
+    DIALOGUE_PARTY: "Dialogue Party",
+  },
+};
+
+function getScheduleTranslation(item, language) {
+  return item.translations?.[language] || item.translations?.ko || {};
+}
+
+function getFilterIds(item) {
+  const filters = new Set();
+
+  if (item.eventType === "REGULAR_CLASS") {
+    filters.add("regular");
+  }
+
+  if (item.eventType === "DIALOGUE_PARTY") {
+    filters.add("social");
+    filters.add("event");
+  }
+
+  if (item.eventType === "PARTY") {
+    filters.add("event");
+  }
+
+  if (item.lessonType === "LEVEL1") {
+    filters.add("beginner");
+    filters.add("regular");
+  }
+
+  if (["LEVEL2", "LEVEL3", "LEVEL4"].includes(item.lessonType)) {
+    filters.add("regular");
+  }
+
+  if (item.lessonType === "WORKSHOP") {
+    filters.add("workshop");
+  }
+
+  return Array.from(filters);
+}
+
+function formatDateRange(startDate, endDate, language) {
+  if (!startDate) {
+    return "";
+  }
+
+  const locale = language === "en" ? "en-US" : "ko-KR";
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+  });
+  const formattedStart = formatter.format(new Date(`${startDate}T00:00:00`));
+
+  if (!endDate || endDate === startDate) {
+    return formattedStart;
+  }
+
+  return `${formattedStart} - ${formatter.format(new Date(`${endDate}T00:00:00`))}`;
+}
+
+function formatTimeRange(startTime, endTime) {
+  const trimTime = (value) => (value ? value.slice(0, 5) : "");
+  const start = trimTime(startTime);
+  const end = trimTime(endTime);
+
+  if (!start && !end) {
+    return "";
+  }
+  if (!end) {
+    return start;
+  }
+  return `${start}-${end}`;
+}
+
+function formatPrice(fee, currency, labels, language) {
+  if (fee === null || fee === undefined) {
+    return labels.toBeAnnounced;
+  }
+
+  const amount = Number(fee);
+  if (amount === 0) {
+    return labels.free;
+  }
+
+  if (currency === "KRW") {
+    const formatted = new Intl.NumberFormat(language === "en" ? "en-US" : "ko-KR").format(amount);
+    return language === "en" ? `KRW ${formatted}` : `${formatted}원`;
+  }
+
+  return `${amount.toLocaleString()} ${currency || ""}`.trim();
+}
+
+function formatTeachers(teachers, labels) {
+  if (!Array.isArray(teachers) || teachers.length === 0) {
+    return labels.toBeAnnounced;
+  }
+
+  return teachers.map((teacher) => teacher.teacherUserNm).filter(Boolean).join(", ") || labels.toBeAnnounced;
+}
+
+function toApplicationItem(item, language, labels) {
+  const translation = getScheduleTranslation(item, language);
+  const eventTypeLabel = EVENT_TYPE_LABELS[language]?.[item.eventType] || item.eventType;
+
+  return {
+    id: item.id,
+    target: {
+      eventId: item.eventId,
+      lessonId: item.lessonId,
+      lessonType: item.lessonType,
+    },
+    filterIds: getFilterIds(item),
+    isRecommended: item.recommendedForBeginners,
+    requiresLevelNotice: item.requiresLevelNotice,
+    eventType: eventTypeLabel,
+    title: translation.title || translation.eventTitle || eventTypeLabel,
+    date: formatDateRange(item.startDate, item.endDate, language),
+    time: formatTimeRange(item.startTime, item.endTime) || labels.toBeAnnounced,
+    location: item.location || labels.toBeAnnounced,
+    price: formatPrice(item.fee, item.currency, labels, language),
+    teacher: formatTeachers(item.teachers, labels),
+    description: translation.description || translation.shortDescription || "",
+  };
+}
+
+function ApplicationCard({ item, language, labels, onApply }) {
+  return (
+    <article
+      className={`grid gap-5 rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+        item.isRecommended ? "border-amber-300 ring-2 ring-amber-100" : "border-blue-200"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+              {item.eventType}
+            </span>
+            {item.isRecommended ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                {labels.recommended}
+              </span>
+            ) : null}
+          </div>
+          <h3 className="mt-3 text-xl font-semibold tracking-tight text-blue-950">{item.title}</h3>
+          <p className="mt-3 text-sm leading-7 text-blue-950/70">{item.description}</p>
+        </div>
+      </div>
+
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <DetailRow label={labels.details.date} value={item.date} />
+        <DetailRow label={labels.details.time} value={item.time} />
+        <DetailRow label={labels.details.location} value={item.location} />
+        <DetailRow label={labels.details.price} value={item.price} />
+        <DetailRow label={labels.details.teacher} value={item.teacher} />
+      </dl>
+
+      {item.requiresLevelNotice ? (
+        <p className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-900">
+          {labels.levelNotice}
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => onApply(item)}
+        className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        {labels.applyButton}
+      </button>
+    </article>
+  );
+}
+
+function ScheduleAndApplicationSection({
+  language,
+  scheduleSection,
+  registerSection,
+  labels,
+  items,
+  isLoading,
+  error,
+  activeFilter,
+  onFilterChange,
+  onApply,
+}) {
+  const filteredItems =
+    activeFilter === "all" ? items : items.filter((item) => item.filterIds.includes(activeFilter));
+  const hasItems = items.length > 0;
+
+  return (
+    <div className="grid gap-14">
+      <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{scheduleSection.eyebrow}</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">{scheduleSection.title}</h2>
+          <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
+            {scheduleSection.body.map((paragraph) => (
+              <p key={`${language}-schedule-${paragraph}`}>{paragraph}</p>
+            ))}
+          </div>
+        </div>
+
+        <ol className="grid gap-3">
+          {isLoading ? (
+            <li className="rounded-3xl border border-blue-200 bg-white px-5 py-6 text-sm text-blue-950/65 shadow-sm">
+              {labels.loading}
+            </li>
+          ) : null}
+          {!isLoading && error ? (
+            <li className="rounded-3xl border border-red-200 bg-red-50 px-5 py-6 text-sm leading-6 text-red-700 shadow-sm">
+              {labels.loadError}
+            </li>
+          ) : null}
+          {!isLoading && !error && !hasItems ? (
+            <li className="rounded-3xl border border-dashed border-blue-200 bg-white px-5 py-6 text-sm text-blue-950/65 shadow-sm">
+              {labels.empty}
+            </li>
+          ) : null}
+          {!isLoading && !error && items.map((item) => (
+            <li key={`schedule-${item.id}`} className="rounded-3xl border border-blue-200 bg-white px-5 py-4 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-900/45">
+                    {item.eventType}
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-blue-950">{item.title}</div>
+                </div>
+                <div className="text-sm leading-6 text-blue-950/70 sm:text-right">
+                  <div>{item.date}</div>
+                  <div>{item.time}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div id="register" className="scroll-mt-24">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{registerSection.eyebrow}</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">{registerSection.title}</h2>
+            <div className="mt-6 max-w-3xl space-y-4 text-base leading-8 text-blue-950/70">
+              {registerSection.body.map((paragraph) => (
+                <p key={`${language}-register-${paragraph}`}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => scrollToHash("#schedule")}
+            className="inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.scheduleButton}
+          </button>
+        </div>
+
+        <div className="mt-8">
+          <div className="mb-3 text-sm font-semibold text-blue-950">{labels.filtersTitle}</div>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {labels.filters.map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                onClick={() => onFilterChange(filter.id)}
+                className={`min-h-[40px] shrink-0 rounded-full border px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  activeFilter === filter.id
+                    ? "border-blue-700 bg-blue-700 text-white"
+                    : "border-blue-200 bg-white text-blue-950 hover:bg-blue-50"
+                }`}
+                aria-pressed={activeFilter === filter.id}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="mt-6 rounded-3xl border border-blue-200 bg-white px-5 py-8 text-center text-sm text-blue-950/65">
+            {labels.loading}
+          </div>
+        ) : null}
+
+        {!isLoading && error ? (
+          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm leading-6 text-red-700">
+            {labels.loadError}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && filteredItems.length > 0 ? (
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            {filteredItems.map((item) => (
+              <ApplicationCard key={item.id} item={item} language={language} labels={labels} onApply={onApply} />
+            ))}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && filteredItems.length === 0 ? (
+          <div className="mt-6 rounded-3xl border border-dashed border-blue-200 bg-white px-5 py-8 text-center text-sm text-blue-950/65">
+            {hasItems ? labels.noResults : labels.empty}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
+  const [form, setForm] = useState({ name: "", phone: "" });
+  const [error, setError] = useState("");
+  const [submittedApplication, setSubmittedApplication] = useState(null);
+
+  useEffect(() => {
+    setForm({ name: "", phone: "" });
+    setError("");
+    setSubmittedApplication(null);
+  }, [item]);
+
+  useEffect(() => {
+    if (!item) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [item, onClose]);
+
+  if (!item) {
+    return null;
+  }
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((currentForm) => ({ ...currentForm, [name]: value }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setError("");
+
+    if (!form.name.trim() || !form.phone.trim()) {
+      setError(labels.required);
+      return;
+    }
+
+    setSubmittedApplication({
+      target: item.target,
+      applicantName: form.name.trim(),
+      phoneNumber: form.phone.trim(),
+      languageCode: language,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-blue-950/55 px-4 py-4 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="application-modal-title"
+    >
+      <div className="max-h-[calc(100vh-32px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-blue-100 bg-white p-5 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-900/45">
+              {item.eventType}
+            </p>
+            <h2 id="application-modal-title" className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">
+              {item.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-sm font-semibold text-blue-950 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label={labels.close}
+          >
+            X
+          </button>
+        </div>
+
+        <dl className="mt-6 grid gap-4 rounded-3xl border border-blue-200 bg-blue-50/70 p-5 sm:grid-cols-2">
+          <DetailRow label={detailLabels.details.date} value={item.date} />
+          <DetailRow label={detailLabels.details.time} value={item.time} />
+          <DetailRow label={detailLabels.details.location} value={item.location} />
+          <DetailRow label={detailLabels.details.price} value={item.price} />
+          <DetailRow label={detailLabels.details.teacher} value={item.teacher} />
+        </dl>
+
+        <p className="mt-5 text-sm leading-7 text-blue-950/70">{item.description}</p>
+
+        {item.requiresLevelNotice ? (
+          <p className="mt-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-900">
+            {detailLabels.levelNotice}
+          </p>
+        ) : null}
+
+        {submittedApplication ? (
+          <div className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+            <h3 className="text-lg font-semibold text-emerald-950">{labels.successTitle}</h3>
+            <p className="mt-2 text-sm leading-7 text-emerald-900/75">{labels.successBody}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-auto"
+            >
+              {labels.chooseAnother}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-semibold text-blue-950/75">{labels.nameLabel}</span>
+                <input
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder={labels.namePlaceholder}
+                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-blue-950/75">{labels.phoneLabel}</span>
+                <input
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder={labels.phonePlaceholder}
+                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </label>
+            </div>
+
+            {error ? (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {labels.close}
+              </button>
+              <button
+                type="submit"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {labels.submit}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PublicApp() {
   const [language, setLanguage] = useState(null);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [scheduleItems, setScheduleItems] = useState([]);
+  const [isScheduleLoading, setIsScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [selectedApplication, setSelectedApplication] = useState(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -644,6 +1339,36 @@ function PublicApp() {
     setHasHydrated(true);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    setIsScheduleLoading(true);
+    setScheduleError("");
+
+    publicScheduleApi
+      .findOpenSchedules()
+      .then((items) => {
+        if (isMounted) {
+          setScheduleItems(Array.isArray(items) ? items : []);
+        }
+      })
+      .catch((nextError) => {
+        if (isMounted) {
+          setScheduleItems([]);
+          setScheduleError(nextError.message);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsScheduleLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleLanguageSelect = (nextLanguage) => {
     setLanguage(nextLanguage);
     if (typeof window !== "undefined") {
@@ -652,6 +1377,20 @@ function PublicApp() {
   };
 
   const t = useMemo(() => CONTENT[language] ?? CONTENT.ko, [language]);
+  const activeLanguage = language === "en" ? "en" : "ko";
+  const applicationItems = useMemo(
+    () => scheduleItems.map((item) => toApplicationItem(item, activeLanguage, t.application)),
+    [activeLanguage, scheduleItems, t.application]
+  );
+
+  const handleFilterAndScroll = (filterId) => {
+    setActiveFilter(filterId);
+    window.requestAnimationFrame(() => scrollToHash("#register"));
+  };
+
+  const handleScheduleClick = () => {
+    window.requestAnimationFrame(() => scrollToHash("#schedule"));
+  };
 
   return (
     <>
@@ -737,6 +1476,7 @@ function PublicApp() {
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <a
                     href="#register"
+                    onClick={() => setActiveFilter("all")}
                     className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:translate-y-[-1px]"
                   >
                     {t.heroPrimary}
@@ -754,6 +1494,8 @@ function PublicApp() {
               </div>
             </div>
           </SectionWrapper>
+
+          <QuickStartGuide labels={t.quickStart} onSelect={handleFilterAndScroll} />
 
           <SectionWrapper id="about">
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -869,40 +1611,19 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="register">
-            <div className="grid gap-10 rounded-[2rem] border border-blue-800/20 bg-gradient-to-br from-blue-900 via-blue-800 to-sky-800 px-6 py-10 text-white shadow-xl md:px-10 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/60">
-                  {t.sections[4].eyebrow}
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-5xl">
-                  {t.sections[4].title}
-                </h2>
-                <div className="mt-6 space-y-4 text-base leading-8 text-white/75">
-                  {t.sections[4].body.map((paragraph) => (
-                    <p key={`${language ?? "ko"}-register-${paragraph}`}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-              <div className="flex w-full flex-col gap-3 sm:w-auto">
-                <a
-                  href="#"
-                  className="inline-flex min-w-[220px] items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-medium text-blue-950 transition hover:translate-y-[-1px] hover:bg-blue-50"
-                >
-                  {t.sections[4].ctaPrimary}
-                </a>
-                <a
-                  href="#"
-                  className="inline-flex min-w-[220px] items-center justify-center rounded-2xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:translate-y-[-1px]"
-                >
-                  {t.sections[4].ctaSecondary}
-                </a>
-              </div>
-            </div>
-          </SectionWrapper>
-
-          <SectionWrapper id="memos" className="bg-white/75">
-            <MemoBoard labels={t.memoDemo} />
+          <SectionWrapper id="schedule" className="bg-white/75">
+            <ScheduleAndApplicationSection
+              language={activeLanguage}
+              scheduleSection={t.sections[4]}
+              registerSection={t.sections[5]}
+              labels={t.application}
+              items={applicationItems}
+              isLoading={isScheduleLoading}
+              error={scheduleError}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              onApply={setSelectedApplication}
+            />
           </SectionWrapper>
         </main>
 
@@ -911,7 +1632,19 @@ function PublicApp() {
         </footer>
 
         <div className="h-28 md:hidden" aria-hidden="true" />
-        <MobileStickyApplyButton label={t.mobileApply} href="#register" />
+        <MobileStickyCta
+          primaryLabel={t.mobileApply}
+          secondaryLabel={t.mobileSchedule}
+          onPrimaryClick={() => scrollToHash("#register")}
+          onSecondaryClick={handleScheduleClick}
+        />
+        <ApplicationModal
+          item={selectedApplication}
+          language={activeLanguage}
+          labels={t.applicationModal}
+          detailLabels={t.application}
+          onClose={() => setSelectedApplication(null)}
+        />
       </div>
     </>
   );
