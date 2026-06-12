@@ -265,6 +265,15 @@ public class EventManagementService {
     }
 
     public List<TeacherDashboardLessonResponse> findTeacherLessons(AdminPrincipal actor, LocalDate from, LocalDate to) {
+        return findTeacherLessons(actor, from, to, LessonStatus.PUBLISHED);
+    }
+
+    public List<TeacherDashboardLessonResponse> findTeacherLessons(
+            AdminPrincipal actor,
+            LocalDate from,
+            LocalDate to,
+            LessonStatus status
+    ) {
         requireTeacher(actor);
         LocalDate today = LocalDate.now(SEOUL_ZONE);
         Optional<TeacherUser> teacherUser = teacherUserRepository
@@ -272,7 +281,8 @@ public class EventManagementService {
         if (teacherUser.isEmpty()) {
             return List.of();
         }
-        return lessonRepository.findTeacherLessons(teacherUser.get().getTeacherUserCd(), from, to)
+        LessonStatus requestedStatus = status == null ? LessonStatus.PUBLISHED : status;
+        return lessonRepository.findTeacherLessons(teacherUser.get().getTeacherUserCd(), from, to, requestedStatus)
                 .stream()
                 .map(lesson -> toTeacherDashboardLessonResponse(lesson, today))
                 .toList();
@@ -287,6 +297,7 @@ public class EventManagementService {
                 lesson.getId(),
                 lesson.getLessonType(),
                 lesson.getScheduleType(),
+                lesson.getStatus(),
                 lessonTitleMap(lesson),
                 lesson.getStartDate(),
                 lesson.getEndDate(),

@@ -4,9 +4,9 @@ import { adminApi } from "./api/admin";
 
 const SUPPORTED_LANGUAGES = ["ko", "en"];
 const EVENT_TYPES = ["REGULAR_CLASS", "PARTY", "DIALOGUE_PARTY"];
-const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"];
+const EVENT_STATUSES = ["PUBLISHED", "FINISHED"];
 const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPERIENCE"];
-const LESSON_STATUSES = ["DRAFT", "PUBLISHED", "CANCELLED", "ARCHIVED"];
+const LESSON_STATUSES = ["PUBLISHED", "FINISHED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
 const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
 const TEMPLATE_VARIABLES = [
@@ -181,10 +181,8 @@ const COPY_TEXT = {
     preview: "미리보기",
     event: "이벤트",
     language: "언어",
-    todayLessons: "오늘 진행되는 강습",
-    activeRegularLessons: "진행 중인 정규수업",
-    upcomingLessons: "예정된 강습",
-    myLessons: "내 강습 목록",
+    teachingSchedule: "내 강습 일정",
+    lessonStatusFilter: "강습 상태",
     participants: "수강생",
     noLessons: "강습이 없습니다.",
     eventSaved: "이벤트가 저장되었습니다.",
@@ -253,10 +251,8 @@ const COPY_TEXT = {
     preview: "Preview",
     event: "Event",
     language: "Language",
-    todayLessons: "Lessons Today",
-    activeRegularLessons: "Active Regular Classes",
-    upcomingLessons: "Upcoming Lessons",
-    myLessons: "My Lessons",
+    teachingSchedule: "My Teaching Schedule",
+    lessonStatusFilter: "Lesson Status",
     participants: "Participants",
     noLessons: "No lessons.",
     eventSaved: "Event has been saved.",
@@ -293,6 +289,14 @@ function monthRange() {
     to: toDateInput(last),
     eventType: "",
     status: "",
+  };
+}
+
+function defaultTeacherLessonFilters() {
+  return {
+    from: toDateInput(new Date()),
+    to: "",
+    status: "PUBLISHED",
   };
 }
 
@@ -334,7 +338,7 @@ function emptyEventForm() {
     startTime: "",
     endTime: "",
     location: "",
-    status: "DRAFT",
+    status: "PUBLISHED",
     displayOrder: 10,
     translations: {
       ko: { title: "", shortDescription: "", description: "" },
@@ -438,7 +442,7 @@ function emptyLessonForm(event = null, scheduleType = defaultLessonScheduleType(
     endTime: defaultLessonEndTime(event),
     fee: defaultLessonFee(event),
     currency: "KRW",
-    status: "DRAFT",
+    status: "PUBLISHED",
     displayOrder: 10,
     teacherUserIds: [],
     translations: {
@@ -1626,92 +1630,72 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
 export function TeacherDashboardPanel({ token, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
-  const [dashboard, setDashboard] = useState({ date: "", message: "", lessons: [] });
-  const [range, setRange] = useState(() => monthRange());
-  const [rangeLessons, setRangeLessons] = useState([]);
+  const [filters, setFilters] = useState(() => defaultTeacherLessonFilters());
+  const [lessons, setLessons] = useState([]);
   const [error, setError] = useState("");
 
-  const loadDashboard = useCallback(async () => {
+  const loadLessons = useCallback(async () => {
     try {
-      setDashboard(await adminApi.findTeacherDashboard(token));
+      setLessons(await adminApi.findTeacherLessons(token, filters));
+      setError("");
     } catch (nextError) {
       setError(nextError.message);
     }
-  }, [token]);
-
-  const loadRange = useCallback(async () => {
-    try {
-      setRangeLessons(await adminApi.findTeacherLessons(token, { from: range.from, to: range.to }));
-    } catch (nextError) {
-      setError(nextError.message);
-    }
-  }, [range.from, range.to, token]);
+  }, [filters, token]);
 
   useEffect(() => {
-    loadDashboard();
-    loadRange();
-  }, [loadDashboard, loadRange]);
+    loadLessons();
+  }, [loadLessons]);
 
-  const handleRangeChange = (event) => {
+  const handleFilterChange = (event) => {
     const { name, value } = event.target;
-    setRange((current) => ({ ...current, [name]: value }));
+    setFilters((current) => {
+      if (name === "status" && value === "FINISHED" && current.status !== "FINISHED") {
+        const currentMonth = monthRange();
+        return { ...current, status: value, from: currentMonth.from, to: toDateInput(new Date()) };
+      }
+      if (name === "status" && value === "PUBLISHED" && current.status !== "PUBLISHED") {
+        return { ...current, status: value, from: toDateInput(new Date()), to: "" };
+      }
+      return { ...current, [name]: value };
+    });
   };
-
-  const dashboardLessons = dashboard.lessons || [];
-  const todayLessons = dashboardLessons.filter(
-    (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "SINGLE_DAY"
-  );
-  const activeRegularLessons = dashboardLessons.filter(
-    (lesson) => lesson.lessonDisplayStatus === "ACTIVE" && lesson.scheduleType === "PERIOD"
-  );
-  const upcomingLessons = dashboardLessons.filter((lesson) => lesson.lessonDisplayStatus === "UPCOMING");
 
   return (
     <section className="grid gap-5">
       <Notice>{error}</Notice>
-      <Notice type="success">{dashboard.message}</Notice>
-      <LessonDashboardList
-        title={`${copy.todayLessons}${dashboard.date ? ` / ${dashboard.date}` : ""}`}
-        lessons={todayLessons}
-        copy={copy}
-        languageCode={languageCode}
-      />
-      <LessonDashboardList
-        title={copy.activeRegularLessons}
-        lessons={activeRegularLessons}
-        copy={copy}
-        languageCode={languageCode}
-      />
-      <LessonDashboardList
-        title={copy.upcomingLessons}
-        lessons={upcomingLessons}
-        copy={copy}
-        languageCode={languageCode}
-      />
       <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.myLessons}</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <TextInput type="date" name="from" value={range.from} onChange={handleRangeChange} />
-            <TextInput type="date" name="to" value={range.to} onChange={handleRangeChange} />
+          <h2 className="text-lg font-bold text-zinc-950">{copy.teachingSchedule}</h2>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-end">
+            <div className="sm:w-36">
+              <Field label={copy.lessonStatusFilter}>
+                <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
+                  {LESSON_STATUSES.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
+            </div>
+            <div className="sm:w-[150px]">
+              <Field label={copy.from}>
+                <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
+              </Field>
+            </div>
+            <div className="sm:w-[150px]">
+              <Field label={copy.to}>
+                <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
+              </Field>
+            </div>
           </div>
         </div>
         <div className="mt-4">
-          <LessonDashboardRows lessons={rangeLessons} copy={copy} languageCode={languageCode} />
+          <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} />
         </div>
       </div>
     </section>
-  );
-}
-
-function LessonDashboardList({ title, lessons, copy, languageCode }) {
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="border-b border-zinc-200 pb-4 text-lg font-bold text-zinc-950">{title}</h2>
-      <div className="mt-4">
-        <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} />
-      </div>
-    </div>
   );
 }
 
@@ -1730,6 +1714,7 @@ function LessonDashboardRows({ lessons, copy, languageCode }) {
               <div className="mt-1 text-sm text-zinc-600">{localizedTitle(lesson.eventTitle, languageCode)}</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
+                <Badge>{lesson.status}</Badge>
                 <Badge>{lesson.lessonDisplayStatus}</Badge>
                 <Badge>{lesson.scheduleType}</Badge>
                 <Badge>{lesson.lessonType}</Badge>

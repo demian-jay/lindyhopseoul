@@ -35,10 +35,11 @@ public class TeacherDashboardController {
     @GetMapping("/api/teacher/dashboard/my-lessons")
     public List<TeacherDashboardLessonResponse> findMyLessons(
             @RequestHeader(value = "Authorization", required = false) String authorization,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "PUBLISHED") LessonStatus status
     ) {
-        return eventManagementService.findTeacherLessons(requirePrincipal(authorization), from, to);
+        return eventManagementService.findTeacherLessons(requirePrincipal(authorization), from, to, status);
     }
 
     private AdminPrincipal requirePrincipal(String authorization) {

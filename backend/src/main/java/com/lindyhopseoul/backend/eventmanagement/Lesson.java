@@ -59,7 +59,7 @@ public class Lesson {
     private String currency;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private LessonStatus status;
 
     @Column(nullable = false)

@@ -40,14 +40,16 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             left join fetch lesson.teachers lessonTeachers
             left join fetch lessonTeachers.teacherUser
             where assignedTeacher.teacherUser.teacherUserCd = :teacherUserId
-              and lesson.endDate >= :from
-              and lesson.startDate <= :to
+              and lesson.status = :status
+              and (:from is null or lesson.endDate >= :from)
+              and (:to is null or lesson.startDate <= :to)
             order by lesson.startDate asc, lesson.startTime asc, lesson.displayOrder asc
             """)
     List<Lesson> findTeacherLessons(
             @Param("teacherUserId") String teacherUserId,
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to
+            @Param("to") LocalDate to,
+            @Param("status") LessonStatus status
     );
 
     @Query("""

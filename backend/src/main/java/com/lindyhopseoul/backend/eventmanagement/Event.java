@@ -46,7 +46,7 @@ public class Event {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private EventStatus status;
 
     @Column(nullable = false)

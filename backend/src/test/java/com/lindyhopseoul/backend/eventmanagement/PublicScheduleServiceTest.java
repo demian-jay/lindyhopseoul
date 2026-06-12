@@ -51,8 +51,8 @@ class PublicScheduleServiceTest {
                 "처음 스윙댄스를 시작하는 분을 위한 Level 1 입문 수업입니다."
         ));
         event.addLesson(lesson(
-                LessonStatus.DRAFT,
-                "Draft Class",
+                LessonStatus.FINISHED,
+                "Finished Class",
                 "공개되면 안 되는 설명"
         ));
         when(eventRepository.findPublishedDetails(from, null)).thenReturn(List.of(event));

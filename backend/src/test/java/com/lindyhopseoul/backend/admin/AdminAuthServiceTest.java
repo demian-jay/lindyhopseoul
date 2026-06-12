@@ -79,7 +79,7 @@ class AdminAuthServiceTest {
         assertThat(response.user().role()).isEqualTo(AdminRole.TEACHER);
         assertThat(response.user().roles()).containsExactly(AdminRole.TEACHER);
         assertThat(response.user().langCd()).isEqualTo(AdminLanguage.Eng);
-        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD, AdminMenu.KNOWLEDGE_BASE);
+        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD);
     }
 
     @Test

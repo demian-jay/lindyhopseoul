@@ -12,6 +12,7 @@ public record TeacherDashboardLessonResponse(
         Long lessonId,
         LessonType lessonType,
         LessonScheduleType scheduleType,
+        LessonStatus status,
         Map<String, String> lessonTitle,
         LocalDate startDate,
         LocalDate endDate,

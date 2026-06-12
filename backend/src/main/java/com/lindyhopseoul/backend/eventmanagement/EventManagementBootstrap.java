@@ -34,6 +34,7 @@ public class EventManagementBootstrap {
     ) {
         return args -> {
             migrateLegacyDates(jdbcTemplate);
+            migrateLegacyStatuses(jdbcTemplate);
             List<TeacherUser> teachers = ensureSampleTeachers(teacherUserRepository, userAccountRepository, passwordHasher);
 
             if (eventRepository.count() == 0) {
@@ -46,6 +47,25 @@ public class EventManagementBootstrap {
                 seedMessageTemplates(messageTemplateRepository);
             }
         };
+    }
+
+    private void migrateLegacyStatuses(JdbcTemplate jdbcTemplate) {
+        String eventTable = findActualTableName(jdbcTemplate, "SWINGPOP_EVENT");
+        String lessonTable = findActualTableName(jdbcTemplate, "LESSON");
+        if (eventTable != null && hasColumn(jdbcTemplate, eventTable, "status")) {
+            jdbcTemplate.execute(
+                    "update `" + eventTable + "` "
+                            + "set status = case when status = 'PUBLISHED' then 'PUBLISHED' else 'FINISHED' end "
+                            + "where status is null or status not in ('PUBLISHED', 'FINISHED')"
+            );
+        }
+        if (lessonTable != null && hasColumn(jdbcTemplate, lessonTable, "status")) {
+            jdbcTemplate.execute(
+                    "update `" + lessonTable + "` "
+                            + "set status = case when status = 'PUBLISHED' then 'PUBLISHED' else 'FINISHED' end "
+                            + "where status is null or status not in ('PUBLISHED', 'FINISHED')"
+            );
+        }
     }
 
     private void migrateLegacyDates(JdbcTemplate jdbcTemplate) {

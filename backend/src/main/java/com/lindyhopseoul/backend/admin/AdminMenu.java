@@ -37,7 +37,7 @@ public enum AdminMenu {
                     TEACHER_USERS
             );
             case STAFF -> List.of(DASHBOARD, EVENT_MANAGEMENT, KNOWLEDGE_BASE, ADMIN_USERS, TEACHER_USERS);
-            case TEACHER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
+            case TEACHER -> List.of(DASHBOARD);
             case MEMBER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
         };
     }
