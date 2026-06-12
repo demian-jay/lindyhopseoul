@@ -43,7 +43,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
               and lesson.status = :status
               and (:from is null or lesson.endDate >= :from)
               and (:to is null or lesson.startDate <= :to)
-            order by lesson.startDate asc, lesson.startTime asc, lesson.displayOrder asc
+            order by lesson.startDate asc, event.displayOrder asc, lesson.displayOrder asc, lesson.startTime asc, lesson.id asc
             """)
     List<Lesson> findTeacherLessons(
             @Param("teacherUserId") String teacherUserId,
@@ -63,7 +63,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             where assignedTeacher.teacherUser.teacherUserCd = :teacherUserId
               and lesson.status = com.lindyhopseoul.backend.eventmanagement.LessonStatus.PUBLISHED
               and lesson.endDate >= :today
-            order by lesson.startDate asc, lesson.startTime asc, lesson.displayOrder asc
+            order by lesson.startDate asc, event.displayOrder asc, lesson.displayOrder asc, lesson.startTime asc, lesson.id asc
             """)
     List<Lesson> findActiveTeacherLessons(
             @Param("teacherUserId") String teacherUserId,

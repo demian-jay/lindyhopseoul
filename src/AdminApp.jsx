@@ -518,7 +518,7 @@ function LoginScreen({ onLogin }) {
 
 function DashboardPanel({ session, labels }) {
   return (
-    <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
+    <section className="grid gap-5">
       <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
           <div>
@@ -548,17 +548,6 @@ function DashboardPanel({ session, labels }) {
         </dl>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-zinc-950">{labels.dashboard.accessMenus}</h3>
-        <div className="mt-4 grid gap-2">
-          {session.menus.map((menu) => (
-            <div key={menu} className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2">
-              <span className="text-sm text-zinc-700">{labels.menus[menu] || menu}</span>
-              <span className="h-2.5 w-2.5 rounded-full bg-teal-600" />
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }

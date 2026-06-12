@@ -184,6 +184,14 @@ const COPY_TEXT = {
     teachingSchedule: "내 강습 일정",
     lessonStatusFilter: "강습 상태",
     participants: "수강생",
+    noParticipants: "신청자가 없습니다.",
+    contactMethods: {
+      PHONE: "전화번호",
+      KAKAO_TALK: "카카오톡",
+      WHATSAPP: "WhatsApp",
+      INSTAGRAM: "Instagram",
+      EMAIL: "이메일",
+    },
     noLessons: "강습이 없습니다.",
     eventSaved: "이벤트가 저장되었습니다.",
     lessonSaved: "강습이 저장되었습니다.",
@@ -254,6 +262,14 @@ const COPY_TEXT = {
     teachingSchedule: "My Teaching Schedule",
     lessonStatusFilter: "Lesson Status",
     participants: "Participants",
+    noParticipants: "No applications yet.",
+    contactMethods: {
+      PHONE: "Phone",
+      KAKAO_TALK: "KakaoTalk",
+      WHATSAPP: "WhatsApp",
+      INSTAGRAM: "Instagram",
+      EMAIL: "Email",
+    },
     noLessons: "No lessons.",
     eventSaved: "Event has been saved.",
     lessonSaved: "Lesson has been saved.",
@@ -475,6 +491,35 @@ function lessonTitle(lesson, languageCode) {
 
 function localizedTitle(titles, languageCode) {
   return titles?.[languageCode] || titles?.ko || "-";
+}
+
+function participantContactText(participant, copy) {
+  const method = copy.contactMethods?.[participant.contactMethod] || participant.contactMethod || "-";
+  return `${method}: ${participant.contactValue || "-"}`;
+}
+
+function ParticipantList({ participants, copy }) {
+  const items = Array.isArray(participants) ? participants : [];
+  return (
+    <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold text-zinc-500">{copy.participants}</div>
+        <div className="text-sm font-bold text-zinc-900">{items.length}</div>
+      </div>
+      {items.length > 0 ? (
+        <div className="mt-3 grid gap-2">
+          {items.map((participant) => (
+            <div key={participant.id} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+              <div className="text-sm font-semibold text-zinc-950">{participant.applicantName}</div>
+              <div className="mt-1 text-xs text-zinc-600">{participantContactText(participant, copy)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2 text-xs text-zinc-500">{copy.noParticipants}</div>
+      )}
+    </div>
+  );
 }
 
 function Field({ label, children }) {
@@ -1351,6 +1396,7 @@ function EventDetail({
                   <div className="mt-3 text-sm text-zinc-600">
                     {lesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
                   </div>
+                  <ParticipantList participants={lesson.participants} copy={copy} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <SecondaryButton type="button" onClick={() => onEditLesson(lesson)}>
@@ -1726,9 +1772,8 @@ function LessonDashboardRows({ lessons, copy, languageCode }) {
                 {copy.teachers}: {lesson.teachers.map((teacher) => teacher.name).join(", ")}
               </div>
             </div>
-            <div className="min-w-[180px] rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-              <div className="text-xs font-semibold text-zinc-500">{copy.participants}</div>
-              <div className="mt-1 text-sm text-zinc-600">{lesson.participants?.length || 0}</div>
+            <div className="min-w-[220px] max-w-full">
+              <ParticipantList participants={lesson.participants} copy={copy} />
             </div>
           </div>
         </div>

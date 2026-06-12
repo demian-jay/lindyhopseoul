@@ -4,11 +4,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -41,17 +43,20 @@ public class EventManagementService {
     private final LessonRepository lessonRepository;
     private final MessageTemplateRepository messageTemplateRepository;
     private final TeacherUserRepository teacherUserRepository;
+    private final EventApplicationRepository eventApplicationRepository;
 
     public EventManagementService(
             EventRepository eventRepository,
             LessonRepository lessonRepository,
             MessageTemplateRepository messageTemplateRepository,
-            TeacherUserRepository teacherUserRepository
+            TeacherUserRepository teacherUserRepository,
+            EventApplicationRepository eventApplicationRepository
     ) {
         this.eventRepository = eventRepository;
         this.lessonRepository = lessonRepository;
         this.messageTemplateRepository = messageTemplateRepository;
         this.teacherUserRepository = teacherUserRepository;
+        this.eventApplicationRepository = eventApplicationRepository;
     }
 
     public List<EventResponse> findEvents(
@@ -70,7 +75,8 @@ public class EventManagementService {
 
     public EventResponse findEvent(AdminPrincipal actor, Long eventId) {
         requireEventReader(actor);
-        return EventResponse.from(findEventDetails(eventId));
+        Event event = findEventDetails(eventId);
+        return EventResponse.from(event, participantsByLessonId(event.getLessons()));
     }
 
     @Transactional
@@ -122,9 +128,13 @@ public class EventManagementService {
         if (!eventRepository.existsById(eventId)) {
             throw new ResourceNotFoundException("Event not found: " + eventId);
         }
-        return lessonRepository.findByEventIdWithDetails(eventId)
-                .stream()
-                .map(LessonResponse::from)
+        List<Lesson> lessons = lessonRepository.findByEventIdWithDetails(eventId);
+        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsByLessonId(lessons);
+        return lessons.stream()
+                .map(lesson -> LessonResponse.from(
+                        lesson,
+                        participantsByLessonId.getOrDefault(lesson.getId(), List.of())
+                ))
                 .toList();
     }
 
@@ -253,12 +263,13 @@ public class EventManagementService {
         if (teacherUser.isEmpty()) {
             return new TeacherDashboardResponse(today, "등록된 강사 정보가 없습니다.", List.of());
         }
+        List<Lesson> lessons = lessonRepository.findActiveTeacherLessons(teacherUser.get().getTeacherUserCd(), today);
+        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsByLessonId(lessons);
         return new TeacherDashboardResponse(
                 today,
                 null,
-                lessonRepository.findActiveTeacherLessons(teacherUser.get().getTeacherUserCd(), today)
-                        .stream()
-                        .map(lesson -> toTeacherDashboardLessonResponse(lesson, today))
+                lessons.stream()
+                        .map(lesson -> toTeacherDashboardLessonResponse(lesson, today, participantsByLessonId))
                         .filter(lesson -> lesson.lessonDisplayStatus() != LessonDisplayStatus.ENDED)
                         .toList()
         );
@@ -282,13 +293,18 @@ public class EventManagementService {
             return List.of();
         }
         LessonStatus requestedStatus = status == null ? LessonStatus.PUBLISHED : status;
-        return lessonRepository.findTeacherLessons(teacherUser.get().getTeacherUserCd(), from, to, requestedStatus)
-                .stream()
-                .map(lesson -> toTeacherDashboardLessonResponse(lesson, today))
+        List<Lesson> lessons = lessonRepository.findTeacherLessons(teacherUser.get().getTeacherUserCd(), from, to, requestedStatus);
+        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsByLessonId(lessons);
+        return lessons.stream()
+                .map(lesson -> toTeacherDashboardLessonResponse(lesson, today, participantsByLessonId))
                 .toList();
     }
 
-    private TeacherDashboardLessonResponse toTeacherDashboardLessonResponse(Lesson lesson, LocalDate today) {
+    private TeacherDashboardLessonResponse toTeacherDashboardLessonResponse(
+            Lesson lesson,
+            LocalDate today,
+            Map<Long, List<EventApplicationResponse>> participantsByLessonId
+    ) {
         Event event = lesson.getEvent();
         return new TeacherDashboardLessonResponse(
                 event.getId(),
@@ -312,8 +328,25 @@ public class EventManagementService {
                                 lessonTeacher.getTeacherUser().getTeacherUserNm()
                         ))
                         .toList(),
-                List.of()
+                participantsByLessonId.getOrDefault(lesson.getId(), List.of())
         );
+    }
+
+    private Map<Long, List<EventApplicationResponse>> participantsByLessonId(Collection<Lesson> lessons) {
+        List<Long> lessonIds = lessons.stream()
+                .map(Lesson::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (lessonIds.isEmpty()) {
+            return Map.of();
+        }
+        return eventApplicationRepository.findByLesson_IdInOrderByCreatedAtAscIdAsc(lessonIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        application -> application.getLesson().getId(),
+                        LinkedHashMap::new,
+                        Collectors.mapping(EventApplicationResponse::from, Collectors.toList())
+                ));
     }
 
     private Map<String, String> buildTemplateVariables(Event event) {

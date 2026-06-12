@@ -3,6 +3,7 @@ package com.lindyhopseoul.backend.eventmanagement;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,14 +31,27 @@ public record EventResponse(
     }
 
     public static EventResponse from(Event event) {
+        return from(event, Map.of());
+    }
+
+    public static EventResponse from(
+            Event event,
+            Map<Long, List<EventApplicationResponse>> participantsByLessonId
+    ) {
         return from(
                 event,
-                event.getLessons()
-                        .stream()
+                sortedLessons(event.getLessons())
                         .sorted(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(Lesson::getId))
-                        .map(LessonResponse::from)
+                        .map(lesson -> LessonResponse.from(
+                                lesson,
+                                participantsByLessonId.getOrDefault(lesson.getId(), List.of())
+                        ))
                         .toList()
         );
+    }
+
+    private static java.util.stream.Stream<Lesson> sortedLessons(Collection<Lesson> lessons) {
+        return lessons.stream();
     }
 
     private static EventResponse from(Event event, List<LessonResponse> lessons) {

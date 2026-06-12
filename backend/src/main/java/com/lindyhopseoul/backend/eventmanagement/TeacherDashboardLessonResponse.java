@@ -20,7 +20,7 @@ public record TeacherDashboardLessonResponse(
         LocalTime endTime,
         LessonDisplayStatus lessonDisplayStatus,
         List<TeacherDashboardTeacherResponse> teachers,
-        List<Object> participants
+        List<EventApplicationResponse> participants
 ) {
 
     public record TeacherDashboardTeacherResponse(

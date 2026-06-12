@@ -13,11 +13,14 @@ function buildQuery(params = {}) {
   return queryString ? `?${queryString}` : "";
 }
 
-async function request(path) {
+async function request(path, options = {}) {
+  const { body, ...fetchOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
     },
+    body: body ? JSON.stringify(body) : undefined,
+    ...fetchOptions,
   });
 
   if (!response.ok) {
@@ -31,5 +34,11 @@ async function request(path) {
 export const publicScheduleApi = {
   findOpenSchedules(params = {}) {
     return request(`/api/public/schedules${buildQuery(params)}`);
+  },
+  createApplication(payload) {
+    return request("/api/public/applications", {
+      method: "POST",
+      body: payload,
+    });
   },
 };

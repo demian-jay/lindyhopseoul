@@ -129,8 +129,20 @@ public class Lesson {
     }
 
     public void replaceTranslations(Set<LessonTranslation> nextTranslations) {
-        translations.clear();
-        nextTranslations.forEach(this::addTranslation);
+        Set<String> nextLanguageCodes = new LinkedHashSet<>();
+        nextTranslations.forEach(translation -> nextLanguageCodes.add(translation.getLanguageCode()));
+        translations.removeIf(translation -> !nextLanguageCodes.contains(translation.getLanguageCode()));
+        nextTranslations.forEach(nextTranslation -> translations
+                .stream()
+                .filter(currentTranslation -> currentTranslation.getLanguageCode().equals(nextTranslation.getLanguageCode()))
+                .findFirst()
+                .ifPresentOrElse(
+                        currentTranslation -> currentTranslation.update(
+                                nextTranslation.getTitle(),
+                                nextTranslation.getDescription()
+                        ),
+                        () -> addTranslation(nextTranslation)
+                ));
     }
 
     public void addTranslation(LessonTranslation translation) {

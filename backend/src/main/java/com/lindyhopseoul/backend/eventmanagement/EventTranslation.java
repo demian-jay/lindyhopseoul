@@ -55,6 +55,12 @@ public class EventTranslation {
         this.event = event;
     }
 
+    public void update(String title, String shortDescription, String description) {
+        this.title = title;
+        this.shortDescription = shortDescription;
+        this.description = description;
+    }
+
     public String getLanguageCode() {
         return languageCode;
     }

@@ -54,13 +54,28 @@ const CONTENT = {
       close: "닫기",
       nameLabel: "이름",
       namePlaceholder: "예: 홍길동",
-      phoneLabel: "전화번호",
-      phonePlaceholder: "예: 010-1234-5678",
+      contactMethodLabel: "연락 방법",
+      contactValueLabel: "연락처",
+      contactMethods: {
+        PHONE: "전화번호",
+        KAKAO_TALK: "카카오톡 ID",
+        WHATSAPP: "WhatsApp",
+        INSTAGRAM: "Instagram ID",
+        EMAIL: "이메일",
+      },
+      contactPlaceholders: {
+        PHONE: "예: 010-1234-5678",
+        KAKAO_TALK: "예: swingpop_kakao",
+        WHATSAPP: "예: +82 10 1234 5678",
+        INSTAGRAM: "예: swingpop_seoul",
+        EMAIL: "예: hello@example.com",
+      },
       submit: "신청하기",
-      submitting: "확인 중",
-      required: "이름과 전화번호를 모두 입력해주세요.",
-      successTitle: "신청 흐름이 확인되었습니다.",
-      successBody: "실제 저장 기능은 다음 단계에서 연결됩니다. 지금은 신청 UX와 모달 흐름만 확인할 수 있습니다.",
+      submitting: "신청 중",
+      required: "이름과 연락처를 모두 입력해주세요.",
+      submitError: "신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
+      successTitle: "신청이 접수되었습니다.",
+      successBody: "담당자가 선택한 연락 방법으로 안내를 드릴게요.",
       chooseAnother: "다른 일정 보기",
     },
     sections: [
@@ -206,13 +221,28 @@ const CONTENT = {
       close: "Close",
       nameLabel: "Name",
       namePlaceholder: "E.g. Alex Kim",
-      phoneLabel: "Phone number",
-      phonePlaceholder: "E.g. 010-1234-5678",
+      contactMethodLabel: "Contact method",
+      contactValueLabel: "Contact",
+      contactMethods: {
+        PHONE: "Phone number",
+        KAKAO_TALK: "KakaoTalk ID",
+        WHATSAPP: "WhatsApp",
+        INSTAGRAM: "Instagram ID",
+        EMAIL: "Email",
+      },
+      contactPlaceholders: {
+        PHONE: "E.g. 010-1234-5678",
+        KAKAO_TALK: "E.g. swingpop_kakao",
+        WHATSAPP: "E.g. +82 10 1234 5678",
+        INSTAGRAM: "E.g. swingpop_seoul",
+        EMAIL: "E.g. hello@example.com",
+      },
       submit: "Apply",
-      submitting: "Checking",
-      required: "Please enter both your name and phone number.",
-      successTitle: "Application flow confirmed.",
-      successBody: "The save step will be connected later. For now, this verifies the UX and modal flow only.",
+      submitting: "Applying",
+      required: "Please enter your name and contact.",
+      submitError: "We could not save your application. Please try again shortly.",
+      successTitle: "Application received.",
+      successBody: "We will contact you through your selected contact method.",
       chooseAnother: "Choose another schedule",
     },
     sections: [
@@ -986,13 +1016,15 @@ function ScheduleAndApplicationSection({
 }
 
 function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
-  const [form, setForm] = useState({ name: "", phone: "" });
+  const [form, setForm] = useState({ name: "", contactMethod: "PHONE", contactValue: "" });
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApplication, setSubmittedApplication] = useState(null);
 
   useEffect(() => {
-    setForm({ name: "", phone: "" });
+    setForm({ name: "", contactMethod: "PHONE", contactValue: "" });
     setError("");
+    setIsSubmitting(false);
     setSubmittedApplication(null);
   }, [item]);
 
@@ -1020,21 +1052,32 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
-    if (!form.name.trim() || !form.phone.trim()) {
+    if (!form.name.trim() || !form.contactValue.trim()) {
       setError(labels.required);
       return;
     }
 
-    setSubmittedApplication({
-      target: item.target,
-      applicantName: form.name.trim(),
-      phoneNumber: form.phone.trim(),
-      languageCode: language,
-    });
+    setIsSubmitting(true);
+
+    try {
+      const savedApplication = await publicScheduleApi.createApplication({
+        eventId: item.target.eventId,
+        lessonId: item.target.lessonId,
+        applicantName: form.name.trim(),
+        contactMethod: form.contactMethod,
+        contactValue: form.contactValue.trim(),
+        languageCode: language,
+      });
+      setSubmittedApplication(savedApplication);
+    } catch (nextError) {
+      setError(nextError.message || labels.submitError);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1107,13 +1150,28 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-semibold text-blue-950/75">{labels.phoneLabel}</span>
-                <input
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
+                <span className="text-sm font-semibold text-blue-950/75">{labels.contactMethodLabel}</span>
+                <select
+                  name="contactMethod"
+                  value={form.contactMethod}
                   onChange={handleChange}
-                  placeholder={labels.phonePlaceholder}
+                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                >
+                  {Object.entries(labels.contactMethods).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-sm font-semibold text-blue-950/75">{labels.contactValueLabel}</span>
+                <input
+                  name="contactValue"
+                  type={form.contactMethod === "EMAIL" ? "email" : form.contactMethod === "PHONE" ? "tel" : "text"}
+                  value={form.contactValue}
+                  onChange={handleChange}
+                  placeholder={labels.contactPlaceholders[form.contactMethod]}
                   className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </label>
@@ -1135,9 +1193,10 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
               </button>
               <button
                 type="submit"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
               >
-                {labels.submit}
+                {isSubmitting ? labels.submitting : labels.submit}
               </button>
             </div>
           </form>

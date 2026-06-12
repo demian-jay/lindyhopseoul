@@ -66,19 +66,82 @@ class PublicScheduleServiceTest {
         assertThat(schedules.get(0).recommendedForBeginners()).isTrue();
     }
 
-    private Lesson lesson(LessonStatus status, String title, String description) {
-        Lesson lesson = Lesson.create(
-                null,
-                LessonType.LEVEL1,
-                LessonScheduleType.PERIOD,
+    @Test
+    void findOpenSchedulesPreservesLessonDisplayOrderBeforeStartTimeWithinEvent() {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+        Event event = Event.create(
+                EventType.REGULAR_CLASS,
                 LocalDate.of(2026, 7, 6),
                 LocalDate.of(2026, 7, 27),
                 LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Swingpop Studio",
+                EventStatus.PUBLISHED,
+                10
+        );
+        event.replaceTranslations(Set.of(
+                new EventTranslation("ko", "스윙팝 토요 정규수업", "정규수업 안내", "이벤트 설명"),
+                new EventTranslation("en", "Swingpop Saturday Regular Class", "Regular class notice", "Event description")
+        ));
+        event.addLesson(lesson(
+                LessonStatus.PUBLISHED,
+                LessonType.LEVEL2,
+                LocalTime.of(17, 30),
+                LocalTime.of(19, 0),
+                10,
+                "Level 2",
+                "Level 2"
+        ));
+        event.addLesson(lesson(
+                LessonStatus.PUBLISHED,
+                LessonType.LEVEL1,
+                LocalTime.of(19, 0),
+                LocalTime.of(20, 0),
+                1,
+                "Level 1",
+                "Level 1"
+        ));
+        when(eventRepository.findPublishedDetails(from, null)).thenReturn(List.of(event));
+
+        List<PublicScheduleItemResponse> schedules = service.findOpenSchedules(from, null);
+
+        assertThat(schedules).extracting(PublicScheduleItemResponse::lessonType)
+                .containsExactly(LessonType.LEVEL1, LessonType.LEVEL2);
+    }
+
+    private Lesson lesson(LessonStatus status, String title, String description) {
+        return lesson(
+                status,
+                LessonType.LEVEL1,
+                LocalTime.of(14, 0),
                 LocalTime.of(15, 20),
+                10,
+                title,
+                description
+        );
+    }
+
+    private Lesson lesson(
+            LessonStatus status,
+            LessonType lessonType,
+            LocalTime startTime,
+            LocalTime endTime,
+            Integer displayOrder,
+            String title,
+            String description
+    ) {
+        Lesson lesson = Lesson.create(
+                null,
+                lessonType,
+                LessonScheduleType.PERIOD,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                startTime,
+                endTime,
                 new BigDecimal("80000"),
                 "KRW",
                 status,
-                10
+                displayOrder
         );
         lesson.replaceTranslations(Set.of(
                 new LessonTranslation("ko", title, description),

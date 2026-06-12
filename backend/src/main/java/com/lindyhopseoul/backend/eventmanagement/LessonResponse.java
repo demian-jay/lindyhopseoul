@@ -26,10 +26,15 @@ public record LessonResponse(
         Instant createdAt,
         Instant updatedAt,
         Map<String, LessonTranslationResponse> translations,
-        List<LessonTeacherResponse> teachers
+        List<LessonTeacherResponse> teachers,
+        List<EventApplicationResponse> participants
 ) {
 
     public static LessonResponse from(Lesson lesson) {
+        return from(lesson, List.of());
+    }
+
+    public static LessonResponse from(Lesson lesson, List<EventApplicationResponse> participants) {
         return new LessonResponse(
                 lesson.getId(),
                 lesson.getEvent().getId(),
@@ -60,7 +65,8 @@ public record LessonResponse(
                         .stream()
                         .sorted(Comparator.comparing(LessonTeacher::getDisplayOrder).thenComparing(LessonTeacher::getId))
                         .map(LessonTeacherResponse::from)
-                        .toList()
+                        .toList(),
+                participants
         );
     }
 

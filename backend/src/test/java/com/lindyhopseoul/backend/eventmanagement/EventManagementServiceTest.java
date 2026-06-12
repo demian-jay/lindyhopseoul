@@ -40,6 +40,9 @@ class EventManagementServiceTest {
     @Mock
     private TeacherUserRepository teacherUserRepository;
 
+    @Mock
+    private EventApplicationRepository eventApplicationRepository;
+
     private EventManagementService service;
     private AdminPrincipal superAdmin;
 
@@ -49,7 +52,8 @@ class EventManagementServiceTest {
                 eventRepository,
                 lessonRepository,
                 messageTemplateRepository,
-                teacherUserRepository
+                teacherUserRepository,
+                eventApplicationRepository
         );
         superAdmin = new AdminPrincipal(
                 "A1",
