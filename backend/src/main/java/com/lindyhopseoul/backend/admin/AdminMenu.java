@@ -7,6 +7,7 @@ import java.util.Set;
 
 public enum AdminMenu {
     DASHBOARD,
+    OPERATION_CHECK,
     EVENT_MANAGEMENT,
     KNOWLEDGE_BASE,
     MESSAGE_TEMPLATES,
@@ -30,13 +31,13 @@ public enum AdminMenu {
         return switch (role) {
             case SUPER_ADMIN -> List.of(
                     DASHBOARD,
+                    OPERATION_CHECK,
                     EVENT_MANAGEMENT,
                     KNOWLEDGE_BASE,
                     MESSAGE_TEMPLATES,
-                    ADMIN_USERS,
-                    TEACHER_USERS
+                    ADMIN_USERS
             );
-            case STAFF -> List.of(DASHBOARD, EVENT_MANAGEMENT, KNOWLEDGE_BASE, ADMIN_USERS, TEACHER_USERS);
+            case STAFF -> List.of(DASHBOARD, OPERATION_CHECK, EVENT_MANAGEMENT, KNOWLEDGE_BASE, ADMIN_USERS);
             case TEACHER -> List.of(DASHBOARD);
             case MEMBER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
         };

@@ -154,7 +154,8 @@ public class EventManagementService {
                 request.fee(),
                 clean(request.currency()).toUpperCase(),
                 request.status(),
-                request.displayOrder()
+                request.displayOrder(),
+                normalizeRoleSelectionEnabled(request.roleSelectionEnabled())
         );
         lesson.replaceTranslations(toLessonTranslations(request.translations()));
         lesson.replaceTeachers(toLessonTeachers(request.teacherUserIds()));
@@ -177,7 +178,8 @@ public class EventManagementService {
                 request.fee(),
                 clean(request.currency()).toUpperCase(),
                 request.status(),
-                request.displayOrder()
+                request.displayOrder(),
+                normalizeRoleSelectionEnabled(request.roleSelectionEnabled())
         );
         lesson.replaceTranslations(toLessonTranslations(request.translations()));
         lesson.replaceTeachers(toLessonTeachers(request.teacherUserIds()));
@@ -593,6 +595,10 @@ public class EventManagementService {
 
         validateDateRange(startDate, endDate, "Lesson");
         return new LessonDateRange(startDate, endDate);
+    }
+
+    private boolean normalizeRoleSelectionEnabled(Boolean roleSelectionEnabled) {
+        return Boolean.TRUE.equals(roleSelectionEnabled);
     }
 
     private String normalizeLanguage(String languageCode) {

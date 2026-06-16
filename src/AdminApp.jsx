@@ -3,11 +3,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "./api/admin";
 import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
+import OperationCheckPanel, { OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 const LOGIN_LANGUAGE_STORAGE_KEY = "swingpop-admin-login-language";
 
 const LANGUAGES = ["Kor", "Eng"];
+const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
 
 const I18N = {
   Kor: {
@@ -15,6 +17,7 @@ const I18N = {
     checkingSession: "관리자 세션 확인 중",
     menus: {
       DASHBOARD: "관리자 홈",
+      OPERATION_CHECK: "운영 체크",
       EVENT_MANAGEMENT: "이벤트/강습 관리",
       KNOWLEDGE_BASE: "운영 매뉴얼",
       MESSAGE_TEMPLATES: "메시지 템플릿",
@@ -139,6 +142,7 @@ const I18N = {
     checkingSession: "Checking admin session",
     menus: {
       DASHBOARD: "Dashboard",
+      OPERATION_CHECK: "Operation Check",
       EVENT_MANAGEMENT: "Events & Lessons",
       KNOWLEDGE_BASE: "Operations Manual",
       MESSAGE_TEMPLATES: "Message Templates",
@@ -292,6 +296,10 @@ function hasRole(userLike, role) {
 
 function hasAnyRole(userLike, roles) {
   return roles.some((role) => hasRole(userLike, role));
+}
+
+function filterVisibleMenus(menus = []) {
+  return menus.filter((menu) => !HIDDEN_ADMIN_MENUS.has(menu));
 }
 
 function createAdminForm() {
@@ -1047,8 +1055,12 @@ export default function AdminApp() {
   const [session, setSession] = useState(null);
   const [activeMenu, setActiveMenu] = useState("DASHBOARD");
   const [isChecking, setIsChecking] = useState(Boolean(token));
+  const [operationCheckSummary, setOperationCheckSummary] = useState({ openTotalCount: 0, openAssignedCount: 0 });
+  const [operationCheckRefreshKey, setOperationCheckRefreshKey] = useState(0);
 
   const applySession = useCallback((nextSession) => {
+    const nextMenus = filterVisibleMenus(nextSession.menus || []);
+
     setSession({
       user: {
         ...nextSession.user,
@@ -1056,14 +1068,14 @@ export default function AdminApp() {
         roles: normalizeRoles(nextSession.user),
         role: primaryRole(nextSession.user),
       },
-      menus: nextSession.menus || [],
+      menus: nextMenus,
     });
 
     setActiveMenu((currentMenu) => {
-      if (nextSession.menus?.includes(currentMenu)) {
+      if (nextMenus.includes(currentMenu)) {
         return currentMenu;
       }
-      return nextSession.menus?.[0] || "DASHBOARD";
+      return nextMenus[0] || "DASHBOARD";
     });
   }, []);
 
@@ -1123,7 +1135,40 @@ export default function AdminApp() {
 
   const langCd = session?.user?.langCd || "Kor";
   const labels = getLabels(langCd);
-  const pageTitle = labels.menus[activeMenu] || labels.brand;
+  const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
+  const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
+  const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
+  const canUseOperationCheck = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+
+  const handleOperationCheckChanged = useCallback(() => {
+    setOperationCheckRefreshKey((current) => current + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!token || !canUseOperationCheck) {
+      setOperationCheckSummary({ openTotalCount: 0, openAssignedCount: 0 });
+      return;
+    }
+
+    let isMounted = true;
+
+    adminApi
+      .findOperationCheckSummary(token)
+      .then((summary) => {
+        if (isMounted) {
+          setOperationCheckSummary(summary);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOperationCheckSummary({ openTotalCount: 0, openAssignedCount: 0 });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canUseOperationCheck, operationCheckRefreshKey, token]);
 
   if (isChecking) {
     return (
@@ -1148,9 +1193,6 @@ export default function AdminApp() {
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
             <span className="text-sm font-semibold text-zinc-700">{session.user.userNm}</span>
-            <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-600">
-              {labels.languages[langCd]}
-            </span>
             <button
               type="button"
               onClick={handleLogout}
@@ -1165,25 +1207,37 @@ export default function AdminApp() {
       <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_1fr]">
         <aside className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
           <nav className="grid gap-1">
-            {session.menus.map((menu) => (
+            {visibleMenus.map((menu) => (
               <button
                 key={menu}
                 type="button"
                 onClick={() => setActiveMenu(menu)}
-                className={`rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
-                  activeMenu === menu
+                className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
+                  safeActiveMenu === menu
                     ? "bg-teal-700 text-white"
                     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
                 }`}
               >
-                {labels.menus[menu] || menu}
+                <span>{labels.menus[menu] || menu}</span>
+                {menu === "OPERATION_CHECK" && operationCheckSummary.openAssignedCount > 0 ? (
+                  <span
+                    className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                      safeActiveMenu === menu ? "bg-white text-teal-700" : "bg-teal-700 text-white"
+                    }`}
+                  >
+                    {operationCheckSummary.openAssignedCount}
+                  </span>
+                ) : null}
               </button>
             ))}
           </nav>
         </aside>
 
-        <main>
-          {activeMenu === "DASHBOARD" ? (
+        <main className="grid gap-5">
+          {canUseOperationCheck ? (
+            <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged} />
+          ) : null}
+          {safeActiveMenu === "DASHBOARD" ? (
             <div className="grid gap-5">
               {hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) || !hasRole(session.user, "TEACHER") ? (
                 <DashboardPanel session={session} labels={labels} />
@@ -1191,19 +1245,26 @@ export default function AdminApp() {
               {hasRole(session.user, "TEACHER") ? <TeacherDashboardPanel token={token} langCd={langCd} /> : null}
             </div>
           ) : null}
-          {activeMenu === "EVENT_MANAGEMENT" ? (
+          {safeActiveMenu === "OPERATION_CHECK" ? (
+            <OperationCheckPanel
+              token={token}
+              langCd={langCd}
+              refreshKey={operationCheckRefreshKey}
+              onChanged={handleOperationCheckChanged}
+            />
+          ) : null}
+          {safeActiveMenu === "EVENT_MANAGEMENT" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
-          {activeMenu === "KNOWLEDGE_BASE" ? (
+          {safeActiveMenu === "KNOWLEDGE_BASE" ? (
             <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
-          {activeMenu === "MESSAGE_TEMPLATES" ? (
+          {safeActiveMenu === "MESSAGE_TEMPLATES" ? (
             <MessageTemplatePanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
-          {activeMenu === "ADMIN_USERS" ? (
+          {safeActiveMenu === "ADMIN_USERS" ? (
             <AdminUsersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
-          {activeMenu === "TEACHER_USERS" ? <TeacherUsersPanel token={token} langCd={langCd} labels={labels} /> : null}
         </main>
       </div>
     </div>

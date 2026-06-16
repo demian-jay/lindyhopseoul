@@ -22,6 +22,8 @@ public record EventApplicationCreateRequest(
         String contactValue,
 
         @Size(max = 10, message = "Language code must be 10 characters or fewer.")
-        String languageCode
+        String languageCode,
+
+        ApplicationDanceRole danceRole
 ) {
 }

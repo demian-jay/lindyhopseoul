@@ -44,6 +44,10 @@ public class EventApplication {
     @Column(nullable = false, length = 10)
     private String languageCode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, columnDefinition = "varchar(20)")
+    private ApplicationDanceRole danceRole;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -56,7 +60,8 @@ public class EventApplication {
             String applicantName,
             ApplicationContactMethod contactMethod,
             String contactValue,
-            String languageCode
+            String languageCode,
+            ApplicationDanceRole danceRole
     ) {
         EventApplication application = new EventApplication();
         application.event = event;
@@ -65,6 +70,7 @@ public class EventApplication {
         application.contactMethod = contactMethod;
         application.contactValue = contactValue;
         application.languageCode = languageCode;
+        application.danceRole = danceRole;
         return application;
     }
 
@@ -99,6 +105,10 @@ public class EventApplication {
 
     public String getLanguageCode() {
         return languageCode;
+    }
+
+    public ApplicationDanceRole getDanceRole() {
+        return danceRole;
     }
 
     public Instant getCreatedAt() {

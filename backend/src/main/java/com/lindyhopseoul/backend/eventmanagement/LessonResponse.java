@@ -23,6 +23,7 @@ public record LessonResponse(
         String currency,
         LessonStatus status,
         Integer displayOrder,
+        boolean roleSelectionEnabled,
         Instant createdAt,
         Instant updatedAt,
         Map<String, LessonTranslationResponse> translations,
@@ -48,6 +49,7 @@ public record LessonResponse(
                 lesson.getCurrency(),
                 lesson.getStatus(),
                 lesson.getDisplayOrder(),
+                lesson.isRoleSelectionEnabled(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt(),
                 lesson.getTranslations()

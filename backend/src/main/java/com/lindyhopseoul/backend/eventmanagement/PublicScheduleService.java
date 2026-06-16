@@ -68,6 +68,7 @@ public class PublicScheduleService {
                 eventTranslations(event),
                 List.of(),
                 false,
+                false,
                 false
         );
     }
@@ -93,7 +94,8 @@ public class PublicScheduleService {
                         .map(LessonTeacherResponse::from)
                         .toList(),
                 lesson.getLessonType() == LessonType.LEVEL1,
-                requiresLevelNotice(lesson.getLessonType())
+                requiresLevelNotice(lesson.getLessonType()),
+                lesson.isRoleSelectionEnabled()
         );
     }
 

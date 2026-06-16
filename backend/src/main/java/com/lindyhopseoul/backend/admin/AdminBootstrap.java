@@ -31,6 +31,7 @@ public class AdminBootstrap {
             migrateLegacyTeacherUsers(teacherUserRepository, userAccountRepository, passwordHasher, jdbcTemplate);
 
             UserAccount initialAdmin = userAccountRepository.findByLoginId(INITIAL_ADMIN_LOGIN_ID)
+                    .or(() -> userAccountRepository.findById(INITIAL_ADMIN_CD))
                     .orElseGet(() -> userAccountRepository.save(UserAccount.create(
                             INITIAL_ADMIN_CD,
                             "Super Administrator",
@@ -52,6 +53,7 @@ public class AdminBootstrap {
     ) {
         for (AdminUser adminUser : adminUserRepository.findAll()) {
             UserAccount user = userAccountRepository.findByLoginId(adminUser.getLoginId())
+                    .or(() -> userAccountRepository.findById(adminUser.getAdminUserCd()))
                     .orElseGet(() -> userAccountRepository.save(UserAccount.create(
                             adminUser.getAdminUserCd(),
                             adminUser.getAdminUserNm(),

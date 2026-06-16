@@ -172,6 +172,13 @@ const COPY_TEXT = {
     fee: "강습비",
     currency: "통화",
     teachers: "강사",
+    roleSelectionEnabled: "수업 등록 시 역할 선택하기",
+    roleSelectionEnabledDesc: "활성화하면 수강생 신청 화면에서 Leader / Follower 역할을 선택합니다.",
+    danceRole: "역할",
+    danceRoles: {
+      LEADER: "Leader",
+      FOLLOWER: "Follower",
+    },
     templates: "메시지 템플릿",
     templateName: "템플릿명",
     templateType: "템플릿 유형",
@@ -250,6 +257,13 @@ const COPY_TEXT = {
     fee: "Fee",
     currency: "Currency",
     teachers: "Teachers",
+    roleSelectionEnabled: "Ask for role when applying",
+    roleSelectionEnabledDesc: "When enabled, students choose Leader / Follower on the application form.",
+    danceRole: "Role",
+    danceRoles: {
+      LEADER: "Leader",
+      FOLLOWER: "Follower",
+    },
     templates: "Message Templates",
     templateName: "Template Name",
     templateType: "Template Type",
@@ -460,6 +474,7 @@ function emptyLessonForm(event = null, scheduleType = defaultLessonScheduleType(
     currency: "KRW",
     status: "PUBLISHED",
     displayOrder: 10,
+    roleSelectionEnabled: false,
     teacherUserIds: [],
     translations: {
       ko: { title: "", description: "" },
@@ -495,7 +510,11 @@ function localizedTitle(titles, languageCode) {
 
 function participantContactText(participant, copy) {
   const method = copy.contactMethods?.[participant.contactMethod] || participant.contactMethod || "-";
-  return `${method}: ${participant.contactValue || "-"}`;
+  const contact = `${method}: ${participant.contactValue || "-"}`;
+  if (!participant.danceRole) {
+    return contact;
+  }
+  return `${contact} / ${copy.danceRole}: ${copy.danceRoles?.[participant.danceRole] || participant.danceRole}`;
 }
 
 function ParticipantList({ participants, copy }) {
@@ -754,29 +773,30 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
   }, [parentEvent, initialValue]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, type, value, checked } = event.target;
     setForm((current) => {
+      const nextValue = type === "checkbox" ? checked : value;
       if (name === "scheduleType" && !isEditing) {
         const previousDefaults = emptyLessonForm(parentEvent, current.scheduleType);
-        const nextDefaults = emptyLessonForm(parentEvent, value);
+        const nextDefaults = emptyLessonForm(parentEvent, nextValue);
         const nextStartDate =
           !current.startDate || current.startDate === previousDefaults.startDate ? nextDefaults.startDate : current.startDate;
         const nextEndDate =
           !current.endDate || current.endDate === previousDefaults.endDate ? nextDefaults.endDate : current.endDate;
         return {
           ...current,
-          scheduleType: value,
+          scheduleType: nextValue,
           startDate: nextStartDate,
           endDate: nextEndDate,
         };
       }
       if (name === "scheduleType") {
-        return { ...current, scheduleType: value };
+        return { ...current, scheduleType: nextValue };
       }
       if (name === "startDate" && current.scheduleType === "SINGLE_DAY") {
-        return { ...current, startDate: value, endDate: value };
+        return { ...current, startDate: nextValue, endDate: nextValue };
       }
-      return { ...current, [name]: value };
+      return { ...current, [name]: nextValue };
     });
   };
 
@@ -853,6 +873,19 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
             ))}
           </SelectInput>
         </Field>
+        <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-2">
+          <input
+            type="checkbox"
+            name="roleSelectionEnabled"
+            checked={Boolean(form.roleSelectionEnabled)}
+            onChange={handleChange}
+            className="mt-1 h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-zinc-800">{copy.roleSelectionEnabled}</span>
+            <span className="mt-1 block text-xs leading-5 text-zinc-500">{copy.roleSelectionEnabledDesc}</span>
+          </span>
+        </label>
         <Field label={copy.lessonStartDate}>
           <TextInput type="date" name="startDate" value={form.startDate} onChange={handleChange} />
         </Field>
@@ -1385,6 +1418,7 @@ function EventDetail({
                     <Badge>{lesson.lessonType}</Badge>
                     <Badge>{lesson.scheduleType}</Badge>
                     <Badge>{lesson.status}</Badge>
+                    {lesson.roleSelectionEnabled ? <Badge>{copy.roleSelectionEnabled}</Badge> : null}
                     <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
                     <Badge>
                       {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
@@ -1810,6 +1844,7 @@ function toLessonForm(lesson) {
     currency: lesson.currency,
     status: lesson.status,
     displayOrder: lesson.displayOrder,
+    roleSelectionEnabled: Boolean(lesson.roleSelectionEnabled),
     teacherUserIds: lesson.teachers.map((teacher) => teacher.teacherUserId),
     translations: normalizeLessonTranslations(lesson.translations),
   };

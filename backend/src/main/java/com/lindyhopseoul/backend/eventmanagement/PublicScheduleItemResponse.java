@@ -22,7 +22,8 @@ public record PublicScheduleItemResponse(
         Map<String, PublicScheduleTextResponse> translations,
         List<LessonTeacherResponse> teachers,
         boolean recommendedForBeginners,
-        boolean requiresLevelNotice
+        boolean requiresLevelNotice,
+        boolean roleSelectionEnabled
 ) {
 
     public record PublicScheduleTextResponse(

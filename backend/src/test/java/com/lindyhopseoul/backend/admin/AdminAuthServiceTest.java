@@ -53,11 +53,11 @@ class AdminAuthServiceTest {
         assertThat(response.user().langCd()).isEqualTo(AdminLanguage.Kor);
         assertThat(response.menus()).containsExactly(
                 AdminMenu.DASHBOARD,
+                AdminMenu.OPERATION_CHECK,
                 AdminMenu.EVENT_MANAGEMENT,
                 AdminMenu.KNOWLEDGE_BASE,
                 AdminMenu.MESSAGE_TEMPLATES,
-                AdminMenu.ADMIN_USERS,
-                AdminMenu.TEACHER_USERS
+                AdminMenu.ADMIN_USERS
         );
     }
 
@@ -99,12 +99,12 @@ class AdminAuthServiceTest {
 
         assertThat(response.user().role()).isEqualTo(AdminRole.STAFF);
         assertThat(response.user().roles()).containsExactly(AdminRole.STAFF, AdminRole.TEACHER);
-        assertThat(response.menus()).contains(
+        assertThat(response.menus()).containsExactly(
                 AdminMenu.DASHBOARD,
+                AdminMenu.OPERATION_CHECK,
                 AdminMenu.EVENT_MANAGEMENT,
                 AdminMenu.KNOWLEDGE_BASE,
-                AdminMenu.ADMIN_USERS,
-                AdminMenu.TEACHER_USERS
+                AdminMenu.ADMIN_USERS
         );
     }
 

@@ -56,6 +56,17 @@ const CONTENT = {
       namePlaceholder: "예: 홍길동",
       contactMethodLabel: "연락 방법",
       contactValueLabel: "연락처",
+      danceRoleLabel: "역할",
+      danceRolePlaceholder: "역할을 선택해주세요",
+      danceRoles: {
+        LEADER: "리더(Lead)",
+        FOLLOWER: "팔로워(Follow)",
+      },
+      danceRoleGuide: [
+        "리더(Lead) 👉 같이 추는 사람에게 “다음에 뭐 할지” 알려주는 사람",
+        "팔로워(Follow) 👉 리더가 보내는 신호를 받아서 함께 춤을 만들어가는 사람",
+        "일반적으로 남성이 리더 역할을 맡고 여성이 팔로워 역할을 하지만, 성별에 상관없이 누구나 역할을 맡을 수 있습니다.",
+      ],
       contactMethods: {
         PHONE: "전화번호",
         KAKAO_TALK: "카카오톡 ID",
@@ -73,6 +84,7 @@ const CONTENT = {
       submit: "신청하기",
       submitting: "신청 중",
       required: "이름과 연락처를 모두 입력해주세요.",
+      danceRoleRequired: "역할을 선택해주세요.",
       submitError: "신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
       successTitle: "신청이 접수되었습니다.",
       successBody: "담당자가 선택한 연락 방법으로 안내를 드릴게요.",
@@ -223,6 +235,17 @@ const CONTENT = {
       namePlaceholder: "E.g. Alex Kim",
       contactMethodLabel: "Contact method",
       contactValueLabel: "Contact",
+      danceRoleLabel: "Role",
+      danceRolePlaceholder: "Choose a role",
+      danceRoles: {
+        LEADER: "Leader",
+        FOLLOWER: "Follower",
+      },
+      danceRoleGuide: [
+        "Lead 👉 The one who gives signals about what move comes next.",
+        "Follow 👉 The one who responds to those signals and dances together.",
+        "Men commonly take the leader role and women the follower role, but anyone can take either role regardless of gender.",
+      ],
       contactMethods: {
         PHONE: "Phone number",
         KAKAO_TALK: "KakaoTalk ID",
@@ -240,6 +263,7 @@ const CONTENT = {
       submit: "Apply",
       submitting: "Applying",
       required: "Please enter your name and contact.",
+      danceRoleRequired: "Please choose a role.",
       submitError: "We could not save your application. Please try again shortly.",
       successTitle: "Application received.",
       successBody: "We will contact you through your selected contact method.",
@@ -414,10 +438,10 @@ function ImagePlaceholder({ label = "Image Placeholder", height = "h-72" }) {
   );
 }
 
-function SectionWrapper({ id, children, className = "" }) {
+function SectionWrapper({ id, children, className = "", contentClassName = "py-20" }) {
   return (
     <section id={id} className={`scroll-mt-24 ${className}`}>
-      <div className="mx-auto max-w-6xl px-6 py-20 md:px-8">{children}</div>
+      <div className={`mx-auto max-w-6xl px-6 md:px-8 ${contentClassName}`}>{children}</div>
     </section>
   );
 }
@@ -884,6 +908,7 @@ function toApplicationItem(item, language, labels) {
     price: formatPrice(item.fee, item.currency, labels, language),
     teacher: formatTeachers(item.teachers, labels),
     description: translation.description || translation.shortDescription || "",
+    roleSelectionEnabled: Boolean(item.roleSelectionEnabled),
   };
 }
 
@@ -1016,13 +1041,13 @@ function ScheduleAndApplicationSection({
 }
 
 function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
-  const [form, setForm] = useState({ name: "", contactMethod: "PHONE", contactValue: "" });
+  const [form, setForm] = useState({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApplication, setSubmittedApplication] = useState(null);
 
   useEffect(() => {
-    setForm({ name: "", contactMethod: "PHONE", contactValue: "" });
+    setForm({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
     setError("");
     setIsSubmitting(false);
     setSubmittedApplication(null);
@@ -1060,6 +1085,10 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
       setError(labels.required);
       return;
     }
+    if (item.roleSelectionEnabled && !form.danceRole) {
+      setError(labels.danceRoleRequired);
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -1071,6 +1100,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
         contactMethod: form.contactMethod,
         contactValue: form.contactValue.trim(),
         languageCode: language,
+        danceRole: item.roleSelectionEnabled ? form.danceRole : null,
       });
       setSubmittedApplication(savedApplication);
     } catch (nextError) {
@@ -1175,6 +1205,31 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                   className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </label>
+              {item.roleSelectionEnabled ? (
+                <div className="sm:col-span-2">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-blue-950/75">{labels.danceRoleLabel}</span>
+                    <select
+                      name="danceRole"
+                      value={form.danceRole}
+                      onChange={handleChange}
+                      className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    >
+                      <option value="">{labels.danceRolePlaceholder}</option>
+                      {Object.entries(labels.danceRoles).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-sm leading-7 text-blue-950/75">
+                    {labels.danceRoleGuide.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {error ? (
@@ -1282,70 +1337,10 @@ function PublicApp() {
       ) : null}
 
       <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
-        <header className="top-0 z-40 border-b border-blue-900/10 bg-[rgb(222,240,255)] backdrop-blur">
-          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 md:px-8">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-lg font-semibold tracking-tight text-blue-950">SwingPop</div>
-                <div className="text-xs text-blue-900/60">Introductory Landing Page</div>
-              </div>
-
-              <div className="hidden items-center gap-6 md:flex">
-                {t.nav.map((item, index) => (
-                  <a
-                    key={`${language ?? "ko"}-${item}`}
-                    href={`#${SECTION_IDS[index]}`}
-                    className="text-sm text-blue-950/70 transition hover:text-blue-950"
-                  >
-                    {item}
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-3 shadow-sm">
-              <div>
-                <div className="text-sm font-semibold text-blue-950">{t.languageBannerTitle}</div>
-                <div className="text-xs text-blue-900/65">{t.languageBannerDesc}</div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2 rounded-full border border-blue-200 bg-white p-1.5 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => handleLanguageSelect("ko")}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                    language === "ko"
-                      ? "bg-blue-700 text-white shadow-sm"
-                      : "text-blue-900/75 hover:bg-blue-50"
-                  }`}
-                  aria-pressed={language === "ko"}
-                >
-                  한국어
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLanguageSelect("en")}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                    language === "en"
-                      ? "bg-blue-700 text-white shadow-sm"
-                      : "text-blue-900/75 hover:bg-blue-50"
-                  }`}
-                  aria-pressed={language === "en"}
-                >
-                  English
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
         <main aria-hidden={hasHydrated && !language ? true : undefined}>
-          <SectionWrapper id="top" className="pt-4">
+          <SectionWrapper id="top" contentClassName="pt-10 pb-20">
             <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
-                <div className="mb-4 inline-flex rounded-full border border-blue-200 bg-white px-4 py-2 text-sm text-blue-900/70 shadow-sm">
-                  {t.heroBadge}
-                </div>
                 <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-blue-950 md:text-6xl">
                   {t.heroTitle}
                 </h1>

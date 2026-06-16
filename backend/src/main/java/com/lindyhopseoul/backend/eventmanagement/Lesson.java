@@ -65,6 +65,9 @@ public class Lesson {
     @Column(nullable = false)
     private Integer displayOrder;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean roleSelectionEnabled = false;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -94,9 +97,39 @@ public class Lesson {
             LessonStatus status,
             Integer displayOrder
     ) {
+        return create(
+                event,
+                lessonType,
+                scheduleType,
+                startDate,
+                endDate,
+                startTime,
+                endTime,
+                fee,
+                currency,
+                status,
+                displayOrder,
+                false
+        );
+    }
+
+    public static Lesson create(
+            Event event,
+            LessonType lessonType,
+            LessonScheduleType scheduleType,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            BigDecimal fee,
+            String currency,
+            LessonStatus status,
+            Integer displayOrder,
+            boolean roleSelectionEnabled
+    ) {
         Lesson lesson = new Lesson();
         lesson.assignEvent(event);
-        lesson.update(lessonType, scheduleType, startDate, endDate, startTime, endTime, fee, currency, status, displayOrder);
+        lesson.update(lessonType, scheduleType, startDate, endDate, startTime, endTime, fee, currency, status, displayOrder, roleSelectionEnabled);
         return lesson;
     }
 
@@ -116,6 +149,22 @@ public class Lesson {
             LessonStatus status,
             Integer displayOrder
     ) {
+        update(lessonType, scheduleType, startDate, endDate, startTime, endTime, fee, currency, status, displayOrder, false);
+    }
+
+    public void update(
+            LessonType lessonType,
+            LessonScheduleType scheduleType,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            BigDecimal fee,
+            String currency,
+            LessonStatus status,
+            Integer displayOrder,
+            boolean roleSelectionEnabled
+    ) {
         this.lessonType = lessonType;
         this.scheduleType = scheduleType;
         this.startDate = startDate;
@@ -126,6 +175,7 @@ public class Lesson {
         this.currency = currency;
         this.status = status;
         this.displayOrder = displayOrder;
+        this.roleSelectionEnabled = roleSelectionEnabled;
     }
 
     public void replaceTranslations(Set<LessonTranslation> nextTranslations) {
@@ -218,6 +268,10 @@ public class Lesson {
 
     public Integer getDisplayOrder() {
         return displayOrder;
+    }
+
+    public boolean isRoleSelectionEnabled() {
+        return roleSelectionEnabled;
     }
 
     public Instant getCreatedAt() {

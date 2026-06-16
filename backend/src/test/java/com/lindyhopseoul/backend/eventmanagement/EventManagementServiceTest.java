@@ -107,6 +107,7 @@ class EventManagementServiceTest {
                 "KRW",
                 LessonStatus.PUBLISHED,
                 10,
+                false,
                 List.of("T1"),
                 Map.of(
                         "ko", new LessonRequest.LessonTranslationRequest("레벨1", "초급 수업"),

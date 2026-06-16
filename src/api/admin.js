@@ -77,6 +77,29 @@ export const adminApi = {
       token,
     });
   },
+  findOperationCheckAssignees(token) {
+    return request("/api/admin/operation-checks/assignees", { token });
+  },
+  findOperationCheckSummary(token) {
+    return request("/api/admin/operation-checks/summary", { token });
+  },
+  findOperationChecks(token, params = {}) {
+    return request(`/api/admin/operation-checks${buildQuery(params)}`, { token });
+  },
+  createOperationCheck(token, payload) {
+    return request("/api/admin/operation-checks", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  completeOperationCheck(token, id, payload) {
+    return request(`/api/admin/operation-checks/${id}/done`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   findTeachers(token) {
     return request("/api/admin/users/teachers", { token });
   },

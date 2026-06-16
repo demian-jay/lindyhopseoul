@@ -23,6 +23,7 @@ public record LessonRequest(
         @NotBlank @Size(max = 10) String currency,
         @NotNull LessonStatus status,
         @NotNull Integer displayOrder,
+        Boolean roleSelectionEnabled,
         List<String> teacherUserIds,
         @NotNull Map<String, @Valid LessonTranslationRequest> translations
 ) {

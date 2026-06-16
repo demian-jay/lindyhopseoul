@@ -51,7 +51,8 @@ public class EventApplicationService {
                 clean(request.applicantName()),
                 request.contactMethod(),
                 clean(request.contactValue()),
-                normalizeLanguage(request.languageCode())
+                normalizeLanguage(request.languageCode()),
+                normalizeDanceRole(lesson, request.danceRole())
         );
 
         return EventApplicationResponse.from(eventApplicationRepository.save(application));
@@ -63,5 +64,15 @@ public class EventApplicationService {
 
     private String normalizeLanguage(String languageCode) {
         return "en".equalsIgnoreCase(clean(languageCode)) ? "en" : "ko";
+    }
+
+    private ApplicationDanceRole normalizeDanceRole(Lesson lesson, ApplicationDanceRole danceRole) {
+        if (lesson == null || !lesson.isRoleSelectionEnabled()) {
+            return null;
+        }
+        if (danceRole == null) {
+            throw new ConflictException("Dance role is required for this lesson.");
+        }
+        return danceRole;
     }
 }

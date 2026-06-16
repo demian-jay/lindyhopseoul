@@ -53,7 +53,8 @@ class EventApplicationServiceTest {
                 " Alex ",
                 ApplicationContactMethod.WHATSAPP,
                 " +82 10 1234 5678 ",
-                "en"
+                "en",
+                null
         ));
 
         ArgumentCaptor<EventApplication> applicationCaptor = ArgumentCaptor.forClass(EventApplication.class);
@@ -62,7 +63,49 @@ class EventApplicationServiceTest {
         assertThat(application.getApplicantName()).isEqualTo("Alex");
         assertThat(application.getContactMethod()).isEqualTo(ApplicationContactMethod.WHATSAPP);
         assertThat(application.getContactValue()).isEqualTo("+82 10 1234 5678");
+        assertThat(application.getDanceRole()).isNull();
         assertThat(response.languageCode()).isEqualTo("en");
+    }
+
+    @Test
+    void createStoresDanceRoleWhenLessonRequiresRoleSelection() {
+        Event event = event(EventStatus.PUBLISHED);
+        Lesson lesson = lesson(event, LessonStatus.PUBLISHED, true);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+        when(eventApplicationRepository.save(any(EventApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(new EventApplicationCreateRequest(
+                1L,
+                2L,
+                "Alex",
+                ApplicationContactMethod.EMAIL,
+                "alex@example.com",
+                "en",
+                ApplicationDanceRole.LEADER
+        ));
+
+        ArgumentCaptor<EventApplication> applicationCaptor = ArgumentCaptor.forClass(EventApplication.class);
+        verify(eventApplicationRepository).save(applicationCaptor.capture());
+        assertThat(applicationCaptor.getValue().getDanceRole()).isEqualTo(ApplicationDanceRole.LEADER);
+    }
+
+    @Test
+    void createRejectsMissingDanceRoleWhenLessonRequiresRoleSelection() {
+        Event event = event(EventStatus.PUBLISHED);
+        Lesson lesson = lesson(event, LessonStatus.PUBLISHED, true);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+
+        assertThatThrownBy(() -> service.create(new EventApplicationCreateRequest(
+                1L,
+                2L,
+                "Alex",
+                ApplicationContactMethod.EMAIL,
+                "alex@example.com",
+                "en",
+                null
+        ))).isInstanceOf(ConflictException.class);
     }
 
     @Test
@@ -78,7 +121,8 @@ class EventApplicationServiceTest {
                 "Alex",
                 ApplicationContactMethod.EMAIL,
                 "alex@example.com",
-                "en"
+                "en",
+                null
         ))).isInstanceOf(ConflictException.class);
     }
 
@@ -98,6 +142,10 @@ class EventApplicationServiceTest {
     }
 
     private Lesson lesson(Event event, LessonStatus status) {
+        return lesson(event, status, false);
+    }
+
+    private Lesson lesson(Event event, LessonStatus status, boolean roleSelectionEnabled) {
         Lesson lesson = Lesson.create(
                 event,
                 LessonType.LEVEL1,
@@ -109,7 +157,8 @@ class EventApplicationServiceTest {
                 new BigDecimal("80000"),
                 "KRW",
                 status,
-                10
+                10,
+                roleSelectionEnabled
         );
         ReflectionTestUtils.setField(lesson, "id", 2L);
         return lesson;
