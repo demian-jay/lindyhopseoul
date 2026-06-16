@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OperationCheckService {
 
     private static final List<AdminRole> OPERATOR_ROLES = List.of(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
+    private static final List<AdminRole> ASSIGNEE_ROLES = List.of(AdminRole.STAFF);
 
     private final OperationCheckItemRepository operationCheckItemRepository;
     private final UserAccountRepository userAccountRepository;
@@ -33,8 +34,9 @@ public class OperationCheckService {
     public List<OperationCheckAssigneeResponse> findAssignees(AdminPrincipal actor) {
         requireOperator(actor);
 
-        return userAccountRepository.findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(OPERATOR_ROLES, "Y")
+        return userAccountRepository.findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(ASSIGNEE_ROLES, "Y")
                 .stream()
+                .filter(user -> !user.hasRole(AdminRole.SUPER_ADMIN))
                 .map(OperationCheckAssigneeResponse::from)
                 .toList();
     }
@@ -104,7 +106,7 @@ public class OperationCheckService {
 
         UserAccount user = userAccountRepository.findById(cleanAssignedToUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignee not found: " + cleanAssignedToUserId));
-        if (!user.isActive() || !hasAnyRole(user.getRoleCodes(), OPERATOR_ROLES)) {
+        if (!user.isActive() || !hasAnyRole(user.getRoleCodes(), ASSIGNEE_ROLES) || user.hasRole(AdminRole.SUPER_ADMIN)) {
             throw new ConflictException("Assignee must be an active staff member.");
         }
         return user;

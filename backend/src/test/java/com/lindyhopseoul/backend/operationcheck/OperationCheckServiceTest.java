@@ -3,6 +3,7 @@ package com.lindyhopseoul.backend.operationcheck;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -53,6 +54,21 @@ class OperationCheckServiceTest {
         assertThat(response.createdByUserId()).isEqualTo("S1");
         assertThat(response.assignedToUserId()).isEqualTo("S2");
         assertThat(response.status()).isEqualTo(OperationCheckStatus.OPEN);
+    }
+
+    @Test
+    void findAssigneesExcludesSuperAdmins() {
+        AdminPrincipal actor = principal("S1", "Staff A", AdminRole.STAFF);
+        UserAccount staff = user("S2", "Staff B", AdminRole.STAFF);
+        UserAccount superAdmin = user("A1", "Super Admin", AdminRole.SUPER_ADMIN);
+        superAdmin.addRole(AdminRole.STAFF);
+        when(userAccountRepository.findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(List.of(AdminRole.STAFF), "Y"))
+                .thenReturn(List.of(superAdmin, staff));
+
+        List<OperationCheckAssigneeResponse> assignees = operationCheckService.findAssignees(actor);
+
+        assertThat(assignees).extracting(OperationCheckAssigneeResponse::name).containsExactly("Staff B");
+        verify(userAccountRepository).findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(List.of(AdminRole.STAFF), "Y");
     }
 
     @Test

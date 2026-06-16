@@ -31,7 +31,11 @@ const COPY = {
     checkedAt: "완료 처리일시",
     shared: "전체 운영진",
     complete: "완료 처리",
-    doneMemoPrompt: "완료 처리 메모를 남겨주세요. 필요 없으면 빈칸으로 두세요.",
+    completeMemo: "완료 처리 메모",
+    completeMemoPlaceholder: "처리 내용을 적어주세요. 필요 없으면 비워둘 수 있습니다.",
+    confirmComplete: "체크됨",
+    cancel: "취소",
+    completing: "처리 중",
     completed: "완료 처리되었습니다.",
     statusLabels: {
       OPEN: "미완료",
@@ -66,7 +70,11 @@ const COPY = {
     checkedAt: "Completed",
     shared: "All staff",
     complete: "Complete",
-    doneMemoPrompt: "Add a completion memo. Leave blank if not needed.",
+    completeMemo: "Completion memo",
+    completeMemoPlaceholder: "Add what was handled. You can leave this blank.",
+    confirmComplete: "Mark done",
+    cancel: "Cancel",
+    completing: "Completing",
     completed: "Completed.",
     statusLabels: {
       OPEN: "Open",
@@ -259,6 +267,9 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
   const [status, setStatus] = useState("OPEN");
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [completingItemId, setCompletingItemId] = useState(null);
+  const [checkedMemo, setCheckedMemo] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -289,24 +300,36 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
     loadItems();
   }, [loadItems, refreshKey]);
 
-  const handleComplete = async (item) => {
-    const checkedMemo = window.prompt(labels.doneMemoPrompt, "");
-    if (checkedMemo === null) {
-      return;
-    }
-
+  const startComplete = (item) => {
+    setCompletingItemId(item.id);
+    setCheckedMemo("");
     setError("");
     setNotice("");
+  };
+
+  const cancelComplete = () => {
+    setCompletingItemId(null);
+    setCheckedMemo("");
+  };
+
+  const submitComplete = async (item) => {
+    setError("");
+    setNotice("");
+    setIsCompleting(true);
 
     try {
       await adminApi.completeOperationCheck(token, item.id, {
         checkedMemo: checkedMemo.trim() || null,
       });
       setNotice(labels.completed);
+      setCompletingItemId(null);
+      setCheckedMemo("");
       onChanged?.();
       await loadItems();
     } catch (nextError) {
       setError(nextError.message);
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -362,13 +385,46 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
               {item.canComplete ? (
                 <button
                   type="button"
-                  onClick={() => handleComplete(item)}
+                  onClick={() => startComplete(item)}
                   className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
                 >
                   {labels.complete}
                 </button>
               ) : null}
             </div>
+
+            {item.canComplete && completingItemId === item.id ? (
+              <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3">
+                <label className="block">
+                  <span className="text-xs font-semibold text-teal-900">{labels.completeMemo}</span>
+                  <textarea
+                    value={checkedMemo}
+                    onChange={(event) => setCheckedMemo(event.target.value)}
+                    placeholder={labels.completeMemoPlaceholder}
+                    rows={2}
+                    className="mt-1.5 min-h-[64px] w-full resize-y rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                  />
+                </label>
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelComplete}
+                    disabled={isCompleting}
+                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300"
+                  >
+                    {labels.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitComplete(item)}
+                    disabled={isCompleting}
+                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+                  >
+                    {isCompleting ? labels.completing : labels.confirmComplete}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
               <div>
