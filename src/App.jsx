@@ -52,8 +52,12 @@ const CONTENT = {
     applicationModal: {
       title: "신청 정보 입력",
       close: "닫기",
-      nameLabel: "이름",
-      namePlaceholder: "예: 홍길동",
+      nameLabel: "닉네임/이름",
+      namePlaceholder: "예: 홍길동 또는 스윙 닉네임",
+      nameHelp: [
+        "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
+        "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
+      ],
       contactMethodLabel: "연락 방법",
       contactValueLabel: "연락처",
       danceRoleLabel: "역할",
@@ -88,6 +92,9 @@ const CONTENT = {
       submitError: "신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
       successTitle: "신청이 접수되었습니다.",
       successBody: "담당자가 선택한 연락 방법으로 안내를 드릴게요.",
+      mapTitle: "수업 장소 확인하기",
+      googleMaps: "Google Maps",
+      naverMap: "Naver Map",
       chooseAnother: "다른 일정 보기",
     },
     sections: [
@@ -231,8 +238,12 @@ const CONTENT = {
     applicationModal: {
       title: "Enter application details",
       close: "Close",
-      nameLabel: "Name",
-      namePlaceholder: "E.g. Alex Kim",
+      nameLabel: "Nickname / Name",
+      namePlaceholder: "E.g. Alex or your swing nickname",
+      nameHelp: [
+        "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
+        "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
+      ],
       contactMethodLabel: "Contact method",
       contactValueLabel: "Contact",
       danceRoleLabel: "Role",
@@ -267,6 +278,9 @@ const CONTENT = {
       submitError: "We could not save your application. Please try again shortly.",
       successTitle: "Application received.",
       successBody: "We will contact you through your selected contact method.",
+      mapTitle: "수업 장소 확인하기",
+      googleMaps: "Google Maps",
+      naverMap: "Naver Map",
       chooseAnother: "Choose another schedule",
     },
     sections: [
@@ -905,6 +919,9 @@ function toApplicationItem(item, language, labels) {
     date: formatDateRange(item.startDate, item.endDate, language),
     time: formatTimeRange(item.startTime, item.endTime) || labels.toBeAnnounced,
     location: item.location || labels.toBeAnnounced,
+    addressInfoEnabled: Boolean(item.addressInfoEnabled),
+    googleMapUrl: item.googleMapUrl || "",
+    naverMapUrl: item.naverMapUrl || "",
     price: formatPrice(item.fee, item.currency, labels, language),
     teacher: formatTeachers(item.teachers, labels),
     description: translation.description || translation.shortDescription || "",
@@ -1042,6 +1059,7 @@ function ScheduleAndApplicationSection({
 
 function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
   const [form, setForm] = useState({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
+  const [isNameHelpOpen, setIsNameHelpOpen] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApplication, setSubmittedApplication] = useState(null);
@@ -1049,6 +1067,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
   useEffect(() => {
     setForm({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
     setError("");
+    setIsNameHelpOpen(false);
     setIsSubmitting(false);
     setSubmittedApplication(null);
   }, [item]);
@@ -1071,6 +1090,8 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
   if (!item) {
     return null;
   }
+
+  const shouldShowMapLinks = item.addressInfoEnabled && (item.googleMapUrl || item.naverMapUrl);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -1157,6 +1178,33 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
           <div className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
             <h3 className="text-lg font-semibold text-emerald-950">{labels.successTitle}</h3>
             <p className="mt-2 text-sm leading-7 text-emerald-900/75">{labels.successBody}</p>
+            {shouldShowMapLinks ? (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3">
+                <div className="text-sm font-semibold text-emerald-950">{labels.mapTitle}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.googleMapUrl ? (
+                    <a
+                      href={item.googleMapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                    >
+                      {labels.googleMaps}
+                    </a>
+                  ) : null}
+                  {item.naverMapUrl ? (
+                    <a
+                      href={item.naverMapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                    >
+                      {labels.naverMap}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={onClose}
@@ -1169,7 +1217,27 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
           <form onSubmit={handleSubmit} className="mt-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-semibold text-blue-950/75">{labels.nameLabel}</span>
+                <span className="flex items-center gap-2 text-sm font-semibold text-blue-950/75">
+                  {labels.nameLabel}
+                  <button
+                    type="button"
+                    onClick={() => setIsNameHelpOpen((current) => !current)}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-xs font-bold text-blue-800 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label={labels.nameLabel}
+                    aria-expanded={isNameHelpOpen}
+                  >
+                    ?
+                  </button>
+                </span>
+                {isNameHelpOpen ? (
+                  <div className="mt-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-950/75">
+                    {labels.nameHelp.map((line) => (
+                      <p key={line} className="mt-2 first:mt-0">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
                 <input
                   name="name"
                   type="text"

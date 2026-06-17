@@ -45,6 +45,15 @@ public class Event {
     @Column(nullable = false, length = 200)
     private String location;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean addressInfoEnabled = false;
+
+    @Column(length = 500)
+    private String googleMapUrl;
+
+    @Column(length = 500)
+    private String naverMapUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private EventStatus status;
@@ -78,8 +87,36 @@ public class Event {
             EventStatus status,
             Integer displayOrder
     ) {
+        return create(eventType, startDate, endDate, startTime, endTime, location, status, displayOrder, false, null, null);
+    }
+
+    public static Event create(
+            EventType eventType,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            String location,
+            EventStatus status,
+            Integer displayOrder,
+            boolean addressInfoEnabled,
+            String googleMapUrl,
+            String naverMapUrl
+    ) {
         Event event = new Event();
-        event.update(eventType, startDate, endDate, startTime, endTime, location, status, displayOrder);
+        event.update(
+                eventType,
+                startDate,
+                endDate,
+                startTime,
+                endTime,
+                location,
+                status,
+                displayOrder,
+                addressInfoEnabled,
+                googleMapUrl,
+                naverMapUrl
+        );
         return event;
     }
 
@@ -93,12 +130,31 @@ public class Event {
             EventStatus status,
             Integer displayOrder
     ) {
+        update(eventType, startDate, endDate, startTime, endTime, location, status, displayOrder, false, null, null);
+    }
+
+    public void update(
+            EventType eventType,
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            String location,
+            EventStatus status,
+            Integer displayOrder,
+            boolean addressInfoEnabled,
+            String googleMapUrl,
+            String naverMapUrl
+    ) {
         this.eventType = eventType;
         this.startDate = startDate;
         this.endDate = endDate;
         this.startTime = startTime;
         this.endTime = endTime;
         this.location = location;
+        this.addressInfoEnabled = addressInfoEnabled;
+        this.googleMapUrl = addressInfoEnabled ? googleMapUrl : null;
+        this.naverMapUrl = addressInfoEnabled ? naverMapUrl : null;
         this.status = status;
         this.displayOrder = displayOrder;
     }
@@ -169,6 +225,18 @@ public class Event {
 
     public String getLocation() {
         return location;
+    }
+
+    public boolean isAddressInfoEnabled() {
+        return addressInfoEnabled;
+    }
+
+    public String getGoogleMapUrl() {
+        return googleMapUrl;
+    }
+
+    public String getNaverMapUrl() {
+        return naverMapUrl;
     }
 
     public EventStatus getStatus() {

@@ -16,6 +16,9 @@ public record EventRequest(
         @NotNull LocalTime startTime,
         @NotNull LocalTime endTime,
         @NotBlank @Size(max = 200) String location,
+        Boolean addressInfoEnabled,
+        @Size(max = 500) String googleMapUrl,
+        @Size(max = 500) String naverMapUrl,
         @NotNull EventStatus status,
         @NotNull Integer displayOrder,
         @NotNull Map<String, @Valid EventTranslationRequest> translations

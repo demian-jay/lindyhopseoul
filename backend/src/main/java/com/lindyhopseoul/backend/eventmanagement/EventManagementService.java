@@ -83,6 +83,7 @@ public class EventManagementService {
     public EventResponse createEvent(AdminPrincipal actor, EventRequest request) {
         requireEventEditor(actor);
         validateDateRange(request.startDate(), request.endDate(), "Event");
+        AddressInfo addressInfo = normalizeAddressInfo(request);
         Event event = Event.create(
                 request.eventType(),
                 request.startDate(),
@@ -91,7 +92,10 @@ public class EventManagementService {
                 request.endTime(),
                 clean(request.location()),
                 request.status(),
-                request.displayOrder()
+                request.displayOrder(),
+                addressInfo.enabled(),
+                addressInfo.googleMapUrl(),
+                addressInfo.naverMapUrl()
         );
         event.replaceTranslations(toEventTranslations(request.translations()));
         eventRepository.save(event);
@@ -103,6 +107,7 @@ public class EventManagementService {
         requireEventEditor(actor);
         validateDateRange(request.startDate(), request.endDate(), "Event");
         Event event = findEventDetails(eventId);
+        AddressInfo addressInfo = normalizeAddressInfo(request);
         event.update(
                 request.eventType(),
                 request.startDate(),
@@ -111,7 +116,10 @@ public class EventManagementService {
                 request.endTime(),
                 clean(request.location()),
                 request.status(),
-                request.displayOrder()
+                request.displayOrder(),
+                addressInfo.enabled(),
+                addressInfo.googleMapUrl(),
+                addressInfo.naverMapUrl()
         );
         event.replaceTranslations(toEventTranslations(request.translations()));
         return EventResponse.from(event);
@@ -583,6 +591,31 @@ public class EventManagementService {
         }
     }
 
+    private AddressInfo normalizeAddressInfo(EventRequest request) {
+        boolean enabled = Boolean.TRUE.equals(request.addressInfoEnabled());
+        String googleMapUrl = cleanNullable(request.googleMapUrl());
+        String naverMapUrl = cleanNullable(request.naverMapUrl());
+        if (!enabled) {
+            return new AddressInfo(false, null, null);
+        }
+        if (googleMapUrl == null && naverMapUrl == null) {
+            throw new ConflictException("Google Maps URL or Naver Map URL is required when address information is enabled.");
+        }
+        validateMapUrl(googleMapUrl, "Google Maps URL");
+        validateMapUrl(naverMapUrl, "Naver Map URL");
+        return new AddressInfo(true, googleMapUrl, naverMapUrl);
+    }
+
+    private void validateMapUrl(String value, String label) {
+        if (value == null) {
+            return;
+        }
+        String lowerValue = value.toLowerCase();
+        if (!lowerValue.startsWith("http://") && !lowerValue.startsWith("https://")) {
+            throw new ConflictException(label + " must start with http:// or https://.");
+        }
+    }
+
     private LessonDateRange normalizeLessonDates(
             LessonScheduleType scheduleType,
             LocalDate startDate,
@@ -681,6 +714,13 @@ public class EventManagementService {
     private record LessonDateRange(
             LocalDate startDate,
             LocalDate endDate
+    ) {
+    }
+
+    private record AddressInfo(
+            boolean enabled,
+            String googleMapUrl,
+            String naverMapUrl
     ) {
     }
 }

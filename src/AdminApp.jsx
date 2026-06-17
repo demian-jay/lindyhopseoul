@@ -6,7 +6,6 @@ import KnowledgeBasePanel from "./KnowledgeBasePanel";
 import OperationCheckPanel, { OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
-const LOGIN_LANGUAGE_STORAGE_KEY = "swingpop-admin-login-language";
 
 const LANGUAGES = ["Kor", "Eng"];
 const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
@@ -417,36 +416,17 @@ function LanguageOptions({ labels }) {
   ));
 }
 
-function LanguageToggle({ langCd, labels, onChange }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-      {LANGUAGES.map((nextLangCd) => (
-        <button
-          key={nextLangCd}
-          type="button"
-          onClick={() => onChange(nextLangCd)}
-          className={`min-h-[32px] rounded-md px-3 text-xs font-semibold transition ${
-            langCd === nextLangCd ? "bg-white text-teal-700 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
-          }`}
-          aria-pressed={langCd === nextLangCd}
-        >
-          {labels.languages[nextLangCd]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function LoginScreen({ onLogin }) {
-  const [langCd, setLangCd] = useState(() => window.localStorage.getItem(LOGIN_LANGUAGE_STORAGE_KEY) || "Kor");
   const [form, setForm] = useState({ loginId: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const labels = getLabels(langCd);
-
-  const handleLanguageChange = (nextLangCd) => {
-    window.localStorage.setItem(LOGIN_LANGUAGE_STORAGE_KEY, nextLangCd);
-    setLangCd(nextLangCd);
+  const loginLabels = {
+    brand: "SwingPop Admin",
+    title: "관리자 로그인 / Admin Login",
+    loginId: "아이디 / Login ID",
+    password: "비밀번호 / Password",
+    submit: "로그인 / Log In",
+    submitting: "로그인 중 / Logging in",
   };
 
   const handleChange = (event) => {
@@ -464,7 +444,6 @@ function LoginScreen({ onLogin }) {
         loginId: form.loginId.trim(),
         password: form.password,
       });
-      window.localStorage.setItem(LOGIN_LANGUAGE_STORAGE_KEY, session.user.langCd || langCd);
       onLogin(session);
     } catch (nextError) {
       setError(nextError.message);
@@ -479,14 +458,13 @@ function LoginScreen({ onLogin }) {
         <form onSubmit={handleSubmit} className="w-full rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4 border-b border-zinc-200 pb-5">
             <div>
-              <div className="text-sm font-semibold text-teal-700">{labels.brand}</div>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{labels.login.title}</h1>
+              <div className="text-sm font-semibold text-teal-700">{loginLabels.brand}</div>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{loginLabels.title}</h1>
             </div>
-            <LanguageToggle langCd={langCd} labels={labels} onChange={handleLanguageChange} />
           </div>
 
           <div className="mt-5 grid gap-4">
-            <Field label={labels.login.loginId}>
+            <Field label={loginLabels.loginId}>
               <TextInput
                 name="loginId"
                 type="text"
@@ -496,7 +474,7 @@ function LoginScreen({ onLogin }) {
                 autoFocus
               />
             </Field>
-            <Field label={labels.login.password}>
+            <Field label={loginLabels.password}>
               <TextInput
                 name="password"
                 type="password"
@@ -516,7 +494,7 @@ function LoginScreen({ onLogin }) {
             disabled={isSubmitting}
             className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
           >
-            {isSubmitting ? labels.login.submitting : labels.login.submit}
+            {isSubmitting ? loginLabels.submitting : loginLabels.submit}
           </button>
         </form>
       </main>
@@ -1139,6 +1117,8 @@ export default function AdminApp() {
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
   const canUseOperationCheck = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+  const shouldShowOperationCheckQuickInput =
+    canUseOperationCheck && (safeActiveMenu === "DASHBOARD" || safeActiveMenu === "OPERATION_CHECK");
 
   const handleOperationCheckChanged = useCallback(() => {
     setOperationCheckRefreshKey((current) => current + 1);
@@ -1234,7 +1214,7 @@ export default function AdminApp() {
         </aside>
 
         <main className="grid gap-5">
-          {canUseOperationCheck ? (
+          {shouldShowOperationCheckQuickInput ? (
             <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged} />
           ) : null}
           {safeActiveMenu === "DASHBOARD" ? (

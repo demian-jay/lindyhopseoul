@@ -66,6 +66,35 @@ class EventManagementServiceTest {
     }
 
     @Test
+    void createEventRejectsEnabledAddressInfoWithoutMapUrls() {
+        EventRequest request = eventRequest(true, "", "");
+
+        assertThatThrownBy(() -> service.createEvent(superAdmin, request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Google Maps URL or Naver Map URL");
+    }
+
+    @Test
+    void createEventRejectsMapUrlWithoutHttpScheme() {
+        EventRequest request = eventRequest(true, "maps.app.goo.gl/place", "");
+
+        assertThatThrownBy(() -> service.createEvent(superAdmin, request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("http:// or https://");
+    }
+
+    @Test
+    void createEventStoresAddressInfoWhenValid() {
+        EventRequest request = eventRequest(true, "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96", "https://naver.me/x2jQH2Tt");
+
+        EventResponse response = service.createEvent(superAdmin, request);
+
+        assertThat(response.addressInfoEnabled()).isTrue();
+        assertThat(response.googleMapUrl()).isEqualTo("https://maps.app.goo.gl/ypA9zfFkKVqwJoT96");
+        assertThat(response.naverMapUrl()).isEqualTo("https://naver.me/x2jQH2Tt");
+    }
+
+    @Test
     void createLessonRejectsInactiveTeacher() {
         Event event = Event.create(
                 EventType.REGULAR_CLASS,
@@ -172,5 +201,25 @@ class EventManagementServiceTest {
         assertThat(response.renderedText()).contains("스윙팝 파티");
         assertThat(response.renderedText()).contains("Charleston Workshop");
         assertThat(response.renderedText()).contains("30000 KRW");
+    }
+
+    private EventRequest eventRequest(boolean addressInfoEnabled, String googleMapUrl, String naverMapUrl) {
+        return new EventRequest(
+                EventType.REGULAR_CLASS,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Studio",
+                addressInfoEnabled,
+                googleMapUrl,
+                naverMapUrl,
+                EventStatus.PUBLISHED,
+                10,
+                Map.of(
+                        "ko", new EventRequest.EventTranslationRequest("정규수업", "정규수업 안내", "정규수업 설명"),
+                        "en", new EventRequest.EventTranslationRequest("Regular Class", "Regular class notice", "Regular class description")
+                )
+        );
     }
 }

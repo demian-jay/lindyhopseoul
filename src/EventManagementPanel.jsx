@@ -9,6 +9,8 @@ const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPER
 const LESSON_STATUSES = ["PUBLISHED", "FINISHED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
 const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+const REGULAR_CLASS_GOOGLE_MAP_URL = "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96";
+const REGULAR_CLASS_NAVER_MAP_URL = "https://naver.me/x2jQH2Tt";
 const TEMPLATE_VARIABLES = [
   "{{event.title.ko}}",
   "{{event.title.en}}",
@@ -83,6 +85,9 @@ const EVENT_TYPE_DEFAULTS = {
     startTime: "16:00",
     endTime: "22:00",
     location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
+    addressInfoEnabled: true,
+    googleMapUrl: REGULAR_CLASS_GOOGLE_MAP_URL,
+    naverMapUrl: REGULAR_CLASS_NAVER_MAP_URL,
     translations: {
       ko: {
         title: "스윙팝 정규수업",
@@ -103,11 +108,13 @@ const EVENT_TYPE_DEFAULTS = {
     startTime: "16:00",
     endTime: "22:00",
     location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
+    addressInfoEnabled: false,
   },
   DIALOGUE_PARTY: {
     startTime: "19:30",
     endTime: "22:00",
     location: "Dialogue, 서울 용산구 신흥로 31 지하1층",
+    addressInfoEnabled: false,
     translations: {
       ko: {
         title: "Dialogue 소셜댄스",
@@ -158,6 +165,10 @@ const COPY_TEXT = {
     startTime: "시작 시간",
     endTime: "종료 시간",
     location: "장소",
+    addressInfoEnabled: "주소 정보 입력하기",
+    addressInfoEnabledDesc: "신청 완료 화면에 지도 링크를 표시합니다.",
+    googleMapUrl: "구글지도 URL",
+    naverMapUrl: "네이버지도 URL",
     displayOrder: "정렬 순서",
     languageInfo: "한국어/영어 정보",
     title: "제목",
@@ -243,6 +254,10 @@ const COPY_TEXT = {
     startTime: "Start Time",
     endTime: "End Time",
     location: "Location",
+    addressInfoEnabled: "Enter address information",
+    addressInfoEnabledDesc: "Show map links after a student completes an application.",
+    googleMapUrl: "Google Maps URL",
+    naverMapUrl: "Naver Map URL",
     displayOrder: "Display Order",
     languageInfo: "Korean / English Info",
     title: "Title",
@@ -368,6 +383,9 @@ function emptyEventForm() {
     startTime: "",
     endTime: "",
     location: "",
+    addressInfoEnabled: false,
+    googleMapUrl: "",
+    naverMapUrl: "",
     status: "PUBLISHED",
     displayOrder: 10,
     translations: {
@@ -388,6 +406,15 @@ function eventDefaultFieldKeys(eventType) {
   }
   if (defaults.location !== undefined) {
     keys.push("location");
+  }
+  if (defaults.addressInfoEnabled !== undefined) {
+    keys.push("addressInfoEnabled");
+  }
+  if (defaults.googleMapUrl !== undefined) {
+    keys.push("googleMapUrl");
+  }
+  if (defaults.naverMapUrl !== undefined) {
+    keys.push("naverMapUrl");
   }
   SUPPORTED_LANGUAGES.forEach((languageCode) => {
     const translation = defaults.translations?.[languageCode];
@@ -419,6 +446,14 @@ function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) 
     startTime: applyTextDefault("startTime", form.startTime, defaults.startTime),
     endTime: applyTextDefault("endTime", form.endTime, defaults.endTime),
     location: applyTextDefault("location", form.location, defaults.location),
+    addressInfoEnabled:
+      eventType === "REGULAR_CLASS"
+        ? true
+        : autoDefaultFields.has("addressInfoEnabled")
+          ? Boolean(defaults.addressInfoEnabled)
+          : Boolean(form.addressInfoEnabled),
+    googleMapUrl: form.googleMapUrl || defaults.googleMapUrl || "",
+    naverMapUrl: form.naverMapUrl || defaults.naverMapUrl || "",
     translations: SUPPORTED_LANGUAGES.reduce((translations, languageCode) => {
       const currentTranslation = form.translations?.[languageCode] || {};
       const defaultTranslation = defaults.translations?.[languageCode] || {};
@@ -441,6 +476,20 @@ function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) 
       };
       return translations;
     }, {}),
+  };
+}
+
+function applyRegularClassAddressDefaults(form, eventType) {
+  if (eventType !== "REGULAR_CLASS") {
+    return { ...form, eventType };
+  }
+
+  return {
+    ...form,
+    eventType,
+    addressInfoEnabled: true,
+    googleMapUrl: form.googleMapUrl || REGULAR_CLASS_GOOGLE_MAP_URL,
+    naverMapUrl: form.naverMapUrl || REGULAR_CLASS_NAVER_MAP_URL,
   };
 }
 
@@ -652,17 +701,32 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
   }, [initialValue]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, type, value, checked } = event.target;
     if (name === "eventType") {
       const shouldApplyDefaults = window.confirm(copy.confirmLoadEventDefaults);
       setForm((current) =>
         shouldApplyDefaults
           ? applyEventTypeDefaults(current, value, eventDefaultFieldKeys(value))
-          : { ...current, eventType: value }
+          : applyRegularClassAddressDefaults(current, value)
       );
       return;
     }
-    setForm((current) => ({ ...current, [name]: value }));
+    if (name === "addressInfoEnabled") {
+      setForm((current) => ({
+        ...current,
+        addressInfoEnabled: checked,
+        googleMapUrl:
+          checked && current.eventType === "REGULAR_CLASS" && !current.googleMapUrl
+            ? REGULAR_CLASS_GOOGLE_MAP_URL
+            : current.googleMapUrl,
+        naverMapUrl:
+          checked && current.eventType === "REGULAR_CLASS" && !current.naverMapUrl
+            ? REGULAR_CLASS_NAVER_MAP_URL
+            : current.naverMapUrl,
+      }));
+      return;
+    }
+    setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleTranslationChange = (event) => {
@@ -737,6 +801,29 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
             <TextInput name="location" value={form.location} onChange={handleChange} />
           </Field>
         </div>
+        <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-2">
+          <input
+            type="checkbox"
+            name="addressInfoEnabled"
+            checked={Boolean(form.addressInfoEnabled)}
+            onChange={handleChange}
+            className="mt-1 h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-zinc-800">{copy.addressInfoEnabled}</span>
+            <span className="mt-1 block text-xs leading-5 text-zinc-500">{copy.addressInfoEnabledDesc}</span>
+          </span>
+        </label>
+        {form.addressInfoEnabled ? (
+          <>
+            <Field label={copy.googleMapUrl}>
+              <TextInput name="googleMapUrl" value={form.googleMapUrl} onChange={handleChange} />
+            </Field>
+            <Field label={copy.naverMapUrl}>
+              <TextInput name="naverMapUrl" value={form.naverMapUrl} onChange={handleChange} />
+            </Field>
+          </>
+        ) : null}
       </div>
       <div className="mt-5 border-t border-zinc-200 pt-4">
         <div className="flex items-center justify-between gap-3">
@@ -1825,6 +1912,9 @@ function toEventForm(event) {
     startTime: toTimeInput(event.startTime),
     endTime: toTimeInput(event.endTime),
     location: event.location,
+    addressInfoEnabled: Boolean(event.addressInfoEnabled),
+    googleMapUrl: event.googleMapUrl || "",
+    naverMapUrl: event.naverMapUrl || "",
     status: event.status,
     displayOrder: event.displayOrder,
     translations: normalizeTranslations(event.translations),

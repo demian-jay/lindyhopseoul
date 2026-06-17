@@ -248,7 +248,10 @@ public class EventManagementBootstrap {
                 LocalTime.of(17, 30),
                 "Swingpop Studio",
                 EventStatus.PUBLISHED,
-                10
+                10,
+                true,
+                "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96",
+                "https://naver.me/x2jQH2Tt"
         );
         regularClass.replaceTranslations(Set.of(
                 new EventTranslation(
