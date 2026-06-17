@@ -41,6 +41,9 @@ public class EventApplication {
     @Column(nullable = false, length = 200)
     private String contactValue;
 
+    @Column(length = 2000)
+    private String requestMemo;
+
     @Column(nullable = false, length = 10)
     private String languageCode;
 
@@ -60,6 +63,7 @@ public class EventApplication {
             String applicantName,
             ApplicationContactMethod contactMethod,
             String contactValue,
+            String requestMemo,
             String languageCode,
             ApplicationDanceRole danceRole
     ) {
@@ -69,6 +73,7 @@ public class EventApplication {
         application.applicantName = applicantName;
         application.contactMethod = contactMethod;
         application.contactValue = contactValue;
+        application.requestMemo = requestMemo;
         application.languageCode = languageCode;
         application.danceRole = danceRole;
         return application;
@@ -101,6 +106,10 @@ public class EventApplication {
 
     public String getContactValue() {
         return contactValue;
+    }
+
+    public String getRequestMemo() {
+        return requestMemo;
     }
 
     public String getLanguageCode() {

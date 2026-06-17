@@ -9,6 +9,7 @@ public record EventApplicationResponse(
         String applicantName,
         ApplicationContactMethod contactMethod,
         String contactValue,
+        String requestMemo,
         String languageCode,
         ApplicationDanceRole danceRole,
         Instant createdAt
@@ -23,6 +24,7 @@ public record EventApplicationResponse(
                 application.getApplicantName(),
                 application.getContactMethod(),
                 application.getContactValue(),
+                application.getRequestMemo(),
                 application.getLanguageCode(),
                 application.getDanceRole(),
                 application.getCreatedAt()

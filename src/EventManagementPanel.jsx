@@ -203,6 +203,10 @@ const COPY_TEXT = {
     lessonStatusFilter: "강습 상태",
     participants: "수강생",
     noParticipants: "신청자가 없습니다.",
+    requestMemo: "질문사항 / 하고 싶은 말",
+    noRequestMemo: "남긴 내용이 없습니다.",
+    viewParticipantDetail: "상세 보기",
+    legacyContact: "기존 연락처",
     contactMethods: {
       PHONE: "전화번호",
       KAKAO_TALK: "카카오톡",
@@ -292,6 +296,10 @@ const COPY_TEXT = {
     lessonStatusFilter: "Lesson Status",
     participants: "Participants",
     noParticipants: "No applications yet.",
+    requestMemo: "Questions / Anything to share",
+    noRequestMemo: "No memo left.",
+    viewParticipantDetail: "View details",
+    legacyContact: "Previous contact",
     contactMethods: {
       PHONE: "Phone",
       KAKAO_TALK: "KakaoTalk",
@@ -557,13 +565,33 @@ function localizedTitle(titles, languageCode) {
   return titles?.[languageCode] || titles?.ko || "-";
 }
 
-function participantContactText(participant, copy) {
-  const method = copy.contactMethods?.[participant.contactMethod] || participant.contactMethod || "-";
-  const contact = `${method}: ${participant.contactValue || "-"}`;
-  if (!participant.danceRole) {
-    return contact;
+function participantLegacyContactText(participant, copy) {
+  if (!participant.contactValue) {
+    return "";
   }
-  return `${contact} / ${copy.danceRole}: ${copy.danceRoles?.[participant.danceRole] || participant.danceRole}`;
+  const method = copy.contactMethods?.[participant.contactMethod] || participant.contactMethod || "-";
+  return `${method}: ${participant.contactValue}`;
+}
+
+function participantSummaryText(participant, copy) {
+  const details = [];
+  if (!participant.danceRole) {
+    return participantLegacyContactText(participant, copy);
+  }
+  details.push(`${copy.danceRole}: ${copy.danceRoles?.[participant.danceRole] || participant.danceRole}`);
+  const contact = participantLegacyContactText(participant, copy);
+  if (contact) {
+    details.push(`${copy.legacyContact}: ${contact}`);
+  }
+  return details.join(" / ");
+}
+
+function previewText(value, maxLength = 80) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength)}...`;
 }
 
 function ParticipantList({ participants, copy }) {
@@ -579,7 +607,30 @@ function ParticipantList({ participants, copy }) {
           {items.map((participant) => (
             <div key={participant.id} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
               <div className="text-sm font-semibold text-zinc-950">{participant.applicantName}</div>
-              <div className="mt-1 text-xs text-zinc-600">{participantContactText(participant, copy)}</div>
+              {participantSummaryText(participant, copy) ? (
+                <div className="mt-1 text-xs text-zinc-600">{participantSummaryText(participant, copy)}</div>
+              ) : null}
+              {participant.requestMemo ? (
+                <div className="mt-2 rounded-md bg-zinc-50 px-2.5 py-2 text-xs leading-5 text-zinc-700">
+                  <span className="font-semibold text-zinc-800">{copy.requestMemo}: </span>
+                  {previewText(participant.requestMemo)}
+                </div>
+              ) : null}
+              <details className="mt-2 text-xs text-zinc-700">
+                <summary className="cursor-pointer font-semibold text-teal-700">{copy.viewParticipantDetail}</summary>
+                <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+                  <div className="font-semibold text-zinc-800">{copy.requestMemo}</div>
+                  <p className="mt-1 whitespace-pre-wrap leading-5 text-zinc-700">
+                    {participant.requestMemo || copy.noRequestMemo}
+                  </p>
+                  {participantLegacyContactText(participant, copy) ? (
+                    <div className="mt-3">
+                      <div className="font-semibold text-zinc-800">{copy.legacyContact}</div>
+                      <div className="mt-1 text-zinc-700">{participantLegacyContactText(participant, copy)}</div>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </div>
           ))}
         </div>

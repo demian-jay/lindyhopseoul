@@ -53,6 +53,7 @@ class EventApplicationServiceTest {
                 " Alex ",
                 ApplicationContactMethod.WHATSAPP,
                 " +82 10 1234 5678 ",
+                " 수업 전에 신발을 가져가야 하나요? ",
                 "en",
                 null
         ));
@@ -63,8 +64,37 @@ class EventApplicationServiceTest {
         assertThat(application.getApplicantName()).isEqualTo("Alex");
         assertThat(application.getContactMethod()).isEqualTo(ApplicationContactMethod.WHATSAPP);
         assertThat(application.getContactValue()).isEqualTo("+82 10 1234 5678");
+        assertThat(application.getRequestMemo()).isEqualTo("수업 전에 신발을 가져가야 하나요?");
         assertThat(application.getDanceRole()).isNull();
+        assertThat(response.requestMemo()).isEqualTo("수업 전에 신발을 가져가야 하나요?");
         assertThat(response.languageCode()).isEqualTo("en");
+    }
+
+    @Test
+    void createAllowsApplicationWithoutContactValue() {
+        Event event = event(EventStatus.PUBLISHED);
+        Lesson lesson = lesson(event, LessonStatus.PUBLISHED);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+        when(eventApplicationRepository.save(any(EventApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(new EventApplicationCreateRequest(
+                1L,
+                2L,
+                "Alex",
+                null,
+                null,
+                "답변이 필요하면 카카오톡 ID를 함께 적습니다.",
+                "ko",
+                null
+        ));
+
+        ArgumentCaptor<EventApplication> applicationCaptor = ArgumentCaptor.forClass(EventApplication.class);
+        verify(eventApplicationRepository).save(applicationCaptor.capture());
+        EventApplication application = applicationCaptor.getValue();
+        assertThat(application.getContactMethod()).isEqualTo(ApplicationContactMethod.KAKAO_TALK);
+        assertThat(application.getContactValue()).isEmpty();
+        assertThat(application.getRequestMemo()).isEqualTo("답변이 필요하면 카카오톡 ID를 함께 적습니다.");
     }
 
     @Test
@@ -81,6 +111,7 @@ class EventApplicationServiceTest {
                 "Alex",
                 ApplicationContactMethod.EMAIL,
                 "alex@example.com",
+                "",
                 "en",
                 ApplicationDanceRole.LEADER
         ));
@@ -103,6 +134,7 @@ class EventApplicationServiceTest {
                 "Alex",
                 ApplicationContactMethod.EMAIL,
                 "alex@example.com",
+                "",
                 "en",
                 null
         ))).isInstanceOf(ConflictException.class);
@@ -121,6 +153,7 @@ class EventApplicationServiceTest {
                 "Alex",
                 ApplicationContactMethod.EMAIL,
                 "alex@example.com",
+                "",
                 "en",
                 null
         ))).isInstanceOf(ConflictException.class);

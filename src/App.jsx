@@ -47,7 +47,7 @@ const CONTENT = {
       loadError: "등록된 일정과 강습을 불러오지 못했습니다.",
       free: "무료",
       toBeAnnounced: "추후 안내",
-      levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 안내 메시지로 한 번 더 확인할 예정입니다.",
+      levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 수강 기준을 확인해주세요.",
     },
     applicationModal: {
       title: "신청 정보 입력",
@@ -58,8 +58,12 @@ const CONTENT = {
         "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
         "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
       ],
-      contactMethodLabel: "연락 방법",
-      contactValueLabel: "연락처",
+      requestMemoLabel: "질문사항 / 하고 싶은 말",
+      requestMemoPlaceholder: "수업 전에 궁금한 점이나 운영진에게 전달하고 싶은 말을 적어주세요.",
+      requestMemoHelp:
+        "질문에 대한 답변을 받고 싶으신 경우, 이메일, 연락처, 카카오톡 ID 등 답변받을 수 있는 정보를 함께 적어주세요.",
+      requestMemoHelpEn:
+        "If you would like to receive a reply, please include your email, phone number, KakaoTalk ID, or another way we can contact you.",
       danceRoleLabel: "역할",
       danceRolePlaceholder: "역할을 선택해주세요",
       danceRoles: {
@@ -87,11 +91,20 @@ const CONTENT = {
       },
       submit: "신청하기",
       submitting: "신청 중",
-      required: "이름과 연락처를 모두 입력해주세요.",
+      required: "닉네임/이름을 입력해주세요.",
       danceRoleRequired: "역할을 선택해주세요.",
       submitError: "신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
       successTitle: "신청이 접수되었습니다.",
-      successBody: "담당자가 선택한 연락 방법으로 안내를 드릴게요.",
+      noticeTitle: "공지방 안내",
+      noticeBody: "수업 전 안내와 최신 소식은 공지방에서 확인해주세요.",
+      announcementRoom: "카카오톡 공지방",
+      contactTitle: "문의 방법",
+      contactBody: "궁금한 점이 있다면 아래로 문의해주세요.",
+      kakaoTalk: "KakaoTalk",
+      koreanContact: "Korean: pethromuse",
+      englishContact: "English: maelahreeh",
+      instagramDm: "Instagram DM",
+      announcementQuestion: "카카오톡 공지방에서도 질문할 수 있습니다.",
       mapTitle: "수업 장소 확인하기",
       googleMaps: "Google Maps",
       naverMap: "Naver Map",
@@ -233,7 +246,7 @@ const CONTENT = {
       loadError: "Could not load registered schedules and lessons.",
       free: "Free",
       toBeAnnounced: "TBA",
-      levelNotice: "Level 2+ classes have recommended experience guidelines. A reminder message can be shown during application later.",
+      levelNotice: "Level 2+ classes have recommended experience guidelines. Please check the class requirements when applying.",
     },
     applicationModal: {
       title: "Enter application details",
@@ -244,8 +257,12 @@ const CONTENT = {
         "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
         "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
       ],
-      contactMethodLabel: "Contact method",
-      contactValueLabel: "Contact",
+      requestMemoLabel: "Questions / Anything you want to share",
+      requestMemoPlaceholder: "Share any questions before class or anything you want the team to know.",
+      requestMemoHelp:
+        "질문에 대한 답변을 받고 싶으신 경우, 이메일, 연락처, 카카오톡 ID 등 답변받을 수 있는 정보를 함께 적어주세요.",
+      requestMemoHelpEn:
+        "If you would like to receive a reply, please include your email, phone number, KakaoTalk ID, or another way we can contact you.",
       danceRoleLabel: "Role",
       danceRolePlaceholder: "Choose a role",
       danceRoles: {
@@ -273,12 +290,21 @@ const CONTENT = {
       },
       submit: "Apply",
       submitting: "Applying",
-      required: "Please enter your name and contact.",
+      required: "Please enter your nickname/name.",
       danceRoleRequired: "Please choose a role.",
       submitError: "We could not save your application. Please try again shortly.",
       successTitle: "Application received.",
-      successBody: "We will contact you through your selected contact method.",
-      mapTitle: "수업 장소 확인하기",
+      noticeTitle: "Announcement Room",
+      noticeBody: "Please check the announcement room for class updates and the latest news.",
+      announcementRoom: "KakaoTalk Announcement Room",
+      contactTitle: "How to Ask Questions",
+      contactBody: "If you have questions, you can contact us below.",
+      kakaoTalk: "KakaoTalk",
+      koreanContact: "Korean: pethromuse",
+      englishContact: "English: maelahreeh",
+      instagramDm: "Instagram DM",
+      announcementQuestion: "You can also ask questions in the announcement room.",
+      mapTitle: "Check Class Location",
       googleMaps: "Google Maps",
       naverMap: "Naver Map",
       chooseAnother: "Choose another schedule",
@@ -1058,14 +1084,14 @@ function ScheduleAndApplicationSection({
 }
 
 function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
-  const [form, setForm] = useState({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
+  const [form, setForm] = useState({ name: "", requestMemo: "", danceRole: "" });
   const [isNameHelpOpen, setIsNameHelpOpen] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApplication, setSubmittedApplication] = useState(null);
 
   useEffect(() => {
-    setForm({ name: "", contactMethod: "PHONE", contactValue: "", danceRole: "" });
+    setForm({ name: "", requestMemo: "", danceRole: "" });
     setError("");
     setIsNameHelpOpen(false);
     setIsSubmitting(false);
@@ -1102,7 +1128,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
     event.preventDefault();
     setError("");
 
-    if (!form.name.trim() || !form.contactValue.trim()) {
+    if (!form.name.trim()) {
       setError(labels.required);
       return;
     }
@@ -1118,8 +1144,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
         eventId: item.target.eventId,
         lessonId: item.target.lessonId,
         applicantName: form.name.trim(),
-        contactMethod: form.contactMethod,
-        contactValue: form.contactValue.trim(),
+        requestMemo: form.requestMemo.trim(),
         languageCode: language,
         danceRole: item.roleSelectionEnabled ? form.danceRole : null,
       });
@@ -1176,10 +1201,52 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
 
         {submittedApplication ? (
           <div className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-            <h3 className="text-lg font-semibold text-emerald-950">{labels.successTitle}</h3>
-            <p className="mt-2 text-sm leading-7 text-emerald-900/75">{labels.successBody}</p>
+            <section>
+              <h3 className="text-lg font-semibold text-emerald-950">{labels.successTitle}</h3>
+            </section>
+            <section className="mt-4 border-t border-emerald-200 pt-4">
+              <div className="text-sm font-semibold text-emerald-950">{labels.noticeTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-emerald-900/75">{labels.noticeBody}</p>
+              <a
+                href="https://open.kakao.com/o/gdODdZIe"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+              >
+                {labels.announcementRoom}
+              </a>
+            </section>
+            <section className="mt-4 border-t border-emerald-200 pt-4">
+              <div className="text-sm font-semibold text-emerald-950">{labels.contactTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-emerald-900/75">{labels.contactBody}</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-900/55">
+                    {labels.kakaoTalk}
+                  </div>
+                  <div className="mt-1 text-sm leading-6 text-emerald-950">
+                    <div>{labels.koreanContact}</div>
+                    <div>{labels.englishContact}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-900/55">
+                    Instagram
+                  </div>
+                  <a
+                    href="https://www.instagram.com/swingpopseoul"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                  >
+                    {labels.instagramDm}
+                  </a>
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-emerald-900/75">{labels.announcementQuestion}</p>
+            </section>
             {shouldShowMapLinks ? (
-              <div className="mt-4 rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3">
+              <section className="mt-4 border-t border-emerald-200 pt-4">
                 <div className="text-sm font-semibold text-emerald-950">{labels.mapTitle}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {item.googleMapUrl ? (
@@ -1203,7 +1270,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                     </a>
                   ) : null}
                 </div>
-              </div>
+              </section>
             ) : null}
             <button
               type="button"
@@ -1247,32 +1314,6 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                   className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-blue-950/75">{labels.contactMethodLabel}</span>
-                <select
-                  name="contactMethod"
-                  value={form.contactMethod}
-                  onChange={handleChange}
-                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                >
-                  {Object.entries(labels.contactMethods).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="text-sm font-semibold text-blue-950/75">{labels.contactValueLabel}</span>
-                <input
-                  name="contactValue"
-                  type={form.contactMethod === "EMAIL" ? "email" : form.contactMethod === "PHONE" ? "tel" : "text"}
-                  value={form.contactValue}
-                  onChange={handleChange}
-                  placeholder={labels.contactPlaceholders[form.contactMethod]}
-                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                />
-              </label>
               {item.roleSelectionEnabled ? (
                 <div className="sm:col-span-2">
                   <label className="block">
@@ -1298,6 +1339,22 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                   </div>
                 </div>
               ) : null}
+              <label className="block sm:col-span-2">
+                <span className="text-sm font-semibold text-blue-950/75">{labels.requestMemoLabel}</span>
+                <textarea
+                  name="requestMemo"
+                  value={form.requestMemo}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder={labels.requestMemoPlaceholder}
+                  className="mt-2 w-full rounded-2xl border border-blue-200 px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+                <span className="mt-2 block text-xs leading-5 text-blue-950/55">
+                  {labels.requestMemoHelp}
+                  <br />
+                  {labels.requestMemoHelpEn}
+                </span>
+              </label>
             </div>
 
             {error ? (

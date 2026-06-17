@@ -49,8 +49,9 @@ public class EventApplicationService {
                 event,
                 lesson,
                 clean(request.applicantName()),
-                request.contactMethod(),
+                normalizeContactMethod(request.contactMethod()),
                 clean(request.contactValue()),
+                clean(request.requestMemo()),
                 normalizeLanguage(request.languageCode()),
                 normalizeDanceRole(lesson, request.danceRole())
         );
@@ -64,6 +65,10 @@ public class EventApplicationService {
 
     private String normalizeLanguage(String languageCode) {
         return "en".equalsIgnoreCase(clean(languageCode)) ? "en" : "ko";
+    }
+
+    private ApplicationContactMethod normalizeContactMethod(ApplicationContactMethod contactMethod) {
+        return contactMethod == null ? ApplicationContactMethod.KAKAO_TALK : contactMethod;
     }
 
     private ApplicationDanceRole normalizeDanceRole(Lesson lesson, ApplicationDanceRole danceRole) {
