@@ -18,6 +18,43 @@ const CONTENT = {
     languageDesc: "Choose your preferred language to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    visitorGuide: {
+      eyebrow: "처음 오시는 분",
+      title: "장소 및 공지방 안내",
+      description: "처음 방문하시거나 수업 장소, 공지방, 문의 방법이 필요하신 분들은 아래 내용을 확인해주세요.",
+      panels: [
+        {
+          id: "announcement",
+          title: "공지방",
+          summary: "수업 전 안내와 최신 소식을 확인할 수 있습니다.",
+        },
+        {
+          id: "contact",
+          title: "문의하기",
+          summary: "궁금한 점은 카카오톡 또는 인스타그램 DM으로 문의해주세요.",
+        },
+        {
+          id: "location",
+          title: "수업 장소",
+          summary: "KP 댄스홀과 Dialogue 지도 링크를 확인할 수 있습니다.",
+        },
+      ],
+      announcement: {
+        intro: "수업 전 안내와 최신 소식은 카카오톡 공지방에서 확인할 수 있습니다.",
+      },
+      contact: {
+        intro: "궁금한 점이 있다면 카카오톡 또는 인스타그램 DM으로 문의해주세요.",
+        kakaoTalk: "KakaoTalk",
+        instagram: "인스타그램 DM",
+      },
+      location: {
+        intro: "수업에 오시기 전 장소별 지도 링크와 안내를 확인해주세요.",
+        googleMaps: "Google Maps",
+        naverMap: "Naver Map",
+        backEntranceButton: "뒷문으로 오는 길 보기",
+        backEntranceCloseButton: "뒷문 안내 접기",
+      },
+    },
     application: {
       scheduleEyebrow: "Schedule",
       applyEyebrow: "Apply",
@@ -56,14 +93,11 @@ const CONTENT = {
       namePlaceholder: "예: 홍길동 또는 스윙 닉네임",
       nameHelp: [
         "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
-        "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
       ],
       requestMemoLabel: "질문사항 / 하고 싶은 말",
       requestMemoPlaceholder: "수업 전에 궁금한 점이나 운영진에게 전달하고 싶은 말을 적어주세요.",
       requestMemoHelp:
         "질문에 대한 답변을 받고 싶으신 경우, 이메일, 연락처, 카카오톡 ID 등 답변받을 수 있는 정보를 함께 적어주세요.",
-      requestMemoHelpEn:
-        "If you would like to receive a reply, please include your email, phone number, KakaoTalk ID, or another way we can contact you.",
       danceRoleLabel: "역할",
       danceRolePlaceholder: "역할을 선택해주세요",
       danceRoles: {
@@ -217,6 +251,43 @@ const CONTENT = {
     languageDesc: "Select Korean or English to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    visitorGuide: {
+      eyebrow: "First Time Here",
+      title: "Where to find us",
+      description: "If you are visiting for the first time, check class locations, announcements, and contact options here.",
+      panels: [
+        {
+          id: "announcement",
+          title: "Announcement Chat",
+          summary: "Check class updates and the latest news before you come.",
+        },
+        {
+          id: "contact",
+          title: "Contact",
+          summary: "Reach us through KakaoTalk or Instagram DM.",
+        },
+        {
+          id: "location",
+          title: "Location",
+          summary: "Open map links for KP Dance Hall and Dialogue.",
+        },
+      ],
+      announcement: {
+        intro: "You can check class updates and announcements in the KakaoTalk announcement chat.",
+      },
+      contact: {
+        intro: "If you have any questions, feel free to contact us through KakaoTalk or Instagram DM.",
+        kakaoTalk: "KakaoTalk",
+        instagram: "Instagram DM",
+      },
+      location: {
+        intro: "Before coming to class, check the map links and venue notes below.",
+        googleMaps: "Google Maps",
+        naverMap: "Naver Map",
+        backEntranceButton: "Show Back Entrance Photos",
+        backEntranceCloseButton: "Hide Back Entrance Photos",
+      },
+    },
     application: {
       scheduleEyebrow: "Schedule",
       applyEyebrow: "Apply",
@@ -254,14 +325,11 @@ const CONTENT = {
       nameLabel: "Nickname / Name",
       namePlaceholder: "E.g. Alex or your swing nickname",
       nameHelp: [
-        "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
         "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
       ],
       requestMemoLabel: "Questions / Anything you want to share",
       requestMemoPlaceholder: "Share any questions before class or anything you want the team to know.",
       requestMemoHelp:
-        "질문에 대한 답변을 받고 싶으신 경우, 이메일, 연락처, 카카오톡 ID 등 답변받을 수 있는 정보를 함께 적어주세요.",
-      requestMemoHelpEn:
         "If you would like to receive a reply, please include your email, phone number, KakaoTalk ID, or another way we can contact you.",
       danceRoleLabel: "Role",
       danceRolePlaceholder: "Choose a role",
@@ -408,6 +476,100 @@ const CONTENT = {
 const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule"];
 const STORAGE_KEY = "swingpop-language";
 
+const announcementLinks = [
+  {
+    type: "kakao",
+    labelKo: "카카오톡 공지방 들어가기",
+    labelEn: "Open KakaoTalk Announcement Chat",
+    url: "https://open.kakao.com/o/gdODdZIe",
+    isEnabled: true,
+  },
+];
+
+const contactLinks = [
+  {
+    type: "kakaoTalk",
+    labelKo: "한국어 문의",
+    labelEn: "Korean contact",
+    value: "pethromuse",
+    isEnabled: true,
+  },
+  {
+    type: "kakaoTalk",
+    labelKo: "영어 문의",
+    labelEn: "English contact",
+    value: "maelahreeh",
+    isEnabled: true,
+  },
+  {
+    type: "instagram",
+    labelKo: "인스타그램 DM 보내기",
+    labelEn: "Send Instagram DM",
+    url: "https://www.instagram.com/swingpopseoul",
+    isEnabled: true,
+  },
+];
+
+const kpBackEntranceImages = [
+  {
+    imageUrl: "",
+    altTextKo: "KP 댄스홀 뒷문 안내 사진 1",
+    altTextEn: "KP Dance Hall back entrance guide photo 1",
+    sortOrder: 1,
+  },
+  {
+    imageUrl: "",
+    altTextKo: "KP 댄스홀 뒷문 안내 사진 2",
+    altTextEn: "KP Dance Hall back entrance guide photo 2",
+    sortOrder: 2,
+  },
+  {
+    imageUrl: "",
+    altTextKo: "KP 댄스홀 뒷문 안내 사진 3",
+    altTextEn: "KP Dance Hall back entrance guide photo 3",
+    sortOrder: 3,
+  },
+  {
+    imageUrl: "",
+    altTextKo: "KP 댄스홀 뒷문 안내 사진 4",
+    altTextEn: "KP Dance Hall back entrance guide photo 4",
+    sortOrder: 4,
+  },
+];
+
+const locations = [
+  {
+    name: "KP 댄스홀",
+    nameKo: "KP 댄스홀",
+    nameEn: "KP Dance Hall",
+    googleMapUrl: "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96",
+    naverMapUrl: "https://naver.me/x2jQH2Tt",
+    descriptionKo: "KP 댄스홀에 오실 때는 지도와 뒷문 안내를 함께 확인해주세요.",
+    descriptionEn: "When visiting KP Dance Hall, please check the map links and the back entrance guide.",
+    noticeKo: "KP 댄스홀 정문은 잠겨 있으니 뒷문으로 와주세요.",
+    noticeEn: "The front entrance of KP Dance Hall is locked. Please use the back entrance.",
+    images: kpBackEntranceImages,
+  },
+  {
+    name: "Dialogue",
+    nameKo: "Dialogue",
+    nameEn: "Dialogue",
+    googleMapUrl: "https://maps.app.goo.gl/8MZ5WYknUoQzecYc6",
+    naverMapUrl: "https://naver.me/GYC9bsWA",
+    descriptionKo: "Dialogue 장소 지도는 아래 링크에서 확인할 수 있습니다.",
+    descriptionEn: "Use the map links below to find Dialogue.",
+    noticeKo: "",
+    noticeEn: "",
+    images: [],
+  },
+];
+
+const visitorGuideInfo = {
+  announcementLinks,
+  contactLinks,
+  locations,
+};
+
 function validateContentShape(content) {
   const locales = Object.keys(content);
 
@@ -453,6 +615,18 @@ function runComponentTests() {
 
   if (!CONTENT.ko.application.filters.some((filter) => filter.id === "beginner")) {
     throw new Error("A beginner filter is required.");
+  }
+
+  if (!CONTENT.ko.visitorGuide || !CONTENT.en.visitorGuide) {
+    throw new Error("Visitor guide content is required in both languages.");
+  }
+
+  if (!visitorGuideInfo.announcementLinks.some((link) => link.type === "kakao" && link.isEnabled)) {
+    throw new Error("KakaoTalk announcement link is required.");
+  }
+
+  if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.images.length === 4)) {
+    throw new Error("KP Dance Hall must include four back entrance image slots.");
   }
 
   if (typeof window !== "undefined") {
@@ -560,6 +734,218 @@ function MobileStickyCta({ label, onClick }) {
       >
         {label}
       </button>
+    </div>
+  );
+}
+
+function getLocalizedLinkLabel(item, language) {
+  return language === "en" ? item.labelEn : item.labelKo;
+}
+
+function VisitorGuideLink({ href, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {children}
+    </a>
+  );
+}
+
+function VisitorGuidePanel({ panel, isOpen, onToggle, children }) {
+  const contentId = `visitor-guide-${panel.id}`;
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-blue-200 bg-white/90 shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex min-h-[76px] w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-blue-50/70 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:px-6"
+        aria-expanded={isOpen}
+        aria-controls={contentId}
+      >
+        <span>
+          <span className="block text-base font-semibold text-blue-950 sm:text-lg">{panel.title}</span>
+          <span className="mt-1 block text-sm leading-6 text-blue-950/60">{panel.summary}</span>
+        </span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-lg font-semibold text-blue-800">
+          {isOpen ? "-" : "+"}
+        </span>
+      </button>
+      {isOpen ? (
+        <div id={contentId} className="border-t border-blue-100 px-5 py-5 sm:px-6">
+          {children}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function VisitorGuideSection({ language, labels, info }) {
+  const [openPanelId, setOpenPanelId] = useState(null);
+  const [openImageLocations, setOpenImageLocations] = useState([]);
+
+  const enabledAnnouncementLinks = info.announcementLinks.filter((link) => link.isEnabled);
+  const kakaoContacts = info.contactLinks.filter((link) => link.isEnabled && link.type === "kakaoTalk");
+  const instagramLinks = info.contactLinks.filter((link) => link.isEnabled && link.type === "instagram");
+
+  const togglePanel = (panelId) => {
+    setOpenPanelId((currentPanelId) => (currentPanelId === panelId ? null : panelId));
+  };
+
+  const toggleImageLocation = (locationName) => {
+    setOpenImageLocations((currentLocations) =>
+      currentLocations.includes(locationName)
+        ? currentLocations.filter((currentName) => currentName !== locationName)
+        : [...currentLocations, locationName]
+    );
+  };
+
+  const renderAnnouncementPanel = () => (
+    <div>
+      <p className="text-sm leading-7 text-blue-950/70">{labels.announcement.intro}</p>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {enabledAnnouncementLinks.map((link) => (
+          <VisitorGuideLink key={link.type} href={link.url}>
+            {getLocalizedLinkLabel(link, language)}
+          </VisitorGuideLink>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderContactPanel = () => (
+    <div>
+      <p className="text-sm leading-7 text-blue-950/70">{labels.contact.intro}</p>
+      <div className="mt-5 grid gap-4 md:grid-cols-[1fr_0.9fr]">
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+          <div className="text-sm font-semibold text-blue-950">{labels.contact.kakaoTalk}</div>
+          <div className="mt-3 grid gap-2 text-sm leading-6 text-blue-950/75">
+            {kakaoContacts.map((contact) => (
+              <div key={`${contact.type}-${contact.value}`} className="flex flex-wrap gap-x-2 gap-y-1">
+                <span className="font-semibold text-blue-950">{getLocalizedLinkLabel(contact, language)}:</span>
+                <span>{contact.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-blue-100 bg-white p-4">
+          <div className="text-sm font-semibold text-blue-950">{labels.contact.instagram}</div>
+          <div className="mt-3 flex flex-col gap-2">
+            {instagramLinks.map((link) => (
+              <VisitorGuideLink key={link.type} href={link.url}>
+                {getLocalizedLinkLabel(link, language)}
+              </VisitorGuideLink>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLocationPanel = () => (
+    <div>
+      <p className="text-sm leading-7 text-blue-950/70">{labels.location.intro}</p>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        {info.locations.map((location) => {
+          const locationName = language === "en" ? location.nameEn : location.nameKo;
+          const description = language === "en" ? location.descriptionEn : location.descriptionKo;
+          const notice = language === "en" ? location.noticeEn : location.noticeKo;
+          const sortedImages = [...location.images].sort((first, second) => first.sortOrder - second.sortOrder);
+          const hasImages = sortedImages.length > 0;
+          const areImagesOpen = openImageLocations.includes(location.name);
+
+          return (
+            <article key={location.name} className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight text-blue-950">{locationName}</h3>
+                  <p className="mt-2 text-sm leading-7 text-blue-950/65">{description}</p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <VisitorGuideLink href={location.googleMapUrl}>{labels.location.googleMaps}</VisitorGuideLink>
+                  <VisitorGuideLink href={location.naverMapUrl}>{labels.location.naverMap}</VisitorGuideLink>
+                </div>
+
+                {notice ? (
+                  <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-7 text-teal-950">
+                    {notice}
+                  </div>
+                ) : null}
+
+                {hasImages ? (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => toggleImageLocation(location.name)}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-900 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+                      aria-expanded={areImagesOpen}
+                    >
+                      {areImagesOpen ? labels.location.backEntranceCloseButton : labels.location.backEntranceButton}
+                    </button>
+
+                    {areImagesOpen ? (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {sortedImages.map((image) => (
+                          <figure key={image.sortOrder} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/70">
+                            {image.imageUrl ? (
+                              <img
+                                src={image.imageUrl}
+                                alt={language === "en" ? image.altTextEn : image.altTextKo}
+                                className="aspect-[4/3] w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex aspect-[4/3] w-full items-center justify-center px-4 text-center text-sm font-medium leading-6 text-blue-900/55">
+                                {language === "en" ? image.altTextEn : image.altTextKo}
+                              </div>
+                            )}
+                          </figure>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderPanelContent = (panelId) => {
+    if (panelId === "announcement") {
+      return renderAnnouncementPanel();
+    }
+    if (panelId === "contact") {
+      return renderContactPanel();
+    }
+    return renderLocationPanel();
+  };
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+      <div>
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{labels.eyebrow}</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-4xl">{labels.title}</h2>
+        <p className="mt-5 max-w-xl text-base leading-8 text-blue-950/70">{labels.description}</p>
+      </div>
+      <div className="grid gap-3">
+        {labels.panels.map((panel) => (
+          <VisitorGuidePanel
+            key={panel.id}
+            panel={panel}
+            isOpen={openPanelId === panel.id}
+            onToggle={() => togglePanel(panel.id)}
+          >
+            {renderPanelContent(panel.id)}
+          </VisitorGuidePanel>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1351,8 +1737,6 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                 />
                 <span className="mt-2 block text-xs leading-5 text-blue-950/55">
                   {labels.requestMemoHelp}
-                  <br />
-                  {labels.requestMemoHelpEn}
                 </span>
               </label>
             </div>
@@ -1620,6 +2004,10 @@ function PublicApp() {
               onFilterChange={setActiveFilter}
               onApply={setSelectedApplication}
             />
+          </SectionWrapper>
+
+          <SectionWrapper id="visitor-guide" className="bg-sky-50/70" contentClassName="py-16">
+            <VisitorGuideSection language={activeLanguage} labels={t.visitorGuide} info={visitorGuideInfo} />
           </SectionWrapper>
         </main>
 
