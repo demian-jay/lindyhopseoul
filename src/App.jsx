@@ -168,7 +168,7 @@ const CONTENT = {
       mapTitle: "수업 장소 확인하기",
       googleMaps: "Google Maps",
       naverMap: "Naver Map",
-      chooseAnother: "다른 일정 보기",
+      chooseAnother: "수업 등록 완료",
     },
     sections: [
       {
@@ -427,7 +427,7 @@ const CONTENT = {
       mapTitle: "Check Class Location",
       googleMaps: "Google Maps",
       naverMap: "Naver Map",
-      chooseAnother: "Choose another schedule",
+      chooseAnother: "Class registration complete",
     },
     sections: [
       {
@@ -1986,7 +1986,7 @@ function PublicApp() {
 
       <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
         <main aria-hidden={hasHydrated && !language ? true : undefined}>
-          <SectionWrapper id="top" contentClassName="pt-10 pb-20">
+          <SectionWrapper id="top" contentClassName="pt-10 pb-8">
             <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
                 <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-blue-950 md:text-6xl">
@@ -2017,7 +2017,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="about">
+          <SectionWrapper id="about" contentClassName="pt-8 pb-20">
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
                 <ImagePlaceholder label="Community Image Placeholder" />
@@ -2107,7 +2107,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="seoul-scene" className="bg-white/75">
+          <SectionWrapper id="seoul-scene" className="bg-white/75" contentClassName="pt-20 pb-8">
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
                 <ImagePlaceholder label="Seoul Swing Scene Image Placeholder" />
@@ -2131,7 +2131,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="schedule" className="bg-white/75">
+          <SectionWrapper id="schedule" className="bg-white/75" contentClassName="pt-8 pb-20">
             <ScheduleAndApplicationSection
               language={activeLanguage}
               scheduleSection={t.sections[4]}
