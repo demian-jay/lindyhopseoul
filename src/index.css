@@ -19,6 +19,12 @@ body {
   display: none;
 }
 
+.participant-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.75rem;
+}
+
 .operation-check-grid-row {
   display: grid;
   grid-template-areas:

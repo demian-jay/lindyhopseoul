@@ -600,15 +600,15 @@ function previewText(value, maxLength = 80) {
 function ParticipantList({ participants, copy }) {
   const items = Array.isArray(participants) ? participants : [];
   return (
-    <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+    <div className="mt-4 w-full basis-full rounded-lg border border-zinc-200 bg-zinc-50 p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-semibold text-zinc-500">{copy.participants}</div>
         <div className="text-sm font-bold text-zinc-900">{items.length}</div>
       </div>
       {items.length > 0 ? (
-        <div className="mt-3 grid gap-2">
+        <div className="participant-card-grid mt-3">
           {items.map((participant) => (
-            <div key={participant.id} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+            <div key={participant.id} className="min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2">
               <div className="text-sm font-semibold text-zinc-950">{participant.applicantName}</div>
               {participantSummaryText(participant, copy) ? (
                 <div className="mt-1 text-xs text-zinc-600">{participantSummaryText(participant, copy)}</div>
@@ -1553,7 +1553,7 @@ function EventDetail({
           {event.lessons.map((lesson) => (
             <div key={lesson.id} className="rounded-lg border border-zinc-200 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div className="min-w-[min(100%,280px)] flex-1">
                   <div className="text-base font-bold text-zinc-950">{lessonTitle(lesson, languageCode)}</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge>{lesson.lessonType}</Badge>
@@ -1574,7 +1574,6 @@ function EventDetail({
                   <div className="mt-3 text-sm text-zinc-600">
                     {lesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
                   </div>
-                  <ParticipantList participants={lesson.participants} copy={copy} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <SecondaryButton type="button" onClick={() => onEditLesson(lesson)}>
@@ -1587,6 +1586,7 @@ function EventDetail({
                   ) : null}
                 </div>
               </div>
+              <ParticipantList participants={lesson.participants} copy={copy} />
             </div>
           ))}
         </div>
@@ -1949,7 +1949,7 @@ function LessonDashboardRows({ lessons, copy, languageCode }) {
       {lessons.map((lesson) => (
         <div key={lesson.lessonId} className="rounded-lg border border-zinc-200 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-[min(100%,280px)] flex-1">
               <div className="text-base font-bold text-zinc-950">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
               <div className="mt-1 text-sm text-zinc-600">{localizedTitle(lesson.eventTitle, languageCode)}</div>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -1966,10 +1966,8 @@ function LessonDashboardRows({ lessons, copy, languageCode }) {
                 {copy.teachers}: {lesson.teachers.map((teacher) => teacher.name).join(", ")}
               </div>
             </div>
-            <div className="min-w-[220px] max-w-full">
-              <ParticipantList participants={lesson.participants} copy={copy} />
-            </div>
           </div>
+          <ParticipantList participants={lesson.participants} copy={copy} />
         </div>
       ))}
     </div>
