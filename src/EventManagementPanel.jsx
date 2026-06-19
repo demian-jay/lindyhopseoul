@@ -181,6 +181,7 @@ const COPY_TEXT = {
     lessonEndDate: "강습 종료일",
     lessonStatus: "강습 상태",
     fee: "강습비",
+    feePaymentNote: "현장에서 현금/계좌이체 해주세요.",
     currency: "통화",
     teachers: "강사",
     roleSelectionEnabled: "수업 등록 시 역할 선택하기",
@@ -274,6 +275,7 @@ const COPY_TEXT = {
     lessonEndDate: "Lesson End Date",
     lessonStatus: "Lesson Status",
     fee: "Fee",
+    feePaymentNote: "Please pay on site by cash or bank transfer.",
     currency: "Currency",
     teachers: "Teachers",
     roleSelectionEnabled: "Ask for role when applying",
@@ -1563,7 +1565,10 @@ function EventDetail({
                       {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
                     </Badge>
                     <Badge>
-                      {lesson.fee} {lesson.currency}
+                      <span>{lesson.fee} {lesson.currency}</span>
+                      {Number(lesson.fee) > 0 ? (
+                        <span className="ml-1 text-[10px] font-medium text-zinc-400">{copy.feePaymentNote}</span>
+                      ) : null}
                     </Badge>
                   </div>
                   <div className="mt-3 text-sm text-zinc-600">

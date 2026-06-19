@@ -84,6 +84,7 @@ const CONTENT = {
       loadError: "등록된 일정과 강습을 불러오지 못했습니다.",
       free: "무료",
       toBeAnnounced: "추후 안내",
+      paymentNote: "현장에서 현금/계좌이체 해주세요.",
       levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 수강 기준을 확인해주세요.",
     },
     applicationModal: {
@@ -317,6 +318,7 @@ const CONTENT = {
       loadError: "Could not load registered schedules and lessons.",
       free: "Free",
       toBeAnnounced: "TBA",
+      paymentNote: "Please pay on site by cash or bank transfer.",
       levelNotice: "Level 2+ classes have recommended experience guidelines. Please check the class requirements when applying.",
     },
     applicationModal: {
@@ -1205,6 +1207,15 @@ function DetailRow({ label, value }) {
   );
 }
 
+function PriceValue({ price, note }) {
+  return (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span>{price}</span>
+      {note ? <span className="text-xs leading-5 text-blue-950/45">{note}</span> : null}
+    </span>
+  );
+}
+
 const EVENT_TYPE_LABELS = {
   ko: {
     REGULAR_CLASS: "정규수업",
@@ -1335,6 +1346,7 @@ function toApplicationItem(item, language, labels) {
     googleMapUrl: item.googleMapUrl || "",
     naverMapUrl: item.naverMapUrl || "",
     price: formatPrice(item.fee, item.currency, labels, language),
+    paymentNote: item.fee !== null && item.fee !== undefined && Number(item.fee) > 0 ? labels.paymentNote : "",
     teacher: formatTeachers(item.teachers, labels),
     description: translation.description || translation.shortDescription || "",
     roleSelectionEnabled: Boolean(item.roleSelectionEnabled),
@@ -1369,7 +1381,7 @@ function ApplicationCard({ item, language, labels, onApply }) {
         <DetailRow label={labels.details.date} value={item.date} />
         <DetailRow label={labels.details.time} value={item.time} />
         <DetailRow label={labels.details.location} value={item.location} />
-        <DetailRow label={labels.details.price} value={item.price} />
+        <DetailRow label={labels.details.price} value={<PriceValue price={item.price} note={item.paymentNote} />} />
         <DetailRow label={labels.details.teacher} value={item.teacher} />
       </dl>
 
@@ -1573,7 +1585,7 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
           <DetailRow label={detailLabels.details.date} value={item.date} />
           <DetailRow label={detailLabels.details.time} value={item.time} />
           <DetailRow label={detailLabels.details.location} value={item.location} />
-          <DetailRow label={detailLabels.details.price} value={item.price} />
+          <DetailRow label={detailLabels.details.price} value={<PriceValue price={item.price} note={item.paymentNote} />} />
           <DetailRow label={detailLabels.details.teacher} value={item.teacher} />
         </dl>
 
