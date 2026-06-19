@@ -24,6 +24,16 @@ const CONTENT = {
       description: "처음 방문하시거나 수업 장소, 공지방, 문의 방법이 필요하신 분들은 아래 내용을 확인해주세요.",
       panels: [
         {
+          id: "firstVisit",
+          title: "처음 오신다면",
+          summary: "신발, 참가비, KP 댄스홀 입구 안내를 미리 확인해주세요.",
+        },
+        {
+          id: "location",
+          title: "수업 장소",
+          summary: "KP 댄스홀과 Dialogue 지도 링크를 확인할 수 있습니다.",
+        },
+        {
           id: "announcement",
           title: "공지방",
           summary: "수업 전 안내와 최신 소식을 확인할 수 있습니다.",
@@ -33,12 +43,27 @@ const CONTENT = {
           title: "문의하기",
           summary: "궁금한 점은 카카오톡 또는 인스타그램 DM으로 문의해주세요.",
         },
-        {
-          id: "location",
-          title: "수업 장소",
-          summary: "KP 댄스홀과 Dialogue 지도 링크를 확인할 수 있습니다.",
-        },
       ],
+      firstVisit: {
+        items: [
+          {
+            id: "shoes",
+            title: "실내용 신발",
+            body: "댄스홀에 입장할 때는 외부 신발을 신을 수 없습니다. 댄스홀에 비치된 신발을 이용할 수 있지만, 맞는 사이즈가 없을 수 있으니 가능하면 편한 실내용 신발을 가져와 주세요.",
+          },
+          {
+            id: "payment",
+            title: "현금 또는 계좌이체",
+            body: "Swingpop은 비즈니스가 아니라 운영진과 강사들의 봉사로 운영되는 커뮤니티입니다. 카드 결제 장비가 없으므로 참가비는 현금 또는 계좌이체로 준비해주세요.",
+          },
+          {
+            id: "entrance",
+            title: "KP 댄스홀 뒷문",
+            body: "KP 댄스홀의 정문은 이른 시간에 잠기는 경우가 있습니다. 아래 “뒷문으로 오는 길” 사진을 확인하고 뒷문으로 입장해주세요.",
+          },
+        ],
+        backEntranceButton: "뒷문으로 오는 길 보기",
+      },
       announcement: {
         intro: "수업 전 안내와 최신 소식은 카카오톡 공지방에서 확인할 수 있습니다.",
       },
@@ -258,6 +283,16 @@ const CONTENT = {
       description: "If you are visiting for the first time, check class locations, announcements, and contact options here.",
       panels: [
         {
+          id: "firstVisit",
+          title: "First time here?",
+          summary: "Check shoes, payment, and the KP Dance Hall entrance before you come.",
+        },
+        {
+          id: "location",
+          title: "Location",
+          summary: "Open map links for KP Dance Hall and Dialogue.",
+        },
+        {
           id: "announcement",
           title: "Announcement Chat",
           summary: "Check class updates and the latest news before you come.",
@@ -267,12 +302,27 @@ const CONTENT = {
           title: "Contact",
           summary: "Reach us through KakaoTalk or Instagram DM.",
         },
-        {
-          id: "location",
-          title: "Location",
-          summary: "Open map links for KP Dance Hall and Dialogue.",
-        },
       ],
+      firstVisit: {
+        items: [
+          {
+            id: "shoes",
+            title: "Indoor shoes",
+            body: "Outdoor shoes are not allowed inside the dance hall. You may be able to use dance hall shoes, but the right size may not always be available. If possible, please bring comfortable indoor shoes.",
+          },
+          {
+            id: "payment",
+            title: "Cash or bank transfer",
+            body: "Swingpop is a community run by volunteers(not a business). We do not have a card payment terminal, so please prepare cash or a bank transfer for the participation fee.",
+          },
+          {
+            id: "entrance",
+            title: "KP Dance Hall back entrance",
+            body: "The front entrance of KP Dance Hall may be locked early. Please check the “How to get to the back entrance” photos below and enter through the back door.",
+          },
+        ],
+        backEntranceButton: "View back entrance guide",
+      },
       announcement: {
         intro: "You can check class updates and announcements in the KakaoTalk announcement chat.",
       },
@@ -542,6 +592,7 @@ const kpBackEntranceImages = [
 const locations = [
   {
     name: "KP 댄스홀",
+    anchorId: "kp-dance-hall",
     nameKo: "KP 댄스홀",
     nameEn: "KP Dance Hall",
     googleMapUrl: "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96",
@@ -554,6 +605,7 @@ const locations = [
   },
   {
     name: "Dialogue",
+    anchorId: "dialogue",
     nameKo: "Dialogue",
     nameEn: "Dialogue",
     googleMapUrl: "https://maps.app.goo.gl/8MZ5WYknUoQzecYc6",
@@ -623,11 +675,26 @@ function runComponentTests() {
     throw new Error("Visitor guide content is required in both languages.");
   }
 
+  const expectedVisitorGuidePanelOrder = ["firstVisit", "location", "announcement", "contact"];
+  const koVisitorGuidePanelOrder = CONTENT.ko.visitorGuide.panels.map((panel) => panel.id);
+  const enVisitorGuidePanelOrder = CONTENT.en.visitorGuide.panels.map((panel) => panel.id);
+
+  if (
+    koVisitorGuidePanelOrder.join(",") !== expectedVisitorGuidePanelOrder.join(",") ||
+    enVisitorGuidePanelOrder.join(",") !== expectedVisitorGuidePanelOrder.join(",")
+  ) {
+    throw new Error("Visitor guide panel order must be first visit, location, announcement, contact.");
+  }
+
+  if (!CONTENT.ko.visitorGuide.firstVisit?.backEntranceButton || !CONTENT.en.visitorGuide.firstVisit?.backEntranceButton) {
+    throw new Error("First visit back entrance button labels are required.");
+  }
+
   if (!visitorGuideInfo.announcementLinks.some((link) => link.type === "kakao" && link.isEnabled)) {
     throw new Error("KakaoTalk announcement link is required.");
   }
 
-  if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.images.length === 4)) {
+  if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.anchorId && location.images.length === 4)) {
     throw new Error("KP Dance Hall must include four back entrance image slots.");
   }
 
@@ -793,6 +860,7 @@ function VisitorGuideSection({ language, labels, info }) {
   const enabledAnnouncementLinks = info.announcementLinks.filter((link) => link.isEnabled);
   const kakaoContacts = info.contactLinks.filter((link) => link.isEnabled && link.type === "kakaoTalk");
   const instagramLinks = info.contactLinks.filter((link) => link.isEnabled && link.type === "instagram");
+  const backEntranceLocation = info.locations.find((location) => location.images.length > 0);
 
   const togglePanel = (panelId) => {
     setOpenPanelId((currentPanelId) => (currentPanelId === panelId ? null : panelId));
@@ -805,6 +873,58 @@ function VisitorGuideSection({ language, labels, info }) {
         : [...currentLocations, locationName]
     );
   };
+
+  const handleShowBackEntranceGuide = () => {
+    if (!backEntranceLocation) {
+      return;
+    }
+
+    setOpenPanelId("location");
+    setOpenImageLocations((currentLocations) =>
+      currentLocations.includes(backEntranceLocation.name)
+        ? currentLocations
+        : [...currentLocations, backEntranceLocation.name]
+    );
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`visitor-guide-location-${backEntranceLocation.anchorId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  const renderFirstVisitPanel = () => (
+    <div>
+      <div className="grid gap-3">
+        {labels.firstVisit.items.map((item, index) => (
+          <article key={item.id} className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <div className="flex gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-xs font-semibold text-blue-800">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-blue-950">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-blue-950/70">{item.body}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      {backEntranceLocation ? (
+        <button
+          type="button"
+          onClick={handleShowBackEntranceGuide}
+          className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+        >
+          {labels.firstVisit.backEntranceButton}
+        </button>
+      ) : null}
+    </div>
+  );
 
   const renderAnnouncementPanel = () => (
     <div>
@@ -861,7 +981,11 @@ function VisitorGuideSection({ language, labels, info }) {
           const areImagesOpen = openImageLocations.includes(location.name);
 
           return (
-            <article key={location.name} className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+            <article
+              id={`visitor-guide-location-${location.anchorId}`}
+              key={location.name}
+              className="scroll-mt-28 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+            >
               <div className="flex flex-col gap-4">
                 <div>
                   <h3 className="text-xl font-semibold tracking-tight text-blue-950">{locationName}</h3>
@@ -920,6 +1044,9 @@ function VisitorGuideSection({ language, labels, info }) {
   );
 
   const renderPanelContent = (panelId) => {
+    if (panelId === "firstVisit") {
+      return renderFirstVisitPanel();
+    }
     if (panelId === "announcement") {
       return renderAnnouncementPanel();
     }
