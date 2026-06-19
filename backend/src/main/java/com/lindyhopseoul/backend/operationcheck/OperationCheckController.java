@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -61,6 +62,25 @@ public class OperationCheckController {
             @Valid @RequestBody OperationCheckCreateRequest request
     ) {
         return operationCheckService.create(principal(authorization), request);
+    }
+
+    @PutMapping("/{id}")
+    public OperationCheckItemResponse update(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @Valid @RequestBody OperationCheckUpdateRequest request
+    ) {
+        return operationCheckService.update(principal(authorization), id, request);
+    }
+
+    @PostMapping("/{id}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public OperationCheckCommentResponse addComment(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @Valid @RequestBody OperationCheckCommentCreateRequest request
+    ) {
+        return operationCheckService.addComment(principal(authorization), id, request);
     }
 
     @PatchMapping("/{id}/done")

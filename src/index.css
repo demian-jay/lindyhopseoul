@@ -14,3 +14,123 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.operation-check-grid-header {
+  display: none;
+}
+
+.operation-check-grid-row {
+  display: grid;
+  grid-template-areas:
+    "status action"
+    "content action"
+    "creator comment"
+    "assignee comment";
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.operation-check-summary-pair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.operation-check-summary-cell {
+  min-width: 0;
+}
+
+.operation-check-status-cell {
+  grid-area: status;
+}
+
+.operation-check-creator-cell {
+  grid-area: creator;
+}
+
+.operation-check-assignee-cell {
+  grid-area: assignee;
+}
+
+.operation-check-content-cell {
+  grid-area: content;
+}
+
+.operation-check-comment-cell {
+  grid-area: comment;
+  justify-content: flex-end;
+}
+
+.operation-check-mobile-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(113 113 122);
+}
+
+.operation-check-status-cell .operation-check-mobile-label,
+.operation-check-content-cell .operation-check-mobile-label {
+  display: none;
+}
+
+.operation-check-creator-cell,
+.operation-check-assignee-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.operation-check-grid-detail-button {
+  grid-area: action;
+  min-width: 76px;
+  width: auto;
+}
+
+@media (min-width: 640px) {
+  .operation-check-grid-header,
+  .operation-check-grid-row {
+    grid-template-areas: none;
+    grid-template-columns: 90px 120px 150px minmax(0, 1fr) 72px 86px;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .operation-check-grid-header {
+    display: grid;
+  }
+
+  .operation-check-summary-pair {
+    display: block;
+  }
+
+  .operation-check-status-cell,
+  .operation-check-creator-cell,
+  .operation-check-assignee-cell,
+  .operation-check-content-cell,
+  .operation-check-comment-cell,
+  .operation-check-grid-detail-button {
+    grid-area: auto;
+  }
+
+  .operation-check-creator-cell,
+  .operation-check-assignee-cell {
+    display: block;
+    font-size: 0.875rem;
+  }
+
+  .operation-check-mobile-label {
+    display: none;
+  }
+
+  .operation-check-comment-cell {
+    text-align: center;
+  }
+
+  .operation-check-grid-detail-button {
+    width: 100%;
+  }
+}

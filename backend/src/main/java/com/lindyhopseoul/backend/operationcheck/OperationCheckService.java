@@ -1,5 +1,6 @@
 package com.lindyhopseoul.backend.operationcheck;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -21,13 +22,16 @@ public class OperationCheckService {
     private static final List<AdminRole> ASSIGNEE_ROLES = List.of(AdminRole.STAFF);
 
     private final OperationCheckItemRepository operationCheckItemRepository;
+    private final OperationCheckCommentRepository operationCheckCommentRepository;
     private final UserAccountRepository userAccountRepository;
 
     public OperationCheckService(
             OperationCheckItemRepository operationCheckItemRepository,
+            OperationCheckCommentRepository operationCheckCommentRepository,
             UserAccountRepository userAccountRepository
     ) {
         this.operationCheckItemRepository = operationCheckItemRepository;
+        this.operationCheckCommentRepository = operationCheckCommentRepository;
         this.userAccountRepository = userAccountRepository;
     }
 
@@ -46,7 +50,7 @@ public class OperationCheckService {
 
         return new OperationCheckSummaryResponse(
                 operationCheckItemRepository.countByStatus(OperationCheckStatus.OPEN),
-                operationCheckItemRepository.countByStatusAndAssignedToUserId(OperationCheckStatus.OPEN, actor.userCd())
+                operationCheckItemRepository.countByStatusAssignedToUser(OperationCheckStatus.OPEN, actor.userCd())
         );
     }
 
@@ -54,7 +58,7 @@ public class OperationCheckService {
         requireOperator(actor);
 
         return findItemsByStatus(status).stream()
-                .map(item -> OperationCheckItemResponse.from(item, canComplete(actor, item)))
+                .map(item -> toResponse(actor, item))
                 .toList();
     }
 
@@ -62,14 +66,30 @@ public class OperationCheckService {
     public OperationCheckItemResponse create(AdminPrincipal actor, OperationCheckCreateRequest request) {
         requireOperator(actor);
 
-        UserAccount assignedTo = resolveAssignee(request.assignedToUserId());
+        List<UserAccount> assignees = resolveAssignees(request.assignedToUserIds(), request.assignedToUserId());
         OperationCheckItem item = operationCheckItemRepository.save(OperationCheckItem.create(
                 clean(request.content()),
                 actor,
-                assignedTo
+                assignees
         ));
 
-        return OperationCheckItemResponse.from(item, canComplete(actor, item));
+        return toResponse(actor, item);
+    }
+
+    @Transactional
+    public OperationCheckItemResponse update(AdminPrincipal actor, Long id, OperationCheckUpdateRequest request) {
+        requireOperator(actor);
+
+        OperationCheckItem item = findItem(id);
+        if (item.getStatus() == OperationCheckStatus.DONE) {
+            throw new ConflictException("Completed operation check items cannot be edited.");
+        }
+        if (!canEdit(actor, item)) {
+            throw new ForbiddenException("Only the creator or super administrator can edit this item.");
+        }
+
+        item.update(clean(request.content()), resolveAssignees(request.assignedToUserIds(), request.assignedToUserId()));
+        return toResponse(actor, item);
     }
 
     @Transactional
@@ -85,7 +105,26 @@ public class OperationCheckService {
         }
 
         item.markDone(actor, cleanNullable(request.checkedMemo()));
-        return OperationCheckItemResponse.from(item, false);
+        return toResponse(actor, item);
+    }
+
+    @Transactional
+    public OperationCheckCommentResponse addComment(
+            AdminPrincipal actor,
+            Long id,
+            OperationCheckCommentCreateRequest request
+    ) {
+        requireOperator(actor);
+
+        OperationCheckItem item = findItem(id);
+        if (!canComment(actor, item)) {
+            throw new ForbiddenException("You cannot comment on this operation check item.");
+        }
+
+        OperationCheckComment comment = operationCheckCommentRepository.save(
+                OperationCheckComment.create(item, clean(request.content()), actor)
+        );
+        return OperationCheckCommentResponse.from(comment);
     }
 
     private List<OperationCheckItem> findItemsByStatus(String status) {
@@ -98,14 +137,28 @@ public class OperationCheckService {
         return operationCheckItemRepository.findByStatusOrderByCreatedAtDesc(OperationCheckStatus.OPEN);
     }
 
-    private UserAccount resolveAssignee(String assignedToUserId) {
-        String cleanAssignedToUserId = cleanNullable(assignedToUserId);
-        if (cleanAssignedToUserId == null) {
-            return null;
+    private List<UserAccount> resolveAssignees(List<String> assignedToUserIds, String assignedToUserId) {
+        List<String> cleanedIds = new ArrayList<>();
+        if (assignedToUserIds != null) {
+            assignedToUserIds.stream()
+                    .map(this::cleanNullable)
+                    .filter(value -> value != null)
+                    .forEach(cleanedIds::add);
+        }
+        String legacyAssignedToUserId = cleanNullable(assignedToUserId);
+        if (legacyAssignedToUserId != null) {
+            cleanedIds.add(legacyAssignedToUserId);
         }
 
-        UserAccount user = userAccountRepository.findById(cleanAssignedToUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Assignee not found: " + cleanAssignedToUserId));
+        return cleanedIds.stream()
+                .distinct()
+                .map(this::resolveAssignee)
+                .toList();
+    }
+
+    private UserAccount resolveAssignee(String assignedToUserId) {
+        UserAccount user = userAccountRepository.findById(assignedToUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignee not found: " + assignedToUserId));
         if (!user.isActive() || !hasAnyRole(user.getRoleCodes(), ASSIGNEE_ROLES) || user.hasRole(AdminRole.SUPER_ADMIN)) {
             throw new ConflictException("Assignee must be an active staff member.");
         }
@@ -123,7 +176,52 @@ public class OperationCheckService {
         }
         return actor.hasRole(AdminRole.SUPER_ADMIN)
                 || actor.userCd().equals(item.getCreatedByUserId())
-                || actor.userCd().equals(item.getAssignedToUserId());
+                || item.isAssignedTo(actor.userCd());
+    }
+
+    private boolean canComment(AdminPrincipal actor, OperationCheckItem item) {
+        return true;
+    }
+
+    private boolean canEdit(AdminPrincipal actor, OperationCheckItem item) {
+        if (item.getStatus() == OperationCheckStatus.DONE) {
+            return false;
+        }
+        return actor.hasRole(AdminRole.SUPER_ADMIN) || actor.userCd().equals(item.getCreatedByUserId());
+    }
+
+    private OperationCheckItemResponse toResponse(AdminPrincipal actor, OperationCheckItem item) {
+        List<OperationCheckCommentResponse> comments = findComments(item).stream()
+                .map(OperationCheckCommentResponse::from)
+                .toList();
+        return OperationCheckItemResponse.from(
+                item,
+                assigneeResponses(item),
+                comments,
+                canComplete(actor, item),
+                canComment(actor, item),
+                canEdit(actor, item)
+        );
+    }
+
+    private List<OperationCheckComment> findComments(OperationCheckItem item) {
+        if (item.getId() == null) {
+            return List.of();
+        }
+        return operationCheckCommentRepository.findByItem_IdAndDeletedYnFalseOrderByCreatedAtAsc(item.getId());
+    }
+
+    private List<OperationCheckAssigneeResponse> assigneeResponses(OperationCheckItem item) {
+        List<OperationCheckAssigneeResponse> assignees = item.getAssignees().stream()
+                .map(assignee -> new OperationCheckAssigneeResponse(
+                        assignee.getAssigneeUserId(),
+                        assignee.getAssigneeName()
+                ))
+                .toList();
+        if (!assignees.isEmpty() || item.getAssignedToUserId() == null) {
+            return assignees;
+        }
+        return List.of(new OperationCheckAssigneeResponse(item.getAssignedToUserId(), item.getAssignedToName()));
     }
 
     private void requireOperator(AdminPrincipal actor) {

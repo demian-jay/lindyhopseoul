@@ -93,6 +93,20 @@ export const adminApi = {
       body: payload,
     });
   },
+  updateOperationCheck(token, id, payload) {
+    return request(`/api/admin/operation-checks/${id}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  createOperationCheckComment(token, id, payload) {
+    return request(`/api/admin/operation-checks/${id}/comments`, {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
   completeOperationCheck(token, id, payload) {
     return request(`/api/admin/operation-checks/${id}/done`, {
       method: "PATCH",
