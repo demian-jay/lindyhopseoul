@@ -545,6 +545,7 @@ function emptyTemplateForm() {
     templateName: "",
     templateType: "EVENT_PROMOTION",
     content: "",
+    contentEn: "",
     useYn: "Y",
   };
 }
@@ -1594,6 +1595,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const [templates, setTemplates] = useState([]);
   const [events, setEvents] = useState([]);
   const [form, setForm] = useState(emptyTemplateForm());
+  const [activeTemplateLanguage, setActiveTemplateLanguage] = useState(toManualLanguage(langCd));
   const [editingId, setEditingId] = useState(null);
   const [preview, setPreview] = useState({
     templateId: "",
@@ -1633,6 +1635,12 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
+  const handleContentChange = (event) => {
+    const { value } = event.target;
+    const contentKey = activeTemplateLanguage === "en" ? "contentEn" : "content";
+    setForm((current) => ({ ...current, [contentKey]: value }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSaving(true);
@@ -1645,6 +1653,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
         await adminApi.createMessageTemplate(token, form);
       }
       setForm(emptyTemplateForm());
+      setActiveTemplateLanguage(toManualLanguage(langCd));
       setEditingId(null);
       setNotice(copy.templateSaved);
       await load();
@@ -1661,10 +1670,14 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
       templateName: template.templateName,
       templateType: template.templateType,
       content: template.content,
+      contentEn: template.contentEn || "",
       useYn: template.useYn,
     });
+    setActiveTemplateLanguage(toManualLanguage(langCd));
     setPreview((current) => ({ ...current, templateId: template.id, renderedText: "" }));
   };
+
+  const activeTemplateContent = activeTemplateLanguage === "en" ? form.contentEn : form.content;
 
   const deleteTemplate = async (template) => {
     if (!window.confirm(copy.confirmDeleteTemplate)) {
@@ -1709,6 +1722,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
               onClick={() => {
                 setEditingId(null);
                 setForm(emptyTemplateForm());
+                setActiveTemplateLanguage(toManualLanguage(langCd));
               }}
             >
               {copy.cancel}
@@ -1735,7 +1749,10 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
             </SelectInput>
           </Field>
           <Field label={copy.content}>
-            <TextArea name="content" value={form.content} onChange={handleChange} rows={10} disabled={!canManage} />
+            <div className="grid gap-3">
+              <LanguageTabs activeLanguage={activeTemplateLanguage} onChange={setActiveTemplateLanguage} />
+              <TextArea value={activeTemplateContent} onChange={handleContentChange} rows={10} disabled={!canManage} />
+            </div>
           </Field>
         </div>
         <Notice>{error}</Notice>

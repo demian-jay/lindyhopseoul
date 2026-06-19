@@ -7,6 +7,7 @@ public record MessageTemplateResponse(
         String templateName,
         MessageTemplateType templateType,
         String content,
+        String contentEn,
         String useYn,
         Instant createdAt,
         Instant updatedAt
@@ -18,6 +19,7 @@ public record MessageTemplateResponse(
                 template.getTemplateName(),
                 template.getTemplateType(),
                 template.getContent(),
+                template.getContentEn(),
                 template.getUseYn(),
                 template.getCreatedAt(),
                 template.getUpdatedAt()

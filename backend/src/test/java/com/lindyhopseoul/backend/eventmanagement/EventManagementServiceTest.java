@@ -203,6 +203,57 @@ class EventManagementServiceTest {
         assertThat(response.renderedText()).contains("30000 KRW");
     }
 
+    @Test
+    void createMessageTemplateStoresEnglishContent() {
+        MessageTemplateRequest request = new MessageTemplateRequest(
+                "English announcement",
+                MessageTemplateType.PARTY_PROMOTION,
+                "",
+                "English body",
+                "Y"
+        );
+
+        MessageTemplateResponse response = service.createMessageTemplate(superAdmin, request);
+
+        assertThat(response.content()).isEqualTo("English body");
+        assertThat(response.contentEn()).isEqualTo("English body");
+    }
+
+    @Test
+    void renderMessageTemplateUsesEnglishContentWhenLanguageIsEnglish() {
+        Event event = Event.create(
+                EventType.PARTY,
+                LocalDate.of(2026, 7, 18),
+                LocalDate.of(2026, 7, 18),
+                LocalTime.of(18, 0),
+                LocalTime.of(22, 0),
+                "Swingpop Hall",
+                EventStatus.PUBLISHED,
+                10
+        );
+        event.replaceTranslations(Set.of(
+                new EventTranslation("ko", "스윙팝 파티", "파티 안내", "파티 설명"),
+                new EventTranslation("en", "Swingpop Party", "Party notice", "Party description")
+        ));
+        MessageTemplate template = MessageTemplate.create(
+                "홍보글",
+                MessageTemplateType.PARTY_PROMOTION,
+                "한국어 {{event.title.ko}}",
+                "English {{event.title.en}}",
+                "Y"
+        );
+        when(messageTemplateRepository.findById(1L)).thenReturn(Optional.of(template));
+        when(eventRepository.findDetailsById(2L)).thenReturn(Optional.of(event));
+
+        MessageRenderResponse response = service.renderMessageTemplate(
+                superAdmin,
+                1L,
+                new MessageRenderRequest(2L, "en")
+        );
+
+        assertThat(response.renderedText()).isEqualTo("English Swingpop Party");
+    }
+
     private EventRequest eventRequest(boolean addressInfoEnabled, String googleMapUrl, String naverMapUrl) {
         return new EventRequest(
                 EventType.REGULAR_CLASS,

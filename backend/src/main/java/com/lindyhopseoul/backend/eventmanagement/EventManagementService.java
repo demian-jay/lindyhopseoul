@@ -224,10 +224,12 @@ public class EventManagementService {
     @Transactional
     public MessageTemplateResponse createMessageTemplate(AdminPrincipal actor, MessageTemplateRequest request) {
         requireTemplateManager(actor);
+        TemplateContents contents = normalizeTemplateContents(request);
         MessageTemplate template = MessageTemplate.create(
                 clean(request.templateName()),
                 request.templateType(),
-                clean(request.content()),
+                contents.content(),
+                contents.contentEn(),
                 request.useYn()
         );
         messageTemplateRepository.save(template);
@@ -242,7 +244,14 @@ public class EventManagementService {
     ) {
         requireTemplateManager(actor);
         MessageTemplate template = findTemplate(templateId);
-        template.update(clean(request.templateName()), request.templateType(), clean(request.content()), request.useYn());
+        TemplateContents contents = normalizeTemplateContents(request);
+        template.update(
+                clean(request.templateName()),
+                request.templateType(),
+                contents.content(),
+                contents.contentEn(),
+                request.useYn()
+        );
         return MessageTemplateResponse.from(template);
     }
 
@@ -261,7 +270,7 @@ public class EventManagementService {
         MessageTemplate template = findTemplate(templateId);
         Event event = findEventDetails(request.eventId());
         String languageCode = normalizeLanguage(request.languageCode());
-        String renderedText = render(template.getContent(), buildTemplateVariables(event));
+        String renderedText = render(template.getContentFor(languageCode), buildTemplateVariables(event));
         return new MessageRenderResponse(template.getId(), event.getId(), languageCode, renderedText);
     }
 
@@ -634,6 +643,15 @@ public class EventManagementService {
         return Boolean.TRUE.equals(roleSelectionEnabled);
     }
 
+    private TemplateContents normalizeTemplateContents(MessageTemplateRequest request) {
+        String content = cleanNullable(request.content());
+        String contentEn = cleanNullable(request.contentEn());
+        if (content == null && contentEn == null) {
+            throw new ConflictException("Message template content is required.");
+        }
+        return new TemplateContents(content != null ? content : contentEn, contentEn);
+    }
+
     private String normalizeLanguage(String languageCode) {
         return SUPPORTED_LANGUAGES.contains(languageCode) ? languageCode : DEFAULT_LANGUAGE;
     }
@@ -721,6 +739,12 @@ public class EventManagementService {
             boolean enabled,
             String googleMapUrl,
             String naverMapUrl
+    ) {
+    }
+
+    private record TemplateContents(
+            String content,
+            String contentEn
     ) {
     }
 }

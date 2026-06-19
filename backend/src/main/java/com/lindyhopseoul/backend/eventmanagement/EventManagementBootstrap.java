@@ -475,6 +475,18 @@ public class EventManagementBootstrap {
                                 강습 안내:
                                 {{lessons.all.ko}}
                                 """,
+                        """
+                                [{{event.title.en}}]
+
+                                {{event.shortDescription.en}}
+
+                                Date: {{event.date}}
+                                Time: {{event.startTime}}-{{event.endTime}}
+                                Location: {{event.location}}
+
+                                Lessons:
+                                {{lessons.all.en}}
+                                """,
                         "Y"
                 ),
                 MessageTemplate.create(
@@ -495,11 +507,38 @@ public class EventManagementBootstrap {
                                 {{lessons.level2.time}}
                                 {{lessons.level2.fee}}
                                 """,
+                        """
+                                {{event.title.en}}
+
+                                {{event.description.en}}
+
+                                Level 1:
+                                {{lessons.level1.title.en}}
+                                {{lessons.level1.time}}
+                                {{lessons.level1.fee}}
+
+                                Level 2:
+                                {{lessons.level2.title.en}}
+                                {{lessons.level2.time}}
+                                {{lessons.level2.fee}}
+                                """,
                         "Y"
                 ),
                 MessageTemplate.create(
                         "강습 안내글 초안",
                         MessageTemplateType.LESSON_PROMOTION,
+                        """
+                                {{event.title.ko}}
+
+                                {{event.shortDescription.ko}}
+
+                                날짜: {{event.date}}
+                                시간: {{event.startTime}}-{{event.endTime}}
+                                장소: {{event.location}}
+
+                                강습 안내:
+                                {{lessons.all.ko}}
+                                """,
                         """
                                 {{event.title.en}}
 

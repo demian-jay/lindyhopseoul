@@ -8,7 +8,8 @@ import jakarta.validation.constraints.Size;
 public record MessageTemplateRequest(
         @NotBlank @Size(max = 120) String templateName,
         @NotNull MessageTemplateType templateType,
-        @NotBlank String content,
+        String content,
+        String contentEn,
         @NotBlank @Pattern(regexp = "Y|N") String useYn
 ) {
 }
