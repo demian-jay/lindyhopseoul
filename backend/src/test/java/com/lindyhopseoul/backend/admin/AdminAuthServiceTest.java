@@ -55,6 +55,7 @@ class AdminAuthServiceTest {
                 AdminMenu.DASHBOARD,
                 AdminMenu.OPERATION_CHECK,
                 AdminMenu.EVENT_MANAGEMENT,
+                AdminMenu.MEMBER_MESSAGES,
                 AdminMenu.KNOWLEDGE_BASE,
                 AdminMenu.MESSAGE_TEMPLATES,
                 AdminMenu.ADMIN_USERS
@@ -103,6 +104,7 @@ class AdminAuthServiceTest {
                 AdminMenu.DASHBOARD,
                 AdminMenu.OPERATION_CHECK,
                 AdminMenu.EVENT_MANAGEMENT,
+                AdminMenu.MEMBER_MESSAGES,
                 AdminMenu.KNOWLEDGE_BASE,
                 AdminMenu.ADMIN_USERS
         );

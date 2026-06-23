@@ -18,6 +18,7 @@ const I18N = {
       DASHBOARD: "관리자 홈",
       OPERATION_CHECK: "운영 체크",
       EVENT_MANAGEMENT: "이벤트/강습 관리",
+      MEMBER_MESSAGES: "회원 메시지",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
       MESSAGE_TEMPLATES: "메시지 템플릿",
       ADMIN_USERS: "사용자 계정 관리",
@@ -117,6 +118,25 @@ const I18N = {
       title: "관리자 홈",
       accessMenus: "접근 메뉴",
     },
+    memberMessages: {
+      title: "회원 메시지",
+      listTitle: "대화방",
+      detailTitle: "대화 내역",
+      replyPlaceholder: "회원에게 답변을 남겨주세요.",
+      reply: "답변 보내기",
+      replying: "보내는 중",
+      loading: "불러오는 중",
+      emptyThreads: "아직 회원 메시지가 없습니다.",
+      selectThread: "왼쪽에서 대화방을 선택해주세요.",
+      noMessages: "메시지가 없습니다.",
+      sent: "답변이 전송되었습니다.",
+      loadError: "메시지를 불러오지 못했습니다.",
+      sendError: "답변을 보내지 못했습니다.",
+      memberInfo: "회원 정보",
+      lastMessage: "마지막 메시지",
+      lastMessageAt: "마지막 시간",
+      adminSender: "Swingpop 운영진",
+    },
     adminUsers: {
       createTitle: "사용자 계정 등록",
       editTitle: "사용자 계정 수정",
@@ -143,6 +163,7 @@ const I18N = {
       DASHBOARD: "Dashboard",
       OPERATION_CHECK: "Operation Check",
       EVENT_MANAGEMENT: "Events & Lessons",
+      MEMBER_MESSAGES: "Member Messages",
       KNOWLEDGE_BASE: "Manual Repository",
       MESSAGE_TEMPLATES: "Message Templates",
       ADMIN_USERS: "User Accounts",
@@ -241,6 +262,25 @@ const I18N = {
     dashboard: {
       title: "Dashboard",
       accessMenus: "Available Menus",
+    },
+    memberMessages: {
+      title: "Member Messages",
+      listTitle: "Threads",
+      detailTitle: "Conversation",
+      replyPlaceholder: "Write a reply to this member.",
+      reply: "Send Reply",
+      replying: "Sending",
+      loading: "Loading",
+      emptyThreads: "No member messages yet.",
+      selectThread: "Select a thread from the left.",
+      noMessages: "No messages.",
+      sent: "Reply sent.",
+      loadError: "Could not load messages.",
+      sendError: "Could not send reply.",
+      memberInfo: "Member Info",
+      lastMessage: "Last Message",
+      lastMessageAt: "Last Updated",
+      adminSender: "Swingpop Team",
     },
     adminUsers: {
       createTitle: "Create User Account",
@@ -1028,6 +1068,241 @@ function AccountTable({
   );
 }
 
+function AdminMemberMessagesPanel({ token, langCd, labels }) {
+  const [threads, setThreads] = useState([]);
+  const [selectedThreadId, setSelectedThreadId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [reply, setReply] = useState("");
+  const [isLoadingThreads, setIsLoadingThreads] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const messageLabels = labels.memberMessages;
+
+  const loadThreads = useCallback(async () => {
+    setIsLoadingThreads(true);
+    setError("");
+
+    try {
+      const nextThreads = await adminApi.findMemberMessageThreads(token);
+      const safeThreads = Array.isArray(nextThreads) ? nextThreads : [];
+      setThreads(safeThreads);
+      setSelectedThreadId((currentThreadId) => {
+        if (currentThreadId && safeThreads.some((thread) => thread.threadId === currentThreadId)) {
+          return currentThreadId;
+        }
+        return safeThreads[0]?.threadId ?? null;
+      });
+    } catch (nextError) {
+      setError(nextError.message || messageLabels.loadError);
+      setThreads([]);
+      setSelectedThreadId(null);
+    } finally {
+      setIsLoadingThreads(false);
+    }
+  }, [messageLabels.loadError, token]);
+
+  const loadDetail = useCallback(async () => {
+    if (!selectedThreadId) {
+      setDetail(null);
+      return;
+    }
+
+    setIsLoadingDetail(true);
+    setError("");
+
+    try {
+      setDetail(await adminApi.findMemberMessageThread(token, selectedThreadId));
+    } catch (nextError) {
+      setError(nextError.message || messageLabels.loadError);
+      setDetail(null);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }, [messageLabels.loadError, selectedThreadId, token]);
+
+  useEffect(() => {
+    loadThreads();
+  }, [loadThreads]);
+
+  useEffect(() => {
+    loadDetail();
+  }, [loadDetail]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const normalizedReply = reply.trim();
+    if (!selectedThreadId || !normalizedReply) {
+      setError(messageLabels.sendError);
+      return;
+    }
+
+    setIsSending(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const nextDetail = await adminApi.createMemberMessageReply(token, selectedThreadId, {
+        content: normalizedReply,
+      });
+      setDetail(nextDetail);
+      setReply("");
+      setNotice(messageLabels.sent);
+      await loadThreads();
+    } catch (nextError) {
+      setError(nextError.message || messageLabels.sendError);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const memberLabel = (member) => {
+    if (!member) {
+      return labels.common.empty;
+    }
+    return member.nickname || member.displayName || member.email || labels.common.empty;
+  };
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{messageLabels.listTitle}</h2>
+          <span className="text-sm text-zinc-500">
+            {isLoadingThreads ? messageLabels.loading : labels.common.count(threads.length)}
+          </span>
+        </div>
+
+        {threads.length === 0 && !isLoadingThreads ? (
+          <div className="py-8 text-center text-sm text-zinc-500">{messageLabels.emptyThreads}</div>
+        ) : (
+          <div className="mt-4 grid gap-2">
+            {threads.map((thread) => {
+              const isSelected = thread.threadId === selectedThreadId;
+              return (
+                <button
+                  key={thread.threadId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedThreadId(thread.threadId);
+                    setNotice("");
+                    setError("");
+                  }}
+                  className={`rounded-lg border p-3 text-left transition ${
+                    isSelected
+                      ? "border-teal-600 bg-teal-50"
+                      : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-zinc-950">
+                        {thread.memberNickname || thread.memberDisplayName || thread.memberEmail}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">{thread.memberEmail}</div>
+                    </div>
+                    <div className="shrink-0 text-xs text-zinc-400">
+                      {formatDate(thread.lastMessageAt, langCd)}
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-600">
+                    {thread.lastMessagePreview || labels.common.empty}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{messageLabels.detailTitle}</h2>
+          {detail?.member ? (
+            <div className="mt-3 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600 sm:grid-cols-2">
+              <div>
+                <span className="font-semibold text-zinc-950">{messageLabels.memberInfo}: </span>
+                {memberLabel(detail.member)}
+              </div>
+              <div>{detail.member.email}</div>
+              <div>{detail.member.displayName}</div>
+              <div>{detail.member.nickname || labels.common.empty}</div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4" aria-live="polite">
+          <Notice>{error}</Notice>
+          <Notice type="success">{notice}</Notice>
+        </div>
+
+        {!selectedThreadId ? (
+          <div className="py-12 text-center text-sm text-zinc-500">{messageLabels.selectThread}</div>
+        ) : isLoadingDetail ? (
+          <div className="py-12 text-center text-sm text-zinc-500">{messageLabels.loading}</div>
+        ) : (
+          <>
+            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              {detail?.messages?.length > 0 ? (
+                detail.messages.map((message) => {
+                  const isAdmin = message.senderType === "ADMIN";
+                  return (
+                    <article key={message.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
+                          isAdmin
+                            ? "bg-teal-700 text-white"
+                            : "border border-zinc-200 bg-white text-zinc-900"
+                        }`}
+                      >
+                        <div className={`text-xs font-semibold ${isAdmin ? "text-white/75" : "text-zinc-500"}`}>
+                          {isAdmin ? messageLabels.adminSender : message.senderName}
+                        </div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                        <div className={`mt-2 text-[11px] ${isAdmin ? "text-white/65" : "text-zinc-400"}`}>
+                          {formatDate(message.createdAt, langCd)}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-sm text-zinc-500">{messageLabels.noMessages}</div>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-4">
+              <textarea
+                value={reply}
+                onChange={(event) => {
+                  setReply(event.target.value);
+                  setError("");
+                  setNotice("");
+                }}
+                maxLength={2000}
+                rows={4}
+                placeholder={messageLabels.replyPlaceholder}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSending}
+                  className="inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 sm:w-auto"
+                >
+                  {isSending ? messageLabels.replying : messageLabels.reply}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function AdminApp() {
   const [token, setToken] = useState(() => window.localStorage.getItem(TOKEN_STORAGE_KEY) || "");
   const [session, setSession] = useState(null);
@@ -1235,6 +1510,9 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "EVENT_MANAGEMENT" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
+          {safeActiveMenu === "MEMBER_MESSAGES" ? (
+            <AdminMemberMessagesPanel token={token} langCd={langCd} labels={labels} />
           ) : null}
           {safeActiveMenu === "KNOWLEDGE_BASE" ? (
             <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />

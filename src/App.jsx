@@ -613,6 +613,45 @@ const SETTINGS_COPY = {
   },
 };
 
+const MEMBER_MESSAGES_COPY = {
+  ko: {
+    title: "내 메시지",
+    description: "운영진과 주고받은 메시지를 확인합니다.",
+    loginRequiredTitle: "로그인이 필요합니다",
+    loginRequiredBody: "내 메시지는 Google 로그인 후 사용할 수 있습니다.",
+    login: "Sign in with Google",
+    back: "메인으로",
+    loading: "메시지를 불러오는 중입니다.",
+    empty: "아직 주고받은 메시지가 없습니다.",
+    placeholder: "운영진에게 남길 메시지를 입력해주세요.",
+    send: "보내기",
+    sending: "보내는 중",
+    loadError: "메시지를 불러오지 못했습니다.",
+    sendError: "메시지를 보내지 못했습니다.",
+    sent: "메시지가 전송되었습니다.",
+    member: "나",
+    admin: "운영진",
+  },
+  en: {
+    title: "Messages",
+    description: "View your conversation with the Swingpop team.",
+    loginRequiredTitle: "Login required",
+    loginRequiredBody: "Messages are available after Google login.",
+    login: "Sign in with Google",
+    back: "Back to main",
+    loading: "Loading messages.",
+    empty: "No messages yet.",
+    placeholder: "Write a message to the team.",
+    send: "Send",
+    sending: "Sending",
+    loadError: "Could not load messages.",
+    sendError: "Could not send message.",
+    sent: "Message sent.",
+    member: "Me",
+    admin: "Team",
+  },
+};
+
 const announcementLinks = [
   {
     type: "kakao",
@@ -1169,6 +1208,17 @@ function formatMemoDate(value) {
   }
 
   return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatMessageDate(value, language) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(language === "en" ? "en-US" : "ko-KR", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -2191,7 +2241,188 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
   );
 }
 
-function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings }) {
+function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack }) {
+  const labels = MEMBER_MESSAGES_COPY[language] ?? MEMBER_MESSAGES_COPY.ko;
+  const [thread, setThread] = useState({ threadId: null, messages: [] });
+  const [content, setContent] = useState("");
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadMessages = useCallback(async () => {
+    setIsMessagesLoading(true);
+    setError("");
+
+    try {
+      const nextThread = await authApi.getMyMessages();
+      setThread({
+        threadId: nextThread?.threadId ?? null,
+        messages: Array.isArray(nextThread?.messages) ? nextThread.messages : [],
+      });
+    } catch (nextError) {
+      setError(nextError.message || labels.loadError);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  }, [labels.loadError]);
+
+  useEffect(() => {
+    if (!authState?.authenticated) {
+      setThread({ threadId: null, messages: [] });
+      setContent("");
+      return;
+    }
+
+    loadMessages();
+  }, [authState?.authenticated, loadMessages]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const normalizedContent = content.trim();
+    if (!normalizedContent) {
+      setError(labels.sendError);
+      return;
+    }
+
+    setIsSending(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await authApi.sendMyMessage({ content: normalizedContent });
+      setContent("");
+      setNotice(labels.sent);
+      await loadMessages();
+    } catch (nextError) {
+      setError(nextError.message || labels.sendError);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (!authState?.authenticated) {
+    return (
+      <main className="min-h-screen px-5 py-24">
+        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {labels.login}
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.back}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen px-5 py-20 sm:py-24">
+      <section className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.back}
+          </button>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-blue-100 bg-blue-50/50 p-4 sm:p-5">
+          {isMessagesLoading ? (
+            <div className="py-8 text-center text-sm text-blue-950/60">{labels.loading}</div>
+          ) : thread.messages.length === 0 ? (
+            <div className="py-8 text-center text-sm text-blue-950/60">{labels.empty}</div>
+          ) : (
+            <div className="grid gap-4">
+              {thread.messages.map((message) => {
+                const isMember = message.senderType === "MEMBER";
+                return (
+                  <article
+                    key={message.id}
+                    className={`flex ${isMember ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[82%] rounded-3xl px-4 py-3 shadow-sm ${
+                        isMember
+                          ? "bg-blue-700 text-white"
+                          : "border border-blue-100 bg-white text-blue-950"
+                      }`}
+                    >
+                      <div className={`text-xs font-semibold ${isMember ? "text-white/75" : "text-blue-950/55"}`}>
+                        {isMember ? labels.member : message.senderName || labels.admin}
+                      </div>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                      <div className={`mt-2 text-[11px] ${isMember ? "text-white/65" : "text-blue-950/45"}`}>
+                        {formatMessageDate(message.createdAt, language)}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-5">
+          <textarea
+            value={content}
+            onChange={(event) => {
+              setContent(event.target.value);
+              setError("");
+              setNotice("");
+            }}
+            maxLength={2000}
+            rows={4}
+            placeholder={labels.placeholder}
+            className="w-full rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+
+          {notice ? (
+            <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {notice}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={isSending}
+              className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300 sm:w-auto"
+            >
+              {isSending ? labels.sending : labels.send}
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings, onMessages }) {
   const isAuthenticated = Boolean(authState?.authenticated);
   const displayName = authState?.nickname || authState?.displayName || authState?.email || "";
 
@@ -2206,14 +2437,24 @@ function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSet
         </span>
       ) : null}
       {isAuthenticated ? (
-        <button
-          type="button"
-          onClick={onSettings}
-          disabled={isLoading || isPending}
-          className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
-        >
-          Settings
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onMessages}
+            disabled={isLoading || isPending}
+            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+          >
+            Messages
+          </button>
+          <button
+            type="button"
+            onClick={onSettings}
+            disabled={isLoading || isPending}
+            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+          >
+            Settings
+          </button>
+        </>
       ) : null}
       <button
         type="button"
@@ -2396,6 +2637,10 @@ function PublicApp() {
     navigateToPath("/settings");
   };
 
+  const handleMessagesOpen = () => {
+    navigateToPath("/messages");
+  };
+
   const handleMainOpen = () => {
     navigateToPath("/");
     if (authState?.authenticated) {
@@ -2413,7 +2658,7 @@ function PublicApp() {
         setAuthState({ authenticated: false });
         setGuestLanguage(null);
         setIsAuthActionPending(false);
-        if (currentPath === "/settings" || currentPath === "/oauth/success") {
+        if (currentPath === "/settings" || currentPath === "/messages" || currentPath === "/oauth/success") {
           navigateToPath("/");
         }
       });
@@ -2442,6 +2687,7 @@ function PublicApp() {
   const t = useMemo(() => CONTENT[effectiveLanguage] ?? CONTENT.ko, [effectiveLanguage]);
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
   const isSettingsPath = currentPath === "/settings";
+  const isMessagesPath = currentPath === "/messages";
   const applicationItems = useMemo(
     () => scheduleItems.map((item) => toApplicationItem(item, activeLanguage, t.application)),
     [activeLanguage, scheduleItems, t.application]
@@ -2465,6 +2711,7 @@ function PublicApp() {
           onLogin={handleLogin}
           onLogout={handleLogout}
           onSettings={handleSettingsOpen}
+          onMessages={handleMessagesOpen}
         />
         {isSettingsPath ? (
           <MemberSettingsPage
@@ -2474,6 +2721,14 @@ function PublicApp() {
             onLogin={handleLogin}
             onBack={handleMainOpen}
             onSaved={handleSettingsSaved}
+          />
+        ) : isMessagesPath ? (
+          <MemberMessagesPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMainOpen}
           />
         ) : (
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
@@ -2642,13 +2897,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath ? (
+        {!isSettingsPath && !isMessagesPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath ? (
+        {!isSettingsPath && !isMessagesPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta

@@ -9,6 +9,7 @@ public enum AdminMenu {
     DASHBOARD,
     OPERATION_CHECK,
     EVENT_MANAGEMENT,
+    MEMBER_MESSAGES,
     KNOWLEDGE_BASE,
     MESSAGE_TEMPLATES,
     ADMIN_USERS,
@@ -33,11 +34,12 @@ public enum AdminMenu {
                     DASHBOARD,
                     OPERATION_CHECK,
                     EVENT_MANAGEMENT,
+                    MEMBER_MESSAGES,
                     KNOWLEDGE_BASE,
                     MESSAGE_TEMPLATES,
                     ADMIN_USERS
             );
-            case STAFF -> List.of(DASHBOARD, OPERATION_CHECK, EVENT_MANAGEMENT, KNOWLEDGE_BASE, ADMIN_USERS);
+            case STAFF -> List.of(DASHBOARD, OPERATION_CHECK, EVENT_MANAGEMENT, MEMBER_MESSAGES, KNOWLEDGE_BASE, ADMIN_USERS);
             case TEACHER -> List.of(DASHBOARD);
             case MEMBER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
         };

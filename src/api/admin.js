@@ -274,6 +274,19 @@ export const adminApi = {
       body: payload,
     });
   },
+  findMemberMessageThreads(token) {
+    return request("/api/admin/message-threads", { token });
+  },
+  findMemberMessageThread(token, threadId) {
+    return request(`/api/admin/message-threads/${threadId}`, { token });
+  },
+  createMemberMessageReply(token, threadId, payload) {
+    return request(`/api/admin/message-threads/${threadId}/messages`, {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
   findTeacherDashboard(token) {
     return request("/api/teacher/dashboard", { token });
   },

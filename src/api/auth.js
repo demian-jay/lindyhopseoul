@@ -48,4 +48,13 @@ export const authApi = {
       body: payload,
     });
   },
+  getMyMessages() {
+    return request("/api/members/me/messages");
+  },
+  sendMyMessage(payload) {
+    return request("/api/members/me/messages", {
+      method: "POST",
+      body: payload,
+    });
+  },
 };
