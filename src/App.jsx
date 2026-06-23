@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import AdminApp from "./AdminApp";
+import { authApi } from "./api/auth";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
 
@@ -1913,6 +1914,30 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
   );
 }
 
+function AuthControl({ authState, isLoading, isPending, onLogin, onLogout }) {
+  const isAuthenticated = Boolean(authState?.authenticated);
+  const displayName = authState?.displayName || authState?.email || "";
+  const label = isAuthenticated ? "Logout" : "Sign in with Google";
+
+  return (
+    <div className="fixed right-3 top-3 z-[80] sm:right-5 sm:top-5">
+      <button
+        type="button"
+        onClick={isAuthenticated ? onLogout : onLogin}
+        disabled={isLoading || isPending}
+        className="inline-flex min-h-[36px] max-w-[calc(100vw-24px)] items-center justify-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+        aria-label={label}
+        title={displayName || label}
+      >
+        {isAuthenticated && displayName ? (
+          <span className="hidden max-w-[140px] truncate text-blue-950/65 sm:inline">{displayName}</span>
+        ) : null}
+        <span>{isLoading || isPending ? "..." : label}</span>
+      </button>
+    </div>
+  );
+}
+
 function PublicApp() {
   const [language, setLanguage] = useState(null);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -1921,6 +1946,9 @@ function PublicApp() {
   const [scheduleError, setScheduleError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [authState, setAuthState] = useState({ authenticated: false });
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthActionPending, setIsAuthActionPending] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1964,11 +1992,54 @@ function PublicApp() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    authApi
+      .me()
+      .then((nextAuthState) => {
+        if (isMounted) {
+          setAuthState(nextAuthState?.authenticated ? nextAuthState : { authenticated: false });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAuthState({ authenticated: false });
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleLanguageSelect = (nextLanguage) => {
     setLanguage(nextLanguage);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, nextLanguage);
     }
+  };
+
+  const handleLogin = () => {
+    if (typeof window !== "undefined") {
+      window.location.href = authApi.googleLoginUrl();
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthActionPending(true);
+    authApi
+      .logout()
+      .catch(() => null)
+      .finally(() => {
+        setAuthState({ authenticated: false });
+        setIsAuthActionPending(false);
+      });
   };
 
   const t = useMemo(() => CONTENT[language] ?? CONTENT.ko, [language]);
@@ -1989,6 +2060,13 @@ function PublicApp() {
       ) : null}
 
       <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
+        <AuthControl
+          authState={authState}
+          isLoading={isAuthLoading}
+          isPending={isAuthActionPending}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+        />
         <main aria-hidden={hasHydrated && !language ? true : undefined}>
           <SectionWrapper id="top" contentClassName="pt-10 pb-8">
             <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">

@@ -52,6 +52,18 @@ PUT    /api/admin/users/teachers/{teacherUserCd}
 PATCH  /api/admin/users/teachers/{teacherUserCd}/deactivate
 ```
 
+The public Google login flow uses Spring Security OAuth2 Client:
+
+```text
+GET    /oauth2/authorization/google
+GET    /api/auth/me
+POST   /api/auth/logout
+```
+
+General Google members are stored in `member` with only `provider`, `provider_id`, `email`, `display_name`, `role`, `status`, and timestamps.
+`provider + provider_id` is unique, and Google access/refresh tokens and profile images are not stored.
+Implementation notes and the handoff checklist are documented in `docs/google-oauth-member-login.md`.
+
 Login accounts are stored in `USER_M`, and roles are stored in `USER_ROLE_M`.
 One user account can have multiple roles, such as `STAFF` and `TEACHER`.
 The login and `me` responses include both a compatibility `role` field and the canonical `roles` array:
@@ -316,7 +328,29 @@ cd backend
 mvn spring-boot:run
 ```
 
-The local profile is enabled by default and connects to `jdbc:mariadb://127.0.0.1:3307/lindyhopseoul`. If you change DB values, set matching `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` environment variables before starting the backend.
+The local profile is enabled by default, imports the repository-root `.env`, runs on `SERVER_PORT=18080`, and connects to `jdbc:mariadb://127.0.0.1:3307/lindyhopseoul`. If you change DB values, set matching `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` environment variables before starting the backend.
+
+For Google login, create an OAuth client in Google Cloud Console and register this backend callback URI for local development:
+
+```text
+http://localhost:18080/login/oauth2/code/google
+```
+
+Then set these backend environment variables:
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_OAUTH_REDIRECT_URI
+APP_OAUTH2_SUCCESS_REDIRECT_URI
+APP_OAUTH2_FAILURE_REDIRECT_URI
+```
+
+For the current local OAuth client, use `GOOGLE_CLIENT_ID=379464115888-9l5qigroaag415hao6nsiurihm6guvd8.apps.googleusercontent.com`.
+Register `http://localhost:5173` as the Authorized JavaScript Origin.
+Keep `GOOGLE_CLIENT_SECRET` only in your local environment or ignored `.env` file.
+
+The frontend login button navigates to `/oauth2/authorization/google`, and successful login redirects back to `APP_OAUTH2_SUCCESS_REDIRECT_URI`.
 
 ## Run Frontend
 
@@ -325,7 +359,7 @@ npm install
 npm run dev
 ```
 
-Vite reads `VITE_API_BASE_URL` from `.env`. The default API base URL is `http://localhost:8080`.
+Vite reads `VITE_API_BASE_URL` from `.env`. For local Google login, set it to `http://localhost:18080`.
 
 ## Full Local Development Order
 
@@ -352,8 +386,8 @@ mvn test
 
 ## Backend Notes
 
-- JPA is configured with `ddl-auto: update` for local development so tables such as `memos`, `USER_M`, `USER_ROLE_M`, `ADMIN_USER_M`, `TEACHER_USER_M`, `KNOWLEDGE_CATEGORY`, `KNOWLEDGE_CATEGORY_TRANSLATION`, `KNOWLEDGE_ITEM`, `KNOWLEDGE_ITEM_TRANSLATION`, `SWINGPOP_EVENT`, `SWINGPOP_EVENT_TRANSLATION`, `LESSON`, `LESSON_TRANSLATION`, `LESSON_TEACHER`, and `MESSAGE_TEMPLATE` can be created automatically.
-- CORS allows local Vite origins `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:5174`, and `http://127.0.0.1:5174` by default through `APP_CORS_ALLOWED_ORIGINS`.
+- JPA is configured with `ddl-auto: update` for local development so tables such as `member`, `memos`, `USER_M`, `USER_ROLE_M`, `ADMIN_USER_M`, `TEACHER_USER_M`, `KNOWLEDGE_CATEGORY`, `KNOWLEDGE_CATEGORY_TRANSLATION`, `KNOWLEDGE_ITEM`, `KNOWLEDGE_ITEM_TRANSLATION`, `SWINGPOP_EVENT`, `SWINGPOP_EVENT_TRANSLATION`, `LESSON`, `LESSON_TRANSLATION`, `LESSON_TEACHER`, and `MESSAGE_TEMPLATE` can be created automatically.
+- CORS allows local Vite origins `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:5174`, `http://127.0.0.1:5174`, `http://localhost:3000`, and `http://127.0.0.1:3000` by default through `APP_CORS_ALLOWED_ORIGINS`.
 - The current exception handling returns a small JSON error response for validation failures, missing resources, and unexpected errors.
 - KnowledgeBase sample data is seeded only when no knowledge categories exist.
 - Event/lesson sample data is seeded only when no events exist. Message template sample data is seeded only when no message templates exist.
@@ -364,7 +398,7 @@ mvn test
 - Add production-safe secret management.
 - Replace `ddl-auto: update` with explicit migrations such as Flyway.
 - Add member signup and member username/password login.
-- Add Kakao and Google social signup/login.
+- Add Kakao social signup/login.
 - Add lesson enrollment, manual participant registration, and payment status management.
 - Add teacher participant list views backed by a future `LessonParticipant` or `LessonEnrollment` table.
 - Add calendar views for events and lessons.

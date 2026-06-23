@@ -2,6 +2,7 @@ spring:
   config:
     activate:
       on-profile: local
+    import: optional:file:../.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:mariadb://127.0.0.1:3307/lindyhopseoul}
     username: ${DB_USERNAME:lindyhop_dev}
