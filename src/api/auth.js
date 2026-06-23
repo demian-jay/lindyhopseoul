@@ -50,6 +50,11 @@ export const authApi = {
       body: payload,
     });
   },
+  withdraw() {
+    return request("/api/members/me", {
+      method: "DELETE",
+    });
+  },
   getMyMessages() {
     return request("/api/members/me/messages");
   },

@@ -40,6 +40,7 @@ public class GoogleOAuth2MemberService {
         Instant loginAt = Instant.now(clock);
 
         return memberRepository.findByProviderAndProviderId(MemberProvider.GOOGLE, profile.sub())
+                .filter(Member::isActive)
                 .map(member -> {
                     member.recordLogin(profile.email(), profile.displayName(), loginAt);
                     return member;

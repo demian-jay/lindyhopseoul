@@ -23,7 +23,8 @@ public class CurrentMemberService {
         if (memberId == null) {
             return Optional.empty();
         }
-        return memberRepository.findById(memberId);
+        return memberRepository.findById(memberId)
+                .filter(Member::isActive);
     }
 
     public Member requireCurrentMember(HttpServletRequest request) {
@@ -32,11 +33,7 @@ public class CurrentMemberService {
     }
 
     public Long requireCurrentMemberId(HttpServletRequest request) {
-        Long memberId = currentMemberId(request);
-        if (memberId == null) {
-            throw new UnauthorizedException("Login is required.");
-        }
-        return memberId;
+        return requireCurrentMember(request).getId();
     }
 
     private Long currentMemberId(HttpServletRequest request) {

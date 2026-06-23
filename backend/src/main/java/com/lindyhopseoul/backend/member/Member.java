@@ -67,6 +67,9 @@ public class Member {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "withdrawn_at")
+    private Instant withdrawnAt;
+
     protected Member() {
     }
 
@@ -93,6 +96,16 @@ public class Member {
         if (preferredLanguage != null) {
             this.preferredLanguage = preferredLanguage;
         }
+    }
+
+    public void withdraw(Instant withdrawnAt) {
+        String safeId = id == null ? "unknown" : String.valueOf(id);
+        this.provider = MemberProvider.WITHDRAWN;
+        this.providerId = "withdrawn_" + safeId;
+        this.email = "withdrawn_member_" + safeId + "@swingpop.local";
+        this.role = MemberRole.USER;
+        this.status = MemberStatus.WITHDRAWN;
+        this.withdrawnAt = withdrawnAt == null ? Instant.now() : withdrawnAt;
     }
 
     @PrePersist
@@ -180,6 +193,10 @@ public class Member {
         return status;
     }
 
+    public boolean isActive() {
+        return status == MemberStatus.ACTIVE;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -190,5 +207,9 @@ public class Member {
 
     public Instant getLastLoginAt() {
         return lastLoginAt;
+    }
+
+    public Instant getWithdrawnAt() {
+        return withdrawnAt;
     }
 }

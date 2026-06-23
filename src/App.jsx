@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AdminApp from "./AdminApp";
 import { authApi } from "./api/auth";
@@ -613,10 +613,18 @@ const SETTINGS_COPY = {
     saved: "저장되었습니다.",
     loadError: "설정을 불러오지 못했습니다.",
     saveError: "설정을 저장하지 못했습니다.",
+    withdrawButton: "탈퇴하기",
+    withdrawConfirmTitle: "회원 탈퇴",
+    withdrawConfirmBody: "정말 탈퇴하시겠어요? 탈퇴 후에는 현재 계정으로 로그인할 수 없습니다.",
+    withdrawCancel: "취소",
+    withdrawConfirm: "탈퇴하기",
+    withdrawing: "탈퇴 처리 중",
+    withdrawSuccess: "탈퇴가 완료되었습니다.",
+    withdrawError: "탈퇴 처리에 실패했습니다.",
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 설정은 Google 로그인 후 사용할 수 있습니다.",
     login: "Sign in with Google",
-    back: "메인으로",
+    back: "뒤로가기",
     korean: "한국어",
     english: "English",
   },
@@ -633,10 +641,18 @@ const SETTINGS_COPY = {
     saved: "Settings saved.",
     loadError: "Could not load settings.",
     saveError: "Could not save settings.",
+    withdrawButton: "Delete account",
+    withdrawConfirmTitle: "Delete account",
+    withdrawConfirmBody: "Are you sure you want to delete your account? After deletion, you will not be able to use this account.",
+    withdrawCancel: "Cancel",
+    withdrawConfirm: "Delete account",
+    withdrawing: "Deleting",
+    withdrawSuccess: "Your account has been deleted.",
+    withdrawError: "Could not delete your account.",
     loginRequiredTitle: "Login required",
     loginRequiredBody: "My Settings is available after Google login.",
     login: "Sign in with Google",
-    back: "Back to main",
+    back: "Back",
     korean: "한국어",
     english: "English",
   },
@@ -649,7 +665,7 @@ const MEMBER_MESSAGES_COPY = {
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 메시지는 Google 로그인 후 사용할 수 있습니다.",
     login: "Sign in with Google",
-    back: "메인으로",
+    back: "뒤로가기",
     loading: "메시지를 불러오는 중입니다.",
     empty: "아직 주고받은 메시지가 없습니다.",
     placeholder: "운영진에게 남길 메시지를 입력해주세요.",
@@ -667,7 +683,7 @@ const MEMBER_MESSAGES_COPY = {
     loginRequiredTitle: "Login required",
     loginRequiredBody: "Messages are available after Google login.",
     login: "Sign in with Google",
-    back: "Back to main",
+    back: "Back",
     loading: "Loading messages.",
     empty: "No messages yet.",
     placeholder: "Write a message to the team.",
@@ -688,7 +704,7 @@ const MY_CLASSES_COPY = {
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 신청 내역은 Google 로그인 후 사용할 수 있습니다.",
     login: "Sign in with Google",
-    back: "메인으로",
+    back: "뒤로가기",
     loading: "신청 내역을 불러오는 중입니다.",
     empty: "아직 신청한 수업이 없습니다.",
     loadError: "신청 내역을 불러오지 못했습니다.",
@@ -709,7 +725,7 @@ const MY_CLASSES_COPY = {
     loginRequiredTitle: "Login required",
     loginRequiredBody: "My Classes is available after Google login.",
     login: "Sign in with Google",
-    back: "Back to main",
+    back: "Back",
     loading: "Loading your applications.",
     empty: "You have not applied for any classes yet.",
     loadError: "Could not load your applications.",
@@ -764,7 +780,7 @@ const MY_PAGE_COPY = {
     description: "Manage your classes, messages, and profile.",
     loginRequiredTitle: "Login required",
     loginRequiredBody: "My Page is available after Google login.",
-    back: "Back to main",
+    back: "Home",
     accountLabel: "Signed in as",
     emailLabel: "Email",
     logout: "Logout",
@@ -2249,12 +2265,14 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
   );
 }
 
-function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, onSaved }) {
+function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, onSaved, onWithdraw }) {
   const labels = SETTINGS_COPY[language] ?? SETTINGS_COPY.ko;
   const [form, setForm] = useState({ nickname: "", preferredLanguage: "KO" });
   const [settings, setSettings] = useState(null);
   const [isSettingsLoading, setIsSettingsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isWithdrawConfirmOpen, setIsWithdrawConfirmOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -2331,6 +2349,22 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
       .finally(() => {
         setIsSaving(false);
       });
+  };
+
+  const handleWithdraw = async () => {
+    setIsWithdrawing(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await authApi.withdraw();
+      setIsWithdrawConfirmOpen(false);
+      onWithdraw(labels.withdrawSuccess);
+    } catch (nextError) {
+      setError(nextError.message || labels.withdrawError);
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   if (!authState?.authenticated) {
@@ -2447,9 +2481,57 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 {isSaving ? labels.saving : labels.save}
               </button>
             </div>
+
+            <div className="mt-4 border-t border-blue-100 pt-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                  setIsWithdrawConfirmOpen(true);
+                }}
+                className="inline-flex min-h-[34px] items-center justify-center rounded-xl border border-red-100 bg-white px-3 text-xs font-semibold text-red-700/70 transition hover:border-red-200 hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200"
+              >
+                {labels.withdrawButton}
+              </button>
+            </div>
           </form>
         )}
       </section>
+
+      {isWithdrawConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-blue-950/45 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="withdraw-confirm-title"
+        >
+          <section className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-5 shadow-2xl sm:p-6">
+            <h2 id="withdraw-confirm-title" className="text-xl font-semibold tracking-tight text-blue-950">
+              {labels.withdrawConfirmTitle}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.withdrawConfirmBody}</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setIsWithdrawConfirmOpen(false)}
+                disabled={isWithdrawing}
+                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45"
+              >
+                {labels.withdrawCancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleWithdraw}
+                disabled={isWithdrawing}
+                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
+              >
+                {isWithdrawing ? labels.withdrawing : labels.withdrawConfirm}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -2890,9 +2972,11 @@ function PublicApp() {
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
+  const [accountNotice, setAccountNotice] = useState("");
   const [currentPath, setCurrentPath] = useState(
     typeof window === "undefined" ? "/" : window.location.pathname
   );
+  const previousPathRef = useRef(null);
 
   const applyAuthState = useCallback((nextAuthState) => {
     const normalizedAuthState = nextAuthState?.authenticated ? nextAuthState : { authenticated: false };
@@ -2983,6 +3067,15 @@ function PublicApp() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (!accountNotice) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setAccountNotice(""), 6000);
+    return () => window.clearTimeout(timeoutId);
+  }, [accountNotice]);
 
   useEffect(() => {
     let isMounted = true;
@@ -3102,6 +3195,7 @@ function PublicApp() {
     if (typeof window === "undefined") {
       return;
     }
+    previousPathRef.current = currentPath;
     window.history.pushState({}, "", path);
     setCurrentPath(path);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3129,6 +3223,15 @@ function PublicApp() {
       refreshAuthState().catch(() => null);
       loadAppliedScheduleItemIds().catch(() => null);
     }
+  };
+
+  const handleMemberSubpageBack = () => {
+    const fallbackPath = authState?.authenticated ? "/me" : "/";
+    if (previousPathRef.current === "/me" && typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigateToPath(fallbackPath);
   };
 
   const handleLogout = () => {
@@ -3168,6 +3271,16 @@ function PublicApp() {
         role: settings?.role ?? currentAuthState.role,
       }));
     });
+  };
+
+  const handleWithdrawComplete = (message) => {
+    clearPersistedLanguagePreferences();
+    setAuthState({ authenticated: false });
+    setGuestLanguage(null);
+    setAppliedScheduleItemIds([]);
+    setIsAppliedScheduleLoading(false);
+    setAccountNotice(message);
+    navigateToPath("/");
   };
 
   const handleApplicationSubmitted = useCallback((savedApplication) => {
@@ -3232,14 +3345,20 @@ function PublicApp() {
           onLogin={handleLogin}
           onMyPage={handleMyPageOpen}
         />
+        {accountNotice ? (
+          <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
+            {accountNotice}
+          </div>
+        ) : null}
         {isSettingsPath ? (
           <MemberSettingsPage
             authState={authState}
             isLoading={isAuthLoading}
             language={activeLanguage}
             onLogin={handleLogin}
-            onBack={handleMainOpen}
+            onBack={handleMemberSubpageBack}
             onSaved={handleSettingsSaved}
+            onWithdraw={handleWithdrawComplete}
           />
         ) : isMyPagePath ? (
           <MyPage
@@ -3260,7 +3379,7 @@ function PublicApp() {
             isLoading={isAuthLoading}
             language={activeLanguage}
             onLogin={handleLogin}
-            onBack={handleMainOpen}
+            onBack={handleMemberSubpageBack}
           />
         ) : isMessagesPath ? (
           <MemberMessagesPage
@@ -3268,7 +3387,7 @@ function PublicApp() {
             isLoading={isAuthLoading}
             language={activeLanguage}
             onLogin={handleLogin}
-            onBack={handleMainOpen}
+            onBack={handleMemberSubpageBack}
           />
         ) : (
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>

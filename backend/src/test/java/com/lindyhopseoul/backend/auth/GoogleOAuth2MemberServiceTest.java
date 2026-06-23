@@ -29,6 +29,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class GoogleOAuth2MemberServiceTest {
@@ -95,6 +96,34 @@ class GoogleOAuth2MemberServiceTest {
         assertThat(member.getDisplayName()).isEqualTo("New Name");
         assertThat(member.getLastLoginAt()).isEqualTo(LOGIN_AT);
         verify(memberRepository, never()).save(any(Member.class));
+    }
+
+    @Test
+    void handleLoginDoesNotReuseWithdrawnMember() {
+        Member withdrawnMember = Member.createGoogle(
+                "google-sub-1",
+                "old@example.com",
+                "Old Name",
+                Instant.parse("2026-06-01T00:00:00Z")
+        );
+        ReflectionTestUtils.setField(withdrawnMember, "id", 7L);
+        withdrawnMember.withdraw(Instant.parse("2026-06-22T00:00:00Z"));
+        when(memberRepository.findByProviderAndProviderId(MemberProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.of(withdrawnMember));
+        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Member member = memberService.handleLogin(authentication(Map.of(
+                "sub", "google-sub-1",
+                "email", "new@example.com",
+                "name", "New Name"
+        )));
+
+        assertThat(member).isNotSameAs(withdrawnMember);
+        assertThat(member.getProvider()).isEqualTo(MemberProvider.GOOGLE);
+        assertThat(member.getProviderId()).isEqualTo("google-sub-1");
+        assertThat(member.getEmail()).isEqualTo("new@example.com");
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
+        verify(memberRepository).save(any(Member.class));
     }
 
     @Test
