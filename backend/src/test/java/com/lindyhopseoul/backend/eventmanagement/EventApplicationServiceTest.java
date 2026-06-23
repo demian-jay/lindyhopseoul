@@ -98,14 +98,14 @@ class EventApplicationServiceTest {
     }
 
     @Test
-    void createStoresDanceRoleWhenLessonRequiresRoleSelection() {
+    void createStoresBothDanceRoleWhenLessonRequiresRoleSelection() {
         Event event = event(EventStatus.PUBLISHED);
         Lesson lesson = lesson(event, LessonStatus.PUBLISHED, true);
         when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
         when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
         when(eventApplicationRepository.save(any(EventApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.create(new EventApplicationCreateRequest(
+        EventApplicationResponse response = service.create(new EventApplicationCreateRequest(
                 1L,
                 2L,
                 "Alex",
@@ -113,12 +113,13 @@ class EventApplicationServiceTest {
                 "alex@example.com",
                 "",
                 "en",
-                ApplicationDanceRole.LEADER
+                ApplicationDanceRole.BOTH
         ));
 
         ArgumentCaptor<EventApplication> applicationCaptor = ArgumentCaptor.forClass(EventApplication.class);
         verify(eventApplicationRepository).save(applicationCaptor.capture());
-        assertThat(applicationCaptor.getValue().getDanceRole()).isEqualTo(ApplicationDanceRole.LEADER);
+        assertThat(applicationCaptor.getValue().getDanceRole()).isEqualTo(ApplicationDanceRole.BOTH);
+        assertThat(response.danceRole()).isEqualTo(ApplicationDanceRole.BOTH);
     }
 
     @Test

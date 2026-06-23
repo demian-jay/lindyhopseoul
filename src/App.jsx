@@ -54,7 +54,7 @@ const CONTENT = {
           {
             id: "payment",
             title: "현금 또는 계좌이체",
-            body: "Swingpop은 비즈니스가 아니라 운영진과 강사들의 봉사로 운영되는 커뮤니티입니다. 카드 결제 장비가 없으므로 참가비는 현금 또는 계좌이체로 준비해주세요.",
+            body: "Swingpop은 비즈니스가 아니라 운영진과 강사들의 봉사로 운영되는 커뮤니티입니다. 카드 결제 장비가 없으므로 참가비는 현금 또는 계좌이체로 준비해주세요. 계좌이체는 KAKAOBANK 3333-37-3073172 정대혁 계좌로 보내주시면 됩니다.",
           },
           {
             id: "entrance",
@@ -109,7 +109,7 @@ const CONTENT = {
       loadError: "등록된 일정과 강습을 불러오지 못했습니다.",
       free: "무료",
       toBeAnnounced: "추후 안내",
-      paymentNote: "현장에서 현금/계좌이체 해주세요.",
+      paymentNote: "현장에서 현금 또는 계좌이체로 결제해주세요. 계좌이체는 KAKAOBANK 3333-37-3073172 정대혁 계좌로 보내주시면 됩니다.",
       levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 수강 기준을 확인해주세요.",
     },
     applicationModal: {
@@ -127,12 +127,14 @@ const CONTENT = {
       danceRoleLabel: "역할",
       danceRolePlaceholder: "역할을 선택해주세요",
       danceRoles: {
-        LEADER: "리더(Lead)",
-        FOLLOWER: "팔로워(Follow)",
+        LEADER: "리더",
+        FOLLOWER: "팔로워",
+        BOTH: "리더/팔로워 모두 가능",
       },
       danceRoleGuide: [
         "리더(Lead) 👉 같이 추는 사람에게 “다음에 뭐 할지” 알려주는 사람",
         "팔로워(Follow) 👉 리더가 보내는 신호를 받아서 함께 춤을 만들어가는 사람",
+        "둘 다 가능하다면 “리더/팔로워 모두 가능”을 선택해주세요.",
         "일반적으로 남성이 리더 역할을 맡고 여성이 팔로워 역할을 하지만, 성별에 상관없이 누구나 역할을 맡을 수 있습니다.",
       ],
       contactMethods: {
@@ -313,7 +315,7 @@ const CONTENT = {
           {
             id: "payment",
             title: "Cash or bank transfer",
-            body: "Swingpop is a community run by volunteers(not a business). We do not have a card payment terminal, so please prepare cash or a bank transfer for the participation fee.",
+            body: "Swingpop is a community run by volunteers(not a business). We do not have a card payment terminal, so please prepare cash or a bank transfer for the participation fee. For bank transfer, please send it to KAKAOBANK 3333-37-3073172, Daehyuk Jung (정대혁).",
           },
           {
             id: "entrance",
@@ -368,7 +370,7 @@ const CONTENT = {
       loadError: "Could not load registered schedules and lessons.",
       free: "Free",
       toBeAnnounced: "TBA",
-      paymentNote: "Please pay on site by cash or bank transfer.",
+      paymentNote: "Please pay on site by cash or bank transfer. For bank transfer, please send it to KAKAOBANK 3333-37-3073172, Daehyuk Jung (정대혁).",
       levelNotice: "Level 2+ classes have recommended experience guidelines. Please check the class requirements when applying.",
     },
     applicationModal: {
@@ -388,10 +390,12 @@ const CONTENT = {
       danceRoles: {
         LEADER: "Leader",
         FOLLOWER: "Follower",
+        BOTH: "Leader / Follower both ok",
       },
       danceRoleGuide: [
         "Lead 👉 The one who gives signals about what move comes next.",
         "Follow 👉 The one who responds to those signals and dances together.",
+        "If you can do either role, choose “Leader / Follower both ok.”",
         "Men commonly take the leader role and women the follower role, but anyone can take either role regardless of gender.",
       ],
       contactMethods: {
