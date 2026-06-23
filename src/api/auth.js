@@ -39,4 +39,13 @@ export const authApi = {
       method: "POST",
     });
   },
+  getSettings() {
+    return request("/api/members/me/settings");
+  },
+  updateSettings(payload) {
+    return request("/api/members/me/settings", {
+      method: "PATCH",
+      body: payload,
+    });
+  },
 };

@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.lindyhopseoul.backend.member.Member;
+import com.lindyhopseoul.backend.member.MemberPreferredLanguage;
 import com.lindyhopseoul.backend.member.MemberProvider;
 import com.lindyhopseoul.backend.member.MemberRepository;
 import com.lindyhopseoul.backend.member.MemberRole;
@@ -64,6 +65,8 @@ class GoogleOAuth2MemberServiceTest {
         assertThat(member.getProviderId()).isEqualTo("google-sub-1");
         assertThat(member.getEmail()).isEqualTo("user@example.com");
         assertThat(member.getDisplayName()).isEqualTo("User Name");
+        assertThat(member.getNickname()).isNull();
+        assertThat(member.getPreferredLanguage()).isEqualTo(MemberPreferredLanguage.KO);
         assertThat(member.getRole()).isEqualTo(MemberRole.USER);
         assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
         assertThat(member.getLastLoginAt()).isEqualTo(LOGIN_AT);

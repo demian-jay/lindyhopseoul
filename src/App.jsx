@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import AdminApp from "./AdminApp";
 import { authApi } from "./api/auth";
@@ -531,7 +531,87 @@ const CONTENT = {
 };
 
 const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule"];
-const STORAGE_KEY = "swingpop-language";
+const LANGUAGE_STORAGE_KEYS_TO_CLEAR = [
+  "swingpop-language",
+  "swingpop_guest_language",
+  "swingpop_guestLanguage",
+  "swingpop-preferred-language",
+  "swingpop_preferred_language",
+  "language",
+  "guestLanguage",
+  "preferredLanguage",
+];
+const MEMBER_LANGUAGE_TO_APP_LANGUAGE = {
+  KO: "ko",
+  EN: "en",
+};
+const APP_LANGUAGE_TO_MEMBER_LANGUAGE = {
+  ko: "KO",
+  en: "EN",
+};
+
+function toAppLanguage(preferredLanguage) {
+  const normalized = typeof preferredLanguage === "string" ? preferredLanguage.trim().toUpperCase() : "";
+  return MEMBER_LANGUAGE_TO_APP_LANGUAGE[normalized] || null;
+}
+
+function toMemberPreferredLanguage(appLanguage) {
+  return APP_LANGUAGE_TO_MEMBER_LANGUAGE[appLanguage] || null;
+}
+
+function clearPersistedLanguagePreferences() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  LANGUAGE_STORAGE_KEYS_TO_CLEAR.forEach((key) => {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  });
+}
+
+const SETTINGS_COPY = {
+  ko: {
+    title: "내 설정",
+    description: "로그인한 계정의 기본 표시 정보를 관리합니다.",
+    email: "이메일",
+    displayName: "Google 이름",
+    nickname: "닉네임",
+    nicknamePlaceholder: "2자 이상 20자 이하",
+    preferredLanguage: "선호 언어",
+    save: "저장",
+    saving: "저장 중",
+    saved: "저장되었습니다.",
+    loadError: "설정을 불러오지 못했습니다.",
+    saveError: "설정을 저장하지 못했습니다.",
+    loginRequiredTitle: "로그인이 필요합니다",
+    loginRequiredBody: "내 설정은 Google 로그인 후 사용할 수 있습니다.",
+    login: "Sign in with Google",
+    back: "메인으로",
+    korean: "한국어",
+    english: "English",
+  },
+  en: {
+    title: "My Settings",
+    description: "Manage the basic display settings for your logged-in account.",
+    email: "Email",
+    displayName: "Google name",
+    nickname: "Nickname",
+    nicknamePlaceholder: "2 to 20 characters",
+    preferredLanguage: "Preferred language",
+    save: "Save",
+    saving: "Saving",
+    saved: "Settings saved.",
+    loadError: "Could not load settings.",
+    saveError: "Could not save settings.",
+    loginRequiredTitle: "Login required",
+    loginRequiredBody: "My Settings is available after Google login.",
+    login: "Sign in with Google",
+    back: "Back to main",
+    korean: "한국어",
+    english: "English",
+  },
+};
 
 const announcementLinks = [
   {
@@ -701,14 +781,6 @@ function runComponentTests() {
 
   if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.anchorId && location.images.length === 4)) {
     throw new Error("KP Dance Hall must include four back entrance image slots.");
-  }
-
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, "ko");
-    if (window.localStorage.getItem(STORAGE_KEY) !== "ko") {
-      throw new Error("Language preference must be saved to localStorage.");
-    }
-    window.localStorage.removeItem(STORAGE_KEY);
   }
 
   return true;
@@ -1914,32 +1986,249 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
   );
 }
 
-function AuthControl({ authState, isLoading, isPending, onLogin, onLogout }) {
-  const isAuthenticated = Boolean(authState?.authenticated);
-  const displayName = authState?.displayName || authState?.email || "";
-  const label = isAuthenticated ? "Logout" : "Sign in with Google";
+function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, onSaved }) {
+  const labels = SETTINGS_COPY[language] ?? SETTINGS_COPY.ko;
+  const [form, setForm] = useState({ nickname: "", preferredLanguage: "KO" });
+  const [settings, setSettings] = useState(null);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authState?.authenticated) {
+      setSettings(null);
+      setForm({ nickname: "", preferredLanguage: "KO" });
+      return undefined;
+    }
+
+    let isMounted = true;
+    setIsSettingsLoading(true);
+    setNotice("");
+    setError("");
+
+    authApi
+      .getSettings()
+      .then((nextSettings) => {
+        if (!isMounted) {
+          return;
+        }
+        setSettings(nextSettings);
+        setForm({
+          nickname: nextSettings?.nickname || "",
+          preferredLanguage: nextSettings?.preferredLanguage || "KO",
+        });
+      })
+      .catch((nextError) => {
+        if (isMounted) {
+          setError(nextError.message || labels.loadError);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsSettingsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState?.authenticated, labels.loadError]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((currentForm) => ({ ...currentForm, [name]: value }));
+    setNotice("");
+    setError("");
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setNotice("");
+    setError("");
+
+    authApi
+      .updateSettings({
+        nickname: form.nickname,
+        preferredLanguage: form.preferredLanguage,
+      })
+      .then((savedSettings) => {
+        setSettings(savedSettings);
+        setForm({
+          nickname: savedSettings?.nickname || "",
+          preferredLanguage: savedSettings?.preferredLanguage || "KO",
+        });
+        setNotice(labels.saved);
+        onSaved(savedSettings);
+      })
+      .catch((nextError) => {
+        setError(nextError.message || labels.saveError);
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
+  };
+
+  if (!authState?.authenticated) {
+    return (
+      <main className="min-h-screen px-5 py-24">
+        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {labels.login}
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.back}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <div className="fixed right-3 top-3 z-[80] sm:right-5 sm:top-5">
+    <main className="min-h-screen px-5 py-20 sm:py-24">
+      <section className="mx-auto max-w-2xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.back}
+          </button>
+        </div>
+
+        {isSettingsLoading ? (
+          <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-950/65">
+            ...
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
+            <label className="block">
+              <span className="text-sm font-semibold text-blue-950/70">{labels.email}</span>
+              <input
+                type="text"
+                readOnly
+                value={settings?.email || authState?.email || ""}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-100 bg-blue-50/70 px-4 text-sm text-blue-950/70 outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-blue-950/70">{labels.displayName}</span>
+              <input
+                type="text"
+                readOnly
+                value={settings?.displayName || authState?.displayName || ""}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-100 bg-blue-50/70 px-4 text-sm text-blue-950/70 outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-blue-950/70">{labels.nickname}</span>
+              <input
+                name="nickname"
+                type="text"
+                value={form.nickname}
+                onChange={handleChange}
+                maxLength={20}
+                placeholder={labels.nicknamePlaceholder}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-blue-950/70">{labels.preferredLanguage}</span>
+              <select
+                name="preferredLanguage"
+                value={form.preferredLanguage}
+                onChange={handleChange}
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="KO">{labels.korean}</option>
+                <option value="EN">{labels.english}</option>
+              </select>
+            </label>
+
+            {notice ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                {notice}
+              </div>
+            ) : null}
+            {error ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300 sm:w-auto"
+              >
+                {isSaving ? labels.saving : labels.save}
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings }) {
+  const isAuthenticated = Boolean(authState?.authenticated);
+  const displayName = authState?.nickname || authState?.displayName || authState?.email || "";
+
+  return (
+    <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] flex-wrap justify-end gap-2 sm:right-5 sm:top-5">
+      {isAuthenticated && displayName ? (
+        <span
+          className="hidden min-h-[36px] max-w-[140px] items-center truncate rounded-full border border-white/70 bg-white/70 px-3 text-xs font-semibold text-blue-950/65 shadow-sm backdrop-blur sm:inline-flex"
+          title={displayName}
+        >
+          {displayName}
+        </span>
+      ) : null}
+      {isAuthenticated ? (
+        <button
+          type="button"
+          onClick={onSettings}
+          disabled={isLoading || isPending}
+          className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+        >
+          Settings
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={isAuthenticated ? onLogout : onLogin}
         disabled={isLoading || isPending}
-        className="inline-flex min-h-[36px] max-w-[calc(100vw-24px)] items-center justify-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
-        aria-label={label}
-        title={displayName || label}
+        className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
       >
-        {isAuthenticated && displayName ? (
-          <span className="hidden max-w-[140px] truncate text-blue-950/65 sm:inline">{displayName}</span>
-        ) : null}
-        <span>{isLoading || isPending ? "..." : label}</span>
+        {isLoading || isPending ? "..." : isAuthenticated ? "Logout" : "Sign in with Google"}
       </button>
     </div>
   );
 }
 
 function PublicApp() {
-  const [language, setLanguage] = useState(null);
+  const [guestLanguage, setGuestLanguage] = useState(null);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [scheduleItems, setScheduleItems] = useState([]);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
@@ -1949,17 +2238,45 @@ function PublicApp() {
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
+  const [currentPath, setCurrentPath] = useState(
+    typeof window === "undefined" ? "/" : window.location.pathname
+  );
+
+  const applyAuthState = useCallback((nextAuthState) => {
+    const normalizedAuthState = nextAuthState?.authenticated ? nextAuthState : { authenticated: false };
+    setAuthState(normalizedAuthState);
+    if (!normalizedAuthState.authenticated) {
+      setGuestLanguage(null);
+    }
+
+    return normalizedAuthState;
+  }, []);
+
+  const refreshAuthState = useCallback(async () => {
+    const nextAuthState = await authApi.me();
+    return applyAuthState(nextAuthState);
+  }, [applyAuthState]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const savedLanguage = window.localStorage.getItem(STORAGE_KEY);
-    if (savedLanguage === "ko" || savedLanguage === "en") {
-      setLanguage(savedLanguage);
-    }
+    clearPersistedLanguagePreferences();
     setHasHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
@@ -1999,7 +2316,7 @@ function PublicApp() {
       .me()
       .then((nextAuthState) => {
         if (isMounted) {
-          setAuthState(nextAuthState?.authenticated ? nextAuthState : { authenticated: false });
+          applyAuthState(nextAuthState);
         }
       })
       .catch(() => {
@@ -2009,6 +2326,10 @@ function PublicApp() {
       })
       .finally(() => {
         if (isMounted) {
+          if (window.location.pathname === "/oauth/success") {
+            window.history.replaceState({}, "", "/");
+            setCurrentPath("/");
+          }
           setIsAuthLoading(false);
         }
       });
@@ -2016,18 +2337,69 @@ function PublicApp() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [applyAuthState]);
 
   const handleLanguageSelect = (nextLanguage) => {
-    setLanguage(nextLanguage);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, nextLanguage);
+    const nextPreferredLanguage = toMemberPreferredLanguage(nextLanguage);
+
+    if (!authState?.authenticated) {
+      setGuestLanguage(nextLanguage);
+      clearPersistedLanguagePreferences();
+      return;
     }
+
+    if (!nextPreferredLanguage) {
+      return;
+    }
+
+    setIsAuthActionPending(true);
+    authApi
+      .updateSettings({
+        nickname: authState.nickname || "",
+        preferredLanguage: nextPreferredLanguage,
+      })
+      .then((savedSettings) => {
+        setAuthState((currentAuthState) => ({
+          ...currentAuthState,
+          authenticated: true,
+          memberId: savedSettings?.memberId ?? currentAuthState.memberId,
+          email: savedSettings?.email ?? currentAuthState.email,
+          displayName: savedSettings?.displayName ?? currentAuthState.displayName,
+          nickname: savedSettings?.nickname ?? null,
+          preferredLanguage: savedSettings?.preferredLanguage ?? nextPreferredLanguage,
+          role: savedSettings?.role ?? currentAuthState.role,
+        }));
+        return refreshAuthState();
+      })
+      .catch(() => null)
+      .finally(() => {
+        setIsAuthActionPending(false);
+      });
   };
 
   const handleLogin = () => {
     if (typeof window !== "undefined") {
       window.location.href = authApi.googleLoginUrl();
+    }
+  };
+
+  const navigateToPath = (path) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.history.pushState({}, "", path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSettingsOpen = () => {
+    navigateToPath("/settings");
+  };
+
+  const handleMainOpen = () => {
+    navigateToPath("/");
+    if (authState?.authenticated) {
+      refreshAuthState().catch(() => null);
     }
   };
 
@@ -2037,13 +2409,39 @@ function PublicApp() {
       .logout()
       .catch(() => null)
       .finally(() => {
+        clearPersistedLanguagePreferences();
         setAuthState({ authenticated: false });
+        setGuestLanguage(null);
         setIsAuthActionPending(false);
+        if (currentPath === "/settings" || currentPath === "/oauth/success") {
+          navigateToPath("/");
+        }
       });
   };
 
-  const t = useMemo(() => CONTENT[language] ?? CONTENT.ko, [language]);
-  const activeLanguage = language === "en" ? "en" : "ko";
+  const handleSettingsSaved = (settings) => {
+    refreshAuthState().catch(() => {
+      setAuthState((currentAuthState) => ({
+        ...currentAuthState,
+        authenticated: true,
+        memberId: settings?.memberId ?? currentAuthState.memberId,
+        email: settings?.email ?? currentAuthState.email,
+        displayName: settings?.displayName ?? currentAuthState.displayName,
+        nickname: settings?.nickname ?? null,
+        preferredLanguage: settings?.preferredLanguage ?? currentAuthState.preferredLanguage,
+        role: settings?.role ?? currentAuthState.role,
+      }));
+    });
+  };
+
+  const isAuthenticated = Boolean(authState?.authenticated);
+  const memberLanguage = isAuthenticated ? toAppLanguage(authState.preferredLanguage) : null;
+  const effectiveLanguage = isAuthenticated ? memberLanguage : guestLanguage;
+  const shouldShowLanguageModal =
+    hasHydrated && !isAuthLoading && (isAuthenticated ? !memberLanguage : !guestLanguage);
+  const t = useMemo(() => CONTENT[effectiveLanguage] ?? CONTENT.ko, [effectiveLanguage]);
+  const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
+  const isSettingsPath = currentPath === "/settings";
   const applicationItems = useMemo(
     () => scheduleItems.map((item) => toApplicationItem(item, activeLanguage, t.application)),
     [activeLanguage, scheduleItems, t.application]
@@ -2051,7 +2449,7 @@ function PublicApp() {
 
   return (
     <>
-      {hasHydrated && !language ? (
+      {shouldShowLanguageModal ? (
         <LanguageSelectionModal
           title={t.languageTitle}
           description={t.languageDesc}
@@ -2066,8 +2464,19 @@ function PublicApp() {
           isPending={isAuthActionPending}
           onLogin={handleLogin}
           onLogout={handleLogout}
+          onSettings={handleSettingsOpen}
         />
-        <main aria-hidden={hasHydrated && !language ? true : undefined}>
+        {isSettingsPath ? (
+          <MemberSettingsPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMainOpen}
+            onSaved={handleSettingsSaved}
+          />
+        ) : (
+        <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
           <SectionWrapper id="top" contentClassName="pt-10 pb-8">
             <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
@@ -2113,12 +2522,12 @@ function PublicApp() {
                 </h2>
                 <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
                   {t.sections[0].body.map((paragraph) => (
-                    <p key={`${language ?? "ko"}-about-${paragraph}`}>{paragraph}</p>
+                    <p key={`${activeLanguage}-about-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
                   {t.sections[0].stats.map((stat) => (
-                    <div key={`${language ?? "ko"}-${stat.label}`} className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+                    <div key={`${activeLanguage}-${stat.label}`} className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
                       <div className="text-xs uppercase tracking-[0.2em] text-blue-900/45">{stat.label}</div>
                       <div className="mt-2 text-lg font-semibold text-blue-950">{stat.value}</div>
                     </div>
@@ -2139,13 +2548,13 @@ function PublicApp() {
                 </h2>
                 <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
                   {t.sections[1].body.map((paragraph) => (
-                    <p key={`${language ?? "ko"}-swing-${paragraph}`}>{paragraph}</p>
+                    <p key={`${activeLanguage}-swing-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
                   {t.sections[1].points.map((point) => (
                     <span
-                      key={`${language ?? "ko"}-${point}`}
+                      key={`${activeLanguage}-${point}`}
                       className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-950/80"
                     >
                       {point}
@@ -2169,7 +2578,7 @@ function PublicApp() {
               </h2>
               <div className="mx-auto mt-6 max-w-3xl space-y-4 text-base leading-8 text-blue-950/70">
                 {t.sections[2].body.map((paragraph) => (
-                  <p key={`${language ?? "ko"}-style-${paragraph}`}>{paragraph}</p>
+                  <p key={`${activeLanguage}-style-${paragraph}`}>{paragraph}</p>
                 ))}
               </div>
             </div>
@@ -2177,7 +2586,7 @@ function PublicApp() {
             <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div className="grid gap-4 md:grid-cols-3">
                 {t.sections[2].cards.map((card) => (
-                  <div key={`${language ?? "ko"}-${card.title}`} className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                  <div key={`${activeLanguage}-${card.title}`} className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
                     <div className="text-lg font-semibold text-blue-950">{card.title}</div>
                     <p className="mt-3 text-sm leading-7 text-blue-950/70">{card.desc}</p>
                   </div>
@@ -2203,7 +2612,7 @@ function PublicApp() {
                 </h2>
                 <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
                   {t.sections[3].body.map((paragraph) => (
-                    <p key={`${language ?? "ko"}-scene-${paragraph}`}>{paragraph}</p>
+                    <p key={`${activeLanguage}-scene-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
                 <div className="mt-8 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50 p-6 text-base leading-8 text-blue-950/80 shadow-sm">
@@ -2231,16 +2640,23 @@ function PublicApp() {
             <VisitorGuideSection language={activeLanguage} labels={t.visitorGuide} info={visitorGuideInfo} />
           </SectionWrapper>
         </main>
+        )}
 
+        {!isSettingsPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
+        ) : null}
 
-        <div className="h-28 md:hidden" aria-hidden="true" />
-        <MobileStickyCta
-          label={t.mobileApply}
-          onClick={() => scrollToHash("#schedule")}
-        />
+        {!isSettingsPath ? (
+          <>
+            <div className="h-28 md:hidden" aria-hidden="true" />
+            <MobileStickyCta
+              label={t.mobileApply}
+              onClick={() => scrollToHash("#schedule")}
+            />
+          </>
+        ) : null}
         <ApplicationModal
           item={selectedApplication}
           language={activeLanguage}

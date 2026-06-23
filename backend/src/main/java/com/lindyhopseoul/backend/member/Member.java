@@ -43,6 +43,13 @@ public class Member {
     @Column(name = "display_name", nullable = false, length = 100)
     private String displayName;
 
+    @Column(name = "nickname", length = 20)
+    private String nickname;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_language", nullable = false, length = 2, columnDefinition = "varchar(2) default 'KO'")
+    private MemberPreferredLanguage preferredLanguage;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private MemberRole role;
@@ -81,9 +88,19 @@ public class Member {
         this.lastLoginAt = loginAt;
     }
 
+    public void updateSettings(String nickname, MemberPreferredLanguage preferredLanguage) {
+        this.nickname = normalizeNickname(nickname);
+        if (preferredLanguage != null) {
+            this.preferredLanguage = preferredLanguage;
+        }
+    }
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();
+        if (preferredLanguage == null) {
+            preferredLanguage = MemberPreferredLanguage.KO;
+        }
         if (role == null) {
             role = MemberRole.USER;
         }
@@ -119,6 +136,14 @@ public class Member {
         return "Google User";
     }
 
+    private static String normalizeNickname(String nickname) {
+        if (nickname == null) {
+            return null;
+        }
+        String normalized = nickname.trim();
+        return normalized.isBlank() ? null : normalized;
+    }
+
     public Long getId() {
         return id;
     }
@@ -137,6 +162,14 @@ public class Member {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public MemberPreferredLanguage getPreferredLanguage() {
+        return preferredLanguage == null ? MemberPreferredLanguage.KO : preferredLanguage;
     }
 
     public MemberRole getRole() {

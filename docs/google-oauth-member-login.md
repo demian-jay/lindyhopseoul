@@ -7,6 +7,7 @@ This document captures the current Google OAuth login and automatic member signu
 ## Current Status
 
 - Google OAuth login and automatic member creation are implemented in backend and frontend code.
+- Logged-in member settings are implemented for nickname and preferred language.
 - Backend local port is configured as `18080` for the current Google OAuth client redirect URI.
 - Frontend local dev URL is `http://localhost:5173`.
 - `VITE_API_BASE_URL` is configured as `http://localhost:18080` in local `.env` and `.env.example`.
@@ -17,7 +18,7 @@ This document captures the current Google OAuth login and automatic member signu
   - scopes: `openid email profile`
 - CORS from `http://localhost:5173` to `http://localhost:18080` has been verified with credentials enabled.
 - Backend tests and frontend build have passed.
-- Full browser login completion, `authenticated=true`, and member row creation still need final manual verification after signing in with Google in the browser.
+- Full Google login, `authenticated=true`, and member row creation were verified during OAuth setup.
 
 ## Google Cloud Console Settings
 
@@ -90,6 +91,7 @@ Primary files:
 - `backend/src/main/java/com/lindyhopseoul/backend/auth/*`
 - `backend/src/main/java/com/lindyhopseoul/backend/member/*`
 - `backend/src/test/java/com/lindyhopseoul/backend/auth/GoogleOAuth2MemberServiceTest.java`
+- `backend/src/test/java/com/lindyhopseoul/backend/member/MemberSettingsServiceTest.java`
 
 Flow:
 
@@ -111,7 +113,7 @@ Important privacy/security behavior:
 - Google Refresh Token is not stored in DB.
 - Google profile image is not stored in DB.
 - `provider_id` is not returned from `/api/auth/me`.
-- API response includes only `authenticated`, `memberId`, `email`, `displayName`, and `role`.
+- API response includes only `authenticated`, `memberId`, `email`, `displayName`, `nickname`, `preferredLanguage`, and `role`.
 - `NoopOAuth2AuthorizedClientRepository` prevents Spring's authorized client from being saved in the session.
 
 ## Member Table
@@ -130,6 +132,8 @@ provider
 provider_id
 email
 display_name
+nickname
+preferred_language
 role
 status
 created_at
@@ -155,6 +159,11 @@ birth_date
 gender
 ```
 
+Member settings columns:
+
+- `nickname`: nullable, stored only after trimming, 2 to 20 characters when present. Duplicate nicknames are currently allowed.
+- `preferred_language`: defaults to `KO`; valid values are `KO` and `EN`.
+
 ## Frontend Flow
 
 Primary files:
@@ -168,8 +177,14 @@ Behavior:
 - On mount, frontend calls `GET /api/auth/me` with `credentials: "include"`.
 - Logged-out state shows `Sign in with Google`.
 - Login click navigates to `${VITE_API_BASE_URL}/oauth2/authorization/google`.
-- Logged-in state shows `Logout` and, on larger screens, the user display name or email.
+- Logged-in state shows `Settings`, `Logout`, and, on larger screens, the nickname, display name, or email.
 - Logout calls `POST /api/auth/logout` with `credentials: "include"`.
+- `/settings` shows the logged-in member settings form:
+  - read-only email
+  - read-only Google display name
+  - editable nickname
+  - preferred language select with `KO` and `EN`
+  - save success/error feedback
 
 ## API Contract
 
@@ -189,11 +204,31 @@ Logged in:
   "memberId": 1,
   "email": "user@example.com",
   "displayName": "User Name",
+  "nickname": "Jay",
+  "preferredLanguage": "KO",
   "role": "USER"
 }
 ```
 
 No token, refresh token, or `provider_id` should be exposed in API responses.
+
+Member settings:
+
+```http
+GET /api/members/me/settings
+PATCH /api/members/me/settings
+```
+
+PATCH request:
+
+```json
+{
+  "nickname": "Jay",
+  "preferredLanguage": "EN"
+}
+```
+
+Unauthenticated requests return `401`. Invalid nickname or preferred language values return `400`.
 
 ## Verified So Far
 
@@ -204,7 +239,7 @@ cd backend
 mvn test
 ```
 
-Result: passed, 37 tests.
+Result: passed, 42 tests.
 
 ```powershell
 npm run build
