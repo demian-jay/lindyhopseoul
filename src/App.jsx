@@ -726,6 +726,69 @@ const MY_CLASSES_COPY = {
   },
 };
 
+const MY_PAGE_COPY = {
+  ko: {
+    topButton: "내 페이지",
+    login: "Sign in with Google",
+    title: "내 페이지",
+    description: "신청 내역, 메시지, 계정 설정을 한곳에서 확인합니다.",
+    loginRequiredTitle: "로그인이 필요합니다",
+    loginRequiredBody: "내 페이지는 Google 로그인 후 사용할 수 있습니다.",
+    back: "메인으로",
+    accountLabel: "로그인 계정",
+    emailLabel: "이메일",
+    logout: "로그아웃",
+    loggingOut: "로그아웃 중",
+    menu: [
+      {
+        id: "classes",
+        title: "내 신청 내역",
+        description: "신청한 수업과 이벤트를 확인합니다.",
+      },
+      {
+        id: "messages",
+        title: "메시지",
+        description: "운영진과 주고받은 메시지를 확인합니다.",
+      },
+      {
+        id: "settings",
+        title: "내 설정",
+        description: "닉네임과 선호 언어를 관리합니다.",
+      },
+    ],
+  },
+  en: {
+    topButton: "My Page",
+    login: "Sign in with Google",
+    title: "My Page",
+    description: "Manage your classes, messages, and profile.",
+    loginRequiredTitle: "Login required",
+    loginRequiredBody: "My Page is available after Google login.",
+    back: "Back to main",
+    accountLabel: "Signed in as",
+    emailLabel: "Email",
+    logout: "Logout",
+    loggingOut: "Logging out",
+    menu: [
+      {
+        id: "classes",
+        title: "My Classes",
+        description: "View the classes and events you applied for.",
+      },
+      {
+        id: "messages",
+        title: "Messages",
+        description: "Check your conversation with the Swingpop team.",
+      },
+      {
+        id: "settings",
+        title: "Settings",
+        description: "Manage your nickname and preferred language.",
+      },
+    ],
+  },
+};
+
 const announcementLinks = [
   {
     type: "kakao",
@@ -2698,55 +2761,117 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack })
   );
 }
 
-function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings, onMessages, onMyClasses }) {
-  const isAuthenticated = Boolean(authState?.authenticated);
-  const displayName = authState?.nickname || authState?.displayName || authState?.email || "";
+function MyPage({ authState, isLoading, isPending, language, onLogin, onBack, onMyClasses, onMessages, onSettings, onLogout }) {
+  const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
+  const displayName = memberApplicationName(authState);
+  const email = authState?.email || "";
+  const menuActions = {
+    classes: onMyClasses,
+    messages: onMessages,
+    settings: onSettings,
+  };
+
+  if (!authState?.authenticated) {
+    return (
+      <main className="min-h-screen px-5 py-24">
+        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {labels.login}
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.back}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] flex-wrap justify-end gap-2 sm:right-5 sm:top-5">
-      {isAuthenticated && displayName ? (
-        <span
-          className="hidden min-h-[36px] max-w-[140px] items-center truncate rounded-full border border-white/70 bg-white/70 px-3 text-xs font-semibold text-blue-950/65 shadow-sm backdrop-blur sm:inline-flex"
-          title={displayName}
-        >
-          {displayName}
-        </span>
-      ) : null}
-      {isAuthenticated ? (
-        <>
+    <main className="min-h-screen px-5 py-20 sm:py-24">
+      <section className="mx-auto max-w-4xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-blue-950 sm:text-4xl">{labels.title}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-950/65">{labels.description}</p>
+          </div>
           <button
             type="button"
-            onClick={onMyClasses}
-            disabled={isLoading || isPending}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+            onClick={onBack}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white/85 px-4 text-sm font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            My Classes
+            {labels.back}
           </button>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-blue-100 bg-white/85 p-5 shadow-sm backdrop-blur sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-900/45">
+            {labels.accountLabel}
+          </div>
+          <div className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">{displayName}</div>
+          {email ? (
+            <div className="mt-2 text-sm text-blue-950/55">
+              <span className="font-semibold">{labels.emailLabel}</span>
+              <span className="mx-2 text-blue-950/25">/</span>
+              <span>{email}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {labels.menu.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={menuActions[item.id]}
+              className="min-h-[132px] rounded-3xl border border-blue-100 bg-white/90 p-5 text-left shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <span className="block text-lg font-semibold tracking-tight text-blue-950">{item.title}</span>
+              <span className="mt-3 block text-sm leading-6 text-blue-950/62">{item.description}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 flex justify-end">
           <button
             type="button"
-            onClick={onMessages}
-            disabled={isLoading || isPending}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+            onClick={onLogout}
+            disabled={isPending}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white/70 px-4 text-sm font-semibold text-blue-950/70 shadow-sm backdrop-blur transition hover:bg-white hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/35"
           >
-            Messages
+            {isPending ? labels.loggingOut : labels.logout}
           </button>
-          <button
-            type="button"
-            onClick={onSettings}
-            disabled={isLoading || isPending}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
-          >
-            Settings
-          </button>
-        </>
-      ) : null}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyPage }) {
+  const isAuthenticated = Boolean(authState?.authenticated);
+  const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
+
+  return (
+    <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] justify-end sm:right-5 sm:top-5">
       <button
         type="button"
-        onClick={isAuthenticated ? onLogout : onLogin}
+        onClick={isAuthenticated ? onMyPage : onLogin}
         disabled={isLoading || isPending}
         className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
       >
-        {isLoading || isPending ? "..." : isAuthenticated ? "Logout" : "Sign in with Google"}
+        {isLoading || isPending ? "..." : isAuthenticated ? labels.topButton : labels.login}
       </button>
     </div>
   );
@@ -2994,6 +3119,10 @@ function PublicApp() {
     navigateToPath("/my-classes");
   };
 
+  const handleMyPageOpen = () => {
+    navigateToPath("/me");
+  };
+
   const handleMainOpen = () => {
     navigateToPath("/");
     if (authState?.authenticated) {
@@ -3018,6 +3147,7 @@ function PublicApp() {
           currentPath === "/settings" ||
           currentPath === "/messages" ||
           currentPath === "/my-classes" ||
+          currentPath === "/me" ||
           currentPath === "/oauth/success"
         ) {
           navigateToPath("/");
@@ -3068,6 +3198,7 @@ function PublicApp() {
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
   const isMyClassesPath = currentPath === "/my-classes";
+  const isMyPagePath = currentPath === "/me";
   const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
   const applicationItems = useMemo(
     () =>
@@ -3097,11 +3228,9 @@ function PublicApp() {
           authState={authState}
           isLoading={isAuthLoading}
           isPending={isAuthActionPending}
+          language={activeLanguage}
           onLogin={handleLogin}
-          onLogout={handleLogout}
-          onSettings={handleSettingsOpen}
-          onMessages={handleMessagesOpen}
-          onMyClasses={handleMyClassesOpen}
+          onMyPage={handleMyPageOpen}
         />
         {isSettingsPath ? (
           <MemberSettingsPage
@@ -3111,6 +3240,19 @@ function PublicApp() {
             onLogin={handleLogin}
             onBack={handleMainOpen}
             onSaved={handleSettingsSaved}
+          />
+        ) : isMyPagePath ? (
+          <MyPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            isPending={isAuthActionPending}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMainOpen}
+            onMyClasses={handleMyClassesOpen}
+            onMessages={handleMessagesOpen}
+            onSettings={handleSettingsOpen}
+            onLogout={handleLogout}
           />
         ) : isMyClassesPath ? (
           <MyClassesPage
@@ -3295,13 +3437,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta
