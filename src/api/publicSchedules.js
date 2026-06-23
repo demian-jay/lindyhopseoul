@@ -16,6 +16,7 @@ function buildQuery(params = {}) {
 async function request(path, options = {}) {
   const { body, ...fetchOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -25,7 +26,9 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.message || `API request failed with status ${response.status}.`);
+    const apiError = new Error(error?.message || `API request failed with status ${response.status}.`);
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return response.json();

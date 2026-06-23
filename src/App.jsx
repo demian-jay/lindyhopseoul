@@ -96,6 +96,7 @@ const CONTENT = {
       recommended: "처음 추천",
       scheduleButton: "일정으로 이동",
       applyButton: "신청하기",
+      appliedButton: "신청 완료",
       details: {
         date: "날짜",
         time: "시간",
@@ -121,6 +122,7 @@ const CONTENT = {
       nameHelp: [
         "한국의 스윙댄스/린디합 문화에서는 인터넷 커뮤니티를 통해 활성화된 배경이 있어 닉네임을 사용하는 문화가 있습니다. 이름이나 닉네임 중 편한 것을 자유롭게 입력해주세요.",
       ],
+      nameManagedBySettings: "로그인 회원의 이름은 내 설정 정보로 자동 입력됩니다.",
       requestMemoLabel: "질문사항 / 하고 싶은 말",
       requestMemoPlaceholder: "수업 전에 궁금한 점이나 운영진에게 전달하고 싶은 말을 적어주세요.",
       requestMemoHelp:
@@ -157,6 +159,7 @@ const CONTENT = {
       required: "닉네임/이름을 입력해주세요.",
       danceRoleRequired: "역할을 선택해주세요.",
       submitError: "신청을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
+      alreadyAppliedError: "이미 신청된 수업입니다.",
       successTitle: "신청이 접수되었습니다.",
       noticeTitle: "공지방 안내",
       noticeBody: "수업 전 안내와 최신 소식은 공지방에서 확인해주세요.",
@@ -357,6 +360,7 @@ const CONTENT = {
       recommended: "Recommended first",
       scheduleButton: "Go to schedule",
       applyButton: "Apply",
+      appliedButton: "Already applied",
       details: {
         date: "Date",
         time: "Time",
@@ -382,6 +386,7 @@ const CONTENT = {
       nameHelp: [
         "In the Korean swing dance/Lindy Hop community, there is a culture of using nicknames because the scene has been closely connected with online communities. Please feel free to use either your name or your nickname.",
       ],
+      nameManagedBySettings: "This name comes from your account settings.",
       requestMemoLabel: "Questions / Anything you want to share",
       requestMemoPlaceholder: "Share any questions before class or anything you want the team to know.",
       requestMemoHelp:
@@ -418,6 +423,7 @@ const CONTENT = {
       required: "Please enter your nickname/name.",
       danceRoleRequired: "Please choose a role.",
       submitError: "We could not save your application. Please try again shortly.",
+      alreadyAppliedError: "Already applied.",
       successTitle: "Application received.",
       noticeTitle: "Announcement Room",
       noticeBody: "Please check the announcement room for class updates and the latest news.",
@@ -559,6 +565,29 @@ function toMemberPreferredLanguage(appLanguage) {
   return APP_LANGUAGE_TO_MEMBER_LANGUAGE[appLanguage] || null;
 }
 
+function memberApplicationName(authState) {
+  if (!authState?.authenticated) {
+    return "";
+  }
+
+  const nickname = typeof authState.nickname === "string" ? authState.nickname.trim() : "";
+  if (nickname) {
+    return nickname;
+  }
+
+  const displayName = typeof authState.displayName === "string" ? authState.displayName.trim() : "";
+  if (displayName) {
+    return displayName;
+  }
+
+  const email = typeof authState.email === "string" ? authState.email.trim() : "";
+  if (email) {
+    return email.split("@")[0] || email;
+  }
+
+  return authState.memberId ? `Member ${authState.memberId}` : "Member";
+}
+
 function clearPersistedLanguagePreferences() {
   if (typeof window === "undefined") {
     return;
@@ -649,6 +678,51 @@ const MEMBER_MESSAGES_COPY = {
     sent: "Message sent.",
     member: "Me",
     admin: "Team",
+  },
+};
+
+const MY_CLASSES_COPY = {
+  ko: {
+    title: "내 신청 내역",
+    description: "Google 계정으로 신청한 수업과 이벤트를 확인합니다.",
+    loginRequiredTitle: "로그인이 필요합니다",
+    loginRequiredBody: "내 신청 내역은 Google 로그인 후 사용할 수 있습니다.",
+    login: "Sign in with Google",
+    back: "메인으로",
+    loading: "신청 내역을 불러오는 중입니다.",
+    empty: "아직 신청한 수업이 없습니다.",
+    loadError: "신청 내역을 불러오지 못했습니다.",
+    status: "신청 완료",
+    date: "날짜",
+    role: "역할",
+    appliedAt: "신청일",
+    noRole: "선택 없음",
+    roles: {
+      LEADER: "리더",
+      FOLLOWER: "팔로워",
+      BOTH: "리더/팔로워 모두 가능",
+    },
+  },
+  en: {
+    title: "My Classes",
+    description: "View classes and events you applied for with your Google account.",
+    loginRequiredTitle: "Login required",
+    loginRequiredBody: "My Classes is available after Google login.",
+    login: "Sign in with Google",
+    back: "Back to main",
+    loading: "Loading your applications.",
+    empty: "You have not applied for any classes yet.",
+    loadError: "Could not load your applications.",
+    status: "Applied",
+    date: "Date",
+    role: "Role",
+    appliedAt: "Applied",
+    noRole: "Not selected",
+    roles: {
+      LEADER: "Leader",
+      FOLLOWER: "Follower",
+      BOTH: "Leader / Follower both ok",
+    },
   },
 };
 
@@ -1224,6 +1298,20 @@ function formatMessageDate(value, language) {
   }).format(new Date(value));
 }
 
+function formatClassDate(value, language) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(language === "en" ? "en-US" : "ko-KR", {
+    dateStyle: "medium",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatClassRole(role, labels) {
+  return labels.roles?.[role] || labels.noRole;
+}
+
 function MemoBoard({ labels }) {
   const [memos, setMemos] = useState([]);
   const [form, setForm] = useState(createEmptyMemoForm);
@@ -1607,7 +1695,23 @@ function toApplicationItem(item, language, labels) {
   };
 }
 
+function scheduleItemIdFromApplication(application) {
+  if (!application) {
+    return "";
+  }
+  if (application.lessonId) {
+    return `lesson-${application.lessonId}`;
+  }
+  if (application.eventId) {
+    return `event-${application.eventId}`;
+  }
+  return "";
+}
+
 function ApplicationCard({ item, language, labels, onApply }) {
+  const isApplied = Boolean(item.isApplied);
+  const isApplyDisabled = isApplied || Boolean(item.isApplyStatusLoading);
+
   return (
     <article
       className={`grid gap-5 rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
@@ -1647,10 +1751,21 @@ function ApplicationCard({ item, language, labels, onApply }) {
 
       <button
         type="button"
-        onClick={() => onApply(item)}
-        className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onClick={() => {
+          if (!isApplyDisabled) {
+            onApply(item);
+          }
+        }}
+        disabled={isApplyDisabled}
+        className={`inline-flex min-h-[48px] items-center justify-center rounded-2xl px-5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          isApplied
+            ? "cursor-default border border-emerald-200 bg-emerald-50 text-emerald-800"
+            : item.isApplyStatusLoading
+              ? "cursor-wait border border-blue-100 bg-blue-50 text-blue-950/45"
+              : "bg-blue-700 text-white hover:bg-blue-800"
+        }`}
       >
-        {labels.applyButton}
+        {isApplied ? labels.appliedButton : labels.applyButton}
       </button>
     </article>
   );
@@ -1735,20 +1850,37 @@ function ScheduleAndApplicationSection({
   );
 }
 
-function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
+function ApplicationModal({ item, language, labels, detailLabels, authState, onClose, onSubmitted, onAlreadyApplied }) {
   const [form, setForm] = useState({ name: "", requestMemo: "", danceRole: "" });
   const [isNameHelpOpen, setIsNameHelpOpen] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedApplication, setSubmittedApplication] = useState(null);
+  const isAuthenticated = Boolean(authState?.authenticated);
+  const authenticatedApplicantName = memberApplicationName(authState);
 
   useEffect(() => {
-    setForm({ name: "", requestMemo: "", danceRole: "" });
+    setForm({
+      name: isAuthenticated ? authenticatedApplicantName : "",
+      requestMemo: "",
+      danceRole: "",
+    });
     setError("");
     setIsNameHelpOpen(false);
     setIsSubmitting(false);
     setSubmittedApplication(null);
   }, [item]);
+
+  useEffect(() => {
+    if (!item || !isAuthenticated) {
+      return;
+    }
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      name: authenticatedApplicantName,
+    }));
+  }, [authenticatedApplicantName, isAuthenticated, item]);
 
   useEffect(() => {
     if (!item) {
@@ -1780,7 +1912,9 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
     event.preventDefault();
     setError("");
 
-    if (!form.name.trim()) {
+    const applicantName = isAuthenticated ? authenticatedApplicantName : form.name.trim();
+
+    if (!applicantName) {
       setError(labels.required);
       return;
     }
@@ -1795,14 +1929,20 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
       const savedApplication = await publicScheduleApi.createApplication({
         eventId: item.target.eventId,
         lessonId: item.target.lessonId,
-        applicantName: form.name.trim(),
+        applicantName,
         requestMemo: form.requestMemo.trim(),
         languageCode: language,
         danceRole: item.roleSelectionEnabled ? form.danceRole : null,
       });
       setSubmittedApplication(savedApplication);
+      onSubmitted?.(savedApplication);
     } catch (nextError) {
-      setError(nextError.message || labels.submitError);
+      if (isAuthenticated && nextError.status === 409) {
+        setError(labels.alreadyAppliedError);
+        onAlreadyApplied?.(item);
+      } else {
+        setError(nextError.message || labels.submitError);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1963,8 +2103,18 @@ function ApplicationModal({ item, language, labels, detailLabels, onClose }) {
                   value={form.name}
                   onChange={handleChange}
                   placeholder={labels.namePlaceholder}
-                  className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  readOnly={isAuthenticated}
+                  className={`mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:ring-2 focus:ring-blue-200 ${
+                    isAuthenticated
+                      ? "border-blue-100 bg-blue-50/70 text-blue-950/70"
+                      : "border-blue-200 bg-white focus:border-blue-500"
+                  }`}
                 />
+                {isAuthenticated ? (
+                  <span className="mt-2 block text-xs leading-5 text-blue-950/55">
+                    {labels.nameManagedBySettings}
+                  </span>
+                ) : null}
               </label>
               {item.roleSelectionEnabled ? (
                 <div className="sm:col-span-2">
@@ -2241,6 +2391,132 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
   );
 }
 
+function MyClassesPage({ authState, isLoading, language, onLogin, onBack }) {
+  const labels = MY_CLASSES_COPY[language] ?? MY_CLASSES_COPY.ko;
+  const [applications, setApplications] = useState([]);
+  const [isApplicationsLoading, setIsApplicationsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadApplications = useCallback(async () => {
+    setIsApplicationsLoading(true);
+    setError("");
+
+    try {
+      const nextApplications = await authApi.getMyClassApplications(language);
+      setApplications(Array.isArray(nextApplications) ? nextApplications : []);
+    } catch (nextError) {
+      setApplications([]);
+      setError(nextError.message || labels.loadError);
+    } finally {
+      setIsApplicationsLoading(false);
+    }
+  }, [language, labels.loadError]);
+
+  useEffect(() => {
+    if (!authState?.authenticated) {
+      setApplications([]);
+      return;
+    }
+
+    loadApplications();
+  }, [authState?.authenticated, loadApplications]);
+
+  if (!authState?.authenticated) {
+    return (
+      <main className="min-h-screen px-5 py-24">
+        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {labels.login}
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.back}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen px-5 py-20 sm:py-24">
+      <section className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.back}
+          </button>
+        </div>
+
+        <div className="mt-8">
+          {isApplicationsLoading ? (
+            <div className="rounded-3xl border border-blue-100 bg-blue-50/60 px-5 py-8 text-center text-sm text-blue-950/60">
+              {labels.loading}
+            </div>
+          ) : null}
+
+          {!isApplicationsLoading && error ? (
+            <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          {!isApplicationsLoading && !error && applications.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/50 px-5 py-8 text-center text-sm text-blue-950/60">
+              {labels.empty}
+            </div>
+          ) : null}
+
+          {!isApplicationsLoading && !error && applications.length > 0 ? (
+            <div className="grid gap-4">
+              {applications.map((application) => (
+                <article
+                  key={application.applicationId}
+                  className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="inline-flex min-h-[28px] items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
+                        {labels.status}
+                      </div>
+                      <h2 className="mt-3 text-lg font-semibold tracking-tight text-blue-950">
+                        {application.classTitle}
+                      </h2>
+                    </div>
+                  </div>
+                  <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+                    <DetailRow label={labels.date} value={formatClassDate(application.classDate, language)} />
+                    <DetailRow label={labels.role} value={formatClassRole(application.role, labels)} />
+                    <DetailRow label={labels.appliedAt} value={formatMessageDate(application.appliedAt, language)} />
+                  </dl>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack }) {
   const labels = MEMBER_MESSAGES_COPY[language] ?? MEMBER_MESSAGES_COPY.ko;
   const [thread, setThread] = useState({ threadId: null, messages: [] });
@@ -2422,7 +2698,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack })
   );
 }
 
-function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings, onMessages }) {
+function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSettings, onMessages, onMyClasses }) {
   const isAuthenticated = Boolean(authState?.authenticated);
   const displayName = authState?.nickname || authState?.displayName || authState?.email || "";
 
@@ -2438,6 +2714,14 @@ function AuthControl({ authState, isLoading, isPending, onLogin, onLogout, onSet
       ) : null}
       {isAuthenticated ? (
         <>
+          <button
+            type="button"
+            onClick={onMyClasses}
+            disabled={isLoading || isPending}
+            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+          >
+            My Classes
+          </button>
           <button
             type="button"
             onClick={onMessages}
@@ -2476,6 +2760,8 @@ function PublicApp() {
   const [scheduleError, setScheduleError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
+  const [isAppliedScheduleLoading, setIsAppliedScheduleLoading] = useState(false);
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
@@ -2488,6 +2774,8 @@ function PublicApp() {
     setAuthState(normalizedAuthState);
     if (!normalizedAuthState.authenticated) {
       setGuestLanguage(null);
+      setAppliedScheduleItemIds([]);
+      setIsAppliedScheduleLoading(false);
     }
 
     return normalizedAuthState;
@@ -2497,6 +2785,57 @@ function PublicApp() {
     const nextAuthState = await authApi.me();
     return applyAuthState(nextAuthState);
   }, [applyAuthState]);
+
+  const loadAppliedScheduleItemIds = useCallback(async () => {
+    if (!authState?.authenticated) {
+      setAppliedScheduleItemIds([]);
+      setIsAppliedScheduleLoading(false);
+      return [];
+    }
+
+    setIsAppliedScheduleLoading(true);
+
+    try {
+      const nextAppliedScheduleItemIds = await authApi.getAppliedScheduleItemIds();
+      const normalizedIds = Array.isArray(nextAppliedScheduleItemIds)
+        ? nextAppliedScheduleItemIds.map((id) => String(id))
+        : [];
+      setAppliedScheduleItemIds(normalizedIds);
+      return normalizedIds;
+    } catch (primaryError) {
+      try {
+        const myApplications = await authApi.getMyClassApplications();
+        const fallbackIds = Array.isArray(myApplications)
+          ? myApplications
+              .map((application) => application?.scheduleItemId)
+              .filter(Boolean)
+              .map((id) => String(id))
+          : [];
+        setAppliedScheduleItemIds(fallbackIds);
+        return fallbackIds;
+      } catch {
+        if (primaryError.status === 401) {
+          setAppliedScheduleItemIds([]);
+        }
+        return [];
+      }
+    } finally {
+      setIsAppliedScheduleLoading(false);
+    }
+  }, [authState?.authenticated]);
+
+  const markScheduleItemApplied = useCallback((scheduleItemId) => {
+    if (!scheduleItemId) {
+      return;
+    }
+
+    const normalizedScheduleItemId = String(scheduleItemId);
+    setAppliedScheduleItemIds((currentIds) => (
+      currentIds.includes(normalizedScheduleItemId)
+        ? currentIds
+        : [...currentIds, normalizedScheduleItemId]
+    ));
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -2580,6 +2919,16 @@ function PublicApp() {
     };
   }, [applyAuthState]);
 
+  useEffect(() => {
+    if (!authState?.authenticated) {
+      setAppliedScheduleItemIds([]);
+      setIsAppliedScheduleLoading(false);
+      return;
+    }
+
+    loadAppliedScheduleItemIds();
+  }, [authState?.authenticated, loadAppliedScheduleItemIds]);
+
   const handleLanguageSelect = (nextLanguage) => {
     const nextPreferredLanguage = toMemberPreferredLanguage(nextLanguage);
 
@@ -2641,10 +2990,15 @@ function PublicApp() {
     navigateToPath("/messages");
   };
 
+  const handleMyClassesOpen = () => {
+    navigateToPath("/my-classes");
+  };
+
   const handleMainOpen = () => {
     navigateToPath("/");
     if (authState?.authenticated) {
       refreshAuthState().catch(() => null);
+      loadAppliedScheduleItemIds().catch(() => null);
     }
   };
 
@@ -2657,8 +3011,15 @@ function PublicApp() {
         clearPersistedLanguagePreferences();
         setAuthState({ authenticated: false });
         setGuestLanguage(null);
+        setAppliedScheduleItemIds([]);
+        setIsAppliedScheduleLoading(false);
         setIsAuthActionPending(false);
-        if (currentPath === "/settings" || currentPath === "/messages" || currentPath === "/oauth/success") {
+        if (
+          currentPath === "/settings" ||
+          currentPath === "/messages" ||
+          currentPath === "/my-classes" ||
+          currentPath === "/oauth/success"
+        ) {
           navigateToPath("/");
         }
       });
@@ -2679,6 +3040,24 @@ function PublicApp() {
     });
   };
 
+  const handleApplicationSubmitted = useCallback((savedApplication) => {
+    if (!authState?.authenticated) {
+      return;
+    }
+
+    markScheduleItemApplied(scheduleItemIdFromApplication(savedApplication));
+    loadAppliedScheduleItemIds().catch(() => null);
+  }, [authState?.authenticated, loadAppliedScheduleItemIds, markScheduleItemApplied]);
+
+  const handleApplicationAlreadyApplied = useCallback((item) => {
+    if (!authState?.authenticated) {
+      return;
+    }
+
+    markScheduleItemApplied(item?.id);
+    loadAppliedScheduleItemIds().catch(() => null);
+  }, [authState?.authenticated, loadAppliedScheduleItemIds, markScheduleItemApplied]);
+
   const isAuthenticated = Boolean(authState?.authenticated);
   const memberLanguage = isAuthenticated ? toAppLanguage(authState.preferredLanguage) : null;
   const effectiveLanguage = isAuthenticated ? memberLanguage : guestLanguage;
@@ -2688,9 +3067,19 @@ function PublicApp() {
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
+  const isMyClassesPath = currentPath === "/my-classes";
+  const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
   const applicationItems = useMemo(
-    () => scheduleItems.map((item) => toApplicationItem(item, activeLanguage, t.application)),
-    [activeLanguage, scheduleItems, t.application]
+    () =>
+      scheduleItems.map((item) => {
+        const applicationItem = toApplicationItem(item, activeLanguage, t.application);
+        return {
+          ...applicationItem,
+          isApplied: isAuthenticated && appliedScheduleItemIdSet.has(applicationItem.id),
+          isApplyStatusLoading: isAuthenticated && isAppliedScheduleLoading,
+        };
+      }),
+    [activeLanguage, appliedScheduleItemIdSet, isAppliedScheduleLoading, isAuthenticated, scheduleItems, t.application]
   );
 
   return (
@@ -2712,6 +3101,7 @@ function PublicApp() {
           onLogout={handleLogout}
           onSettings={handleSettingsOpen}
           onMessages={handleMessagesOpen}
+          onMyClasses={handleMyClassesOpen}
         />
         {isSettingsPath ? (
           <MemberSettingsPage
@@ -2721,6 +3111,14 @@ function PublicApp() {
             onLogin={handleLogin}
             onBack={handleMainOpen}
             onSaved={handleSettingsSaved}
+          />
+        ) : isMyClassesPath ? (
+          <MyClassesPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMainOpen}
           />
         ) : isMessagesPath ? (
           <MemberMessagesPage
@@ -2897,13 +3295,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta
@@ -2917,7 +3315,10 @@ function PublicApp() {
           language={activeLanguage}
           labels={t.applicationModal}
           detailLabels={t.application}
+          authState={authState}
           onClose={() => setSelectedApplication(null)}
+          onSubmitted={handleApplicationSubmitted}
+          onAlreadyApplied={handleApplicationAlreadyApplied}
         />
       </div>
     </>

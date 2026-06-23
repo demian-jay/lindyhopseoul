@@ -17,7 +17,9 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.message || `API request failed with status ${response.status}.`);
+    const apiError = new Error(error?.message || `API request failed with status ${response.status}.`);
+    apiError.status = response.status;
+    throw apiError;
   }
 
   if (response.status === 204) {
@@ -56,5 +58,15 @@ export const authApi = {
       method: "POST",
       body: payload,
     });
+  },
+  getMyClassApplications(language) {
+    const query = language ? `?language=${encodeURIComponent(language)}` : "";
+    return request(`/api/members/me/class-applications${query}`);
+  },
+  getAppliedClassIds() {
+    return request("/api/members/me/applied-class-ids");
+  },
+  getAppliedScheduleItemIds() {
+    return request("/api/members/me/applied-schedule-item-ids");
   },
 };

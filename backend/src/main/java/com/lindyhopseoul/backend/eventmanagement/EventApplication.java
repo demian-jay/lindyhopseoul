@@ -2,6 +2,7 @@ package com.lindyhopseoul.backend.eventmanagement;
 
 import java.time.Instant;
 
+import com.lindyhopseoul.backend.member.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,6 +31,10 @@ public class EventApplication {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "LESSON_ID")
     private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MEMBER_ID")
+    private Member member;
 
     @Column(nullable = false, length = 100)
     private String applicantName;
@@ -67,9 +72,24 @@ public class EventApplication {
             String languageCode,
             ApplicationDanceRole danceRole
     ) {
+        return create(event, lesson, null, applicantName, contactMethod, contactValue, requestMemo, languageCode, danceRole);
+    }
+
+    public static EventApplication create(
+            Event event,
+            Lesson lesson,
+            Member member,
+            String applicantName,
+            ApplicationContactMethod contactMethod,
+            String contactValue,
+            String requestMemo,
+            String languageCode,
+            ApplicationDanceRole danceRole
+    ) {
         EventApplication application = new EventApplication();
         application.event = event;
         application.lesson = lesson;
+        application.member = member;
         application.applicantName = applicantName;
         application.contactMethod = contactMethod;
         application.contactValue = contactValue;
@@ -94,6 +114,10 @@ public class EventApplication {
 
     public Lesson getLesson() {
         return lesson;
+    }
+
+    public Member getMember() {
+        return member;
     }
 
     public String getApplicantName() {
