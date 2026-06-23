@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminApi } from "./api/admin";
+import MemberNameLabel from "./MemberNameLabel";
 
 const SUPPORTED_LANGUAGES = ["ko", "en"];
 const EVENT_TYPES = ["REGULAR_CLASS", "PARTY", "DIALOGUE_PARTY"];
@@ -611,7 +612,9 @@ function ParticipantList({ participants, copy }) {
         <div className="participant-card-grid mt-3">
           {items.map((participant) => (
             <div key={participant.id} className="min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2">
-              <div className="text-sm font-semibold text-zinc-950">{participant.applicantName}</div>
+              <div className="text-sm font-semibold text-zinc-950">
+                <MemberNameLabel name={participant.applicantName} status={participant.memberStatus} />
+              </div>
               {participantSummaryText(participant, copy) ? (
                 <div className="mt-1 text-xs text-zinc-600">{participantSummaryText(participant, copy)}</div>
               ) : null}

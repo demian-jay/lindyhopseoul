@@ -3,6 +3,7 @@ package com.lindyhopseoul.backend.membermessage;
 import java.time.Instant;
 
 import com.lindyhopseoul.backend.member.Member;
+import com.lindyhopseoul.backend.member.MemberStatus;
 
 public record AdminMessageThreadSummaryResponse(
         Long threadId,
@@ -10,6 +11,7 @@ public record AdminMessageThreadSummaryResponse(
         String memberEmail,
         String memberDisplayName,
         String memberNickname,
+        MemberStatus memberStatus,
         String lastMessagePreview,
         Instant lastMessageAt
 ) {
@@ -22,6 +24,7 @@ public record AdminMessageThreadSummaryResponse(
                 member.getEmail(),
                 member.getDisplayName(),
                 member.getNickname(),
+                member.getStatus(),
                 preview(lastMessage == null ? "" : lastMessage.getContent()),
                 thread.getLastMessageAt()
         );

@@ -1,12 +1,14 @@
 package com.lindyhopseoul.backend.membermessage;
 
 import com.lindyhopseoul.backend.member.Member;
+import com.lindyhopseoul.backend.member.MemberStatus;
 
 public record AdminMessageThreadMemberResponse(
         Long memberId,
         String email,
         String displayName,
-        String nickname
+        String nickname,
+        MemberStatus status
 ) {
 
     public static AdminMessageThreadMemberResponse from(Member member) {
@@ -14,7 +16,8 @@ public record AdminMessageThreadMemberResponse(
                 member.getId(),
                 member.getEmail(),
                 member.getDisplayName(),
-                member.getNickname()
+                member.getNickname(),
+                member.getStatus()
         );
     }
 }

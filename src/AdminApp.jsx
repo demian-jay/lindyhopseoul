@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "./api/admin";
 import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
+import MemberNameLabel from "./MemberNameLabel";
 import OperationCheckPanel, { OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
@@ -1158,13 +1159,6 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
     }
   };
 
-  const memberLabel = (member) => {
-    if (!member) {
-      return labels.common.empty;
-    }
-    return member.nickname || member.displayName || member.email || labels.common.empty;
-  };
-
   return (
     <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
       <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
@@ -1198,9 +1192,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-zinc-950">
-                        {thread.memberNickname || thread.memberDisplayName || thread.memberEmail}
-                      </div>
+                      <MemberNameLabel member={thread} fallback={labels.common.empty} className="font-semibold text-zinc-950" />
                       <div className="mt-1 text-xs text-zinc-500">{thread.memberEmail}</div>
                     </div>
                     <div className="shrink-0 text-xs text-zinc-400">
@@ -1224,11 +1216,21 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
             <div className="mt-3 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600 sm:grid-cols-2">
               <div>
                 <span className="font-semibold text-zinc-950">{messageLabels.memberInfo}: </span>
-                {memberLabel(detail.member)}
+                <MemberNameLabel member={detail.member} fallback={labels.common.empty} />
               </div>
               <div>{detail.member.email}</div>
-              <div>{detail.member.displayName}</div>
-              <div>{detail.member.nickname || labels.common.empty}</div>
+              <div>
+                <MemberNameLabel
+                  name={detail.member.displayName || labels.common.empty}
+                  status={detail.member.displayName ? detail.member.status : null}
+                />
+              </div>
+              <div>
+                <MemberNameLabel
+                  name={detail.member.nickname || labels.common.empty}
+                  status={detail.member.nickname ? detail.member.status : null}
+                />
+              </div>
             </div>
           ) : null}
         </div>
@@ -1258,7 +1260,11 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
                         }`}
                       >
                         <div className={`text-xs font-semibold ${isAdmin ? "text-white/75" : "text-zinc-500"}`}>
-                          {isAdmin ? messageLabels.adminSender : message.senderName}
+                          {isAdmin ? (
+                            messageLabels.adminSender
+                          ) : (
+                            <MemberNameLabel name={message.senderName} status={detail?.member?.status} />
+                          )}
                         </div>
                         <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
                         <div className={`mt-2 text-[11px] ${isAdmin ? "text-white/65" : "text-zinc-400"}`}>
