@@ -28,6 +28,11 @@ public class MemberMessageController {
         return memberMessageService.findMyThread(currentMemberService.requireCurrentMemberId(request));
     }
 
+    @GetMapping("/unread-count")
+    public UnreadCountResponse findMyUnreadCount(HttpServletRequest request) {
+        return memberMessageService.findMyUnreadCount(currentMemberService.requireCurrentMemberId(request));
+    }
+
     @PostMapping
     public MemberMessageThreadResponse createMyMessage(
             HttpServletRequest request,

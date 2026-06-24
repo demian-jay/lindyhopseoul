@@ -158,6 +158,7 @@ const I18N = {
       lastMessageAt: "마지막 시간",
       adminSender: "운영진",
       staffSender: (name) => (name ? `운영진 - (${name})` : "운영진"),
+      unread: "새 메시지",
     },
     adminUsers: {
       createTitle: "관리자 계정 등록",
@@ -388,6 +389,7 @@ const I18N = {
       lastMessageAt: "Last Updated",
       adminSender: "Staff",
       staffSender: (name) => (name ? `Staff - (${name})` : "Staff"),
+      unread: "Unread",
     },
     adminUsers: {
       createTitle: "Create Admin Account",
@@ -1832,7 +1834,7 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
   );
 }
 
-function AdminMemberMessagesPanel({ token, langCd, labels }) {
+function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -1879,13 +1881,15 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
 
     try {
       setDetail(await adminApi.findMemberMessageThread(token, selectedThreadId));
+      await onUnreadChanged?.();
+      await loadThreads();
     } catch (nextError) {
       setError(nextError.message || messageLabels.loadError);
       setDetail(null);
     } finally {
       setIsLoadingDetail(false);
     }
-  }, [messageLabels.loadError, selectedThreadId, token]);
+  }, [loadThreads, messageLabels.loadError, onUnreadChanged, selectedThreadId, token]);
 
   useEffect(() => {
     loadThreads();
@@ -1938,6 +1942,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
           <div className="mt-4 grid gap-2">
             {threads.map((thread) => {
               const isSelected = thread.threadId === selectedThreadId;
+              const isUnread = Boolean(thread.unreadByAdmin);
               return (
                 <button
                   key={thread.threadId}
@@ -1950,12 +1955,27 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
                   className={`rounded-lg border p-3 text-left transition ${
                     isSelected
                       ? "border-teal-600 bg-teal-50"
+                      : isUnread
+                        ? "border-teal-300 bg-teal-50/60 hover:border-teal-400 hover:bg-teal-50"
                       : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <MemberNameLabel member={thread} fallback={labels.common.empty} className="font-semibold text-zinc-950" />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <MemberNameLabel
+                          member={thread}
+                          fallback={labels.common.empty}
+                          className={`${isUnread ? "font-bold" : "font-semibold"} text-zinc-950`}
+                        />
+                        {isUnread ? (
+                          <span className="inline-flex items-center rounded-full bg-teal-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                            {thread.unreadMessageCountForAdmin > 1
+                              ? `${messageLabels.unread} ${thread.unreadMessageCountForAdmin}`
+                              : messageLabels.unread}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-1 text-xs text-zinc-500">{thread.memberEmail}</div>
                     </div>
                     <div className="shrink-0 text-xs text-zinc-400">
@@ -2078,6 +2098,7 @@ export default function AdminApp() {
   const [activeMenu, setActiveMenu] = useState("DASHBOARD");
   const [isChecking, setIsChecking] = useState(Boolean(token));
   const [operationCheckSummary, setOperationCheckSummary] = useState({ openTotalCount: 0, openAssignedCount: 0 });
+  const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
   const [operationCheckRefreshKey, setOperationCheckRefreshKey] = useState(0);
 
   const applySession = useCallback((nextSession) => {
@@ -2106,6 +2127,7 @@ export default function AdminApp() {
     setToken("");
     setSession(null);
     setActiveMenu("DASHBOARD");
+    setMemberMessageUnreadCount(0);
   }, []);
 
   useEffect(() => {
@@ -2161,12 +2183,30 @@ export default function AdminApp() {
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
   const canUseOperationCheck = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+  const canUseMemberMessages = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
   const shouldShowOperationCheckQuickInput =
     canUseOperationCheck && (safeActiveMenu === "DASHBOARD" || safeActiveMenu === "OPERATION_CHECK");
 
   const handleOperationCheckChanged = useCallback(() => {
     setOperationCheckRefreshKey((current) => current + 1);
   }, []);
+
+  const loadMemberMessageUnreadCount = useCallback(async () => {
+    if (!token || !canUseMemberMessages) {
+      setMemberMessageUnreadCount(0);
+      return 0;
+    }
+
+    try {
+      const response = await adminApi.findMemberMessageUnreadCount(token);
+      const count = Number(response?.count) || 0;
+      setMemberMessageUnreadCount(count);
+      return count;
+    } catch {
+      setMemberMessageUnreadCount(0);
+      return 0;
+    }
+  }, [canUseMemberMessages, token]);
 
   useEffect(() => {
     if (!token || !canUseOperationCheck) {
@@ -2193,6 +2233,10 @@ export default function AdminApp() {
       isMounted = false;
     };
   }, [canUseOperationCheck, operationCheckRefreshKey, token]);
+
+  useEffect(() => {
+    loadMemberMessageUnreadCount();
+  }, [loadMemberMessageUnreadCount]);
 
   if (isChecking) {
     return (
@@ -2252,6 +2296,15 @@ export default function AdminApp() {
                     {operationCheckSummary.openAssignedCount}
                   </span>
                 ) : null}
+                {menu === "MEMBER_MESSAGES" && memberMessageUnreadCount > 0 ? (
+                  <span
+                    className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                      safeActiveMenu === menu ? "bg-white text-teal-700" : "bg-teal-700 text-white"
+                    }`}
+                  >
+                    {memberMessageUnreadCount}
+                  </span>
+                ) : null}
               </button>
             ))}
           </nav>
@@ -2281,7 +2334,12 @@ export default function AdminApp() {
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "MEMBER_MESSAGES" ? (
-            <AdminMemberMessagesPanel token={token} langCd={langCd} labels={labels} />
+            <AdminMemberMessagesPanel
+              token={token}
+              langCd={langCd}
+              labels={labels}
+              onUnreadChanged={loadMemberMessageUnreadCount}
+            />
           ) : null}
           {safeActiveMenu === "MEMBER_ACTION_LOGS" ? (
             <AdminMemberActionLogsPanel token={token} langCd={langCd} labels={labels} />

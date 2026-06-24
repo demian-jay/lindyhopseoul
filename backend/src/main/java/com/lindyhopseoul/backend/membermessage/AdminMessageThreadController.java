@@ -33,6 +33,13 @@ public class AdminMessageThreadController {
         return memberMessageService.findAdminThreads(adminSessionService.requirePrincipal(authorization));
     }
 
+    @GetMapping("/unread-count")
+    public UnreadCountResponse findUnreadCount(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        return memberMessageService.findAdminUnreadCount(adminSessionService.requirePrincipal(authorization));
+    }
+
     @GetMapping("/{threadId}")
     public AdminMessageThreadDetailResponse findThread(
             @RequestHeader(value = "Authorization", required = false) String authorization,

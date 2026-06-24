@@ -304,6 +304,9 @@ export const adminApi = {
   findMemberMessageThreads(token) {
     return request("/api/admin/message-threads", { token });
   },
+  findMemberMessageUnreadCount(token) {
+    return request("/api/admin/message-threads/unread-count", { token });
+  },
   findMemberMessageThread(token, threadId) {
     return request(`/api/admin/message-threads/${threadId}`, { token });
   },

@@ -13,10 +13,16 @@ public record AdminMessageThreadSummaryResponse(
         String memberNickname,
         MemberStatus memberStatus,
         String lastMessagePreview,
-        Instant lastMessageAt
+        Instant lastMessageAt,
+        boolean unreadByAdmin,
+        long unreadMessageCountForAdmin
 ) {
 
-    public static AdminMessageThreadSummaryResponse from(MemberMessageThread thread, MemberMessage lastMessage) {
+    public static AdminMessageThreadSummaryResponse from(
+            MemberMessageThread thread,
+            MemberMessage lastMessage,
+            long unreadMessageCountForAdmin
+    ) {
         Member member = thread.getMember();
         return new AdminMessageThreadSummaryResponse(
                 thread.getId(),
@@ -26,7 +32,9 @@ public record AdminMessageThreadSummaryResponse(
                 member.getNickname(),
                 member.getStatus(),
                 preview(lastMessage == null ? "" : lastMessage.getContent()),
-                thread.getLastMessageAt()
+                thread.getLastMessageAt(),
+                thread.isUnreadByAdmin(),
+                unreadMessageCountForAdmin
         );
     }
 

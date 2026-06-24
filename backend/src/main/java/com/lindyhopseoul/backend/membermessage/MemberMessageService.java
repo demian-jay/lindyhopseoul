@@ -32,11 +32,23 @@ public class MemberMessageService {
         this.messageRepository = messageRepository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public MemberMessageThreadResponse findMyThread(Long memberId) {
         return threadRepository.findByMemberId(memberId)
-                .map(thread -> toThreadResponse(thread, findMessages(thread.getId())))
+                .map(thread -> {
+                    thread.markMemberRead(Instant.now());
+                    return toThreadResponse(thread, findMessages(thread.getId()));
+                })
                 .orElseGet(MemberMessageThreadResponse::empty);
+    }
+
+    @Transactional(readOnly = true)
+    public UnreadCountResponse findMyUnreadCount(Long memberId) {
+        long count = threadRepository.findByMemberId(memberId)
+                .filter(MemberMessageThread::isUnreadByMember)
+                .map(thread -> 1L)
+                .orElse(0L);
+        return new UnreadCountResponse(count);
     }
 
     @Transactional
@@ -55,7 +67,8 @@ public class MemberMessageService {
                 content,
                 now
         ));
-        thread.recordMessage(now);
+        thread.recordMemberMessage(now);
+        thread.markMemberRead(now);
 
         return toThreadResponse(thread, findMessages(thread.getId()));
     }
@@ -67,15 +80,27 @@ public class MemberMessageService {
                 .stream()
                 .map(thread -> AdminMessageThreadSummaryResponse.from(
                         thread,
-                        messageRepository.findTopByThreadIdOrderByCreatedAtDescIdDesc(thread.getId()).orElse(null)
+                        messageRepository.findTopByThreadIdOrderByCreatedAtDescIdDesc(thread.getId()).orElse(null),
+                        unreadMemberMessageCountForAdmin(thread)
                 ))
                 .toList();
     }
 
     @Transactional(readOnly = true)
+    public UnreadCountResponse findAdminUnreadCount(AdminPrincipal actor) {
+        requireMessageAdmin(actor);
+        long count = threadRepository.findAllByOrderByLastMessageAtDescIdDesc()
+                .stream()
+                .filter(MemberMessageThread::isUnreadByAdmin)
+                .count();
+        return new UnreadCountResponse(count);
+    }
+
+    @Transactional
     public AdminMessageThreadDetailResponse findAdminThread(AdminPrincipal actor, Long threadId) {
         requireMessageAdmin(actor);
         MemberMessageThread thread = findThread(threadId);
+        thread.markAdminRead(Instant.now());
         return toAdminThreadDetailResponse(thread, findMessages(thread.getId()));
     }
 
@@ -97,7 +122,8 @@ public class MemberMessageService {
                 content,
                 now
         ));
-        thread.recordMessage(now);
+        thread.recordStaffMessage(now);
+        thread.markAdminRead(now);
 
         return toAdminThreadDetailResponse(thread, findMessages(thread.getId()));
     }
@@ -122,7 +148,9 @@ public class MemberMessageService {
     private MemberMessageThreadResponse toThreadResponse(MemberMessageThread thread, List<MemberMessage> messages) {
         return new MemberMessageThreadResponse(
                 thread.getId(),
-                messages.stream().map(MemberMessageResponse::from).toList()
+                messages.stream().map(MemberMessageResponse::from).toList(),
+                thread.isUnreadByMember(),
+                unreadStaffMessageCountForMember(thread)
         );
     }
 
@@ -141,6 +169,34 @@ public class MemberMessageService {
         if (actor == null || !actor.canManageEvents()) {
             throw new ForbiddenException("Only administrators can manage member messages.");
         }
+    }
+
+    private long unreadMemberMessageCountForAdmin(MemberMessageThread thread) {
+        if (!thread.isUnreadByAdmin()) {
+            return 0;
+        }
+        if (thread.getAdminLastReadAt() == null) {
+            return messageRepository.countByThreadIdAndSenderType(thread.getId(), MemberMessageSenderType.MEMBER);
+        }
+        return messageRepository.countByThreadIdAndSenderTypeAndCreatedAtAfter(
+                thread.getId(),
+                MemberMessageSenderType.MEMBER,
+                thread.getAdminLastReadAt()
+        );
+    }
+
+    private long unreadStaffMessageCountForMember(MemberMessageThread thread) {
+        if (!thread.isUnreadByMember()) {
+            return 0;
+        }
+        if (thread.getMemberLastReadAt() == null) {
+            return messageRepository.countByThreadIdAndSenderType(thread.getId(), MemberMessageSenderType.ADMIN);
+        }
+        return messageRepository.countByThreadIdAndSenderTypeAndCreatedAtAfter(
+                thread.getId(),
+                MemberMessageSenderType.ADMIN,
+                thread.getMemberLastReadAt()
+        );
     }
 
     private String adminDisplayName(AdminPrincipal actor) {

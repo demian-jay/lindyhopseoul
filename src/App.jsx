@@ -2682,7 +2682,7 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack }) {
   );
 }
 
-function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack }) {
+function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, onUnreadChanged }) {
   const labels = MEMBER_MESSAGES_COPY[language] ?? MEMBER_MESSAGES_COPY.ko;
   const [thread, setThread] = useState({ threadId: null, messages: [] });
   const [content, setContent] = useState("");
@@ -2701,12 +2701,13 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack })
         threadId: nextThread?.threadId ?? null,
         messages: Array.isArray(nextThread?.messages) ? nextThread.messages : [],
       });
+      await onUnreadChanged?.();
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
       setIsMessagesLoading(false);
     }
-  }, [labels.loadError]);
+  }, [labels.loadError, onUnreadChanged]);
 
   useEffect(() => {
     if (!authState?.authenticated) {
@@ -2863,7 +2864,19 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack })
   );
 }
 
-function MyPage({ authState, isLoading, isPending, language, onLogin, onBack, onMyClasses, onMessages, onSettings, onLogout }) {
+function MyPage({
+  authState,
+  isLoading,
+  isPending,
+  language,
+  onLogin,
+  onBack,
+  onMyClasses,
+  onMessages,
+  onSettings,
+  onLogout,
+  messageUnreadCount = 0,
+}) {
   const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
   const displayName = memberApplicationName(authState);
   const email = authState?.email || "";
@@ -2933,17 +2946,27 @@ function MyPage({ authState, isLoading, isPending, language, onLogin, onBack, on
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {labels.menu.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={menuActions[item.id]}
-              className="min-h-[132px] rounded-3xl border border-blue-100 bg-white/90 p-5 text-left shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <span className="block text-lg font-semibold tracking-tight text-blue-950">{item.title}</span>
-              <span className="mt-3 block text-sm leading-6 text-blue-950/62">{item.description}</span>
-            </button>
-          ))}
+          {labels.menu.map((item) => {
+            const unreadCount = item.id === "messages" ? messageUnreadCount : 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={menuActions[item.id]}
+                className="min-h-[132px] rounded-3xl border border-blue-100 bg-white/90 p-5 text-left shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <span className="flex items-center justify-between gap-3 text-lg font-semibold tracking-tight text-blue-950">
+                  <span>{item.title}</span>
+                  {unreadCount > 0 ? (
+                    <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-blue-700 px-2 py-0.5 text-xs font-bold text-white">
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="mt-3 block text-sm leading-6 text-blue-950/62">{item.description}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -2989,6 +3012,7 @@ function PublicApp() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
   const [isAppliedScheduleLoading, setIsAppliedScheduleLoading] = useState(false);
+  const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
@@ -3005,6 +3029,7 @@ function PublicApp() {
       setGuestLanguage(null);
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
+      setMemberMessageUnreadCount(0);
     }
 
     return normalizedAuthState;
@@ -3014,6 +3039,25 @@ function PublicApp() {
     const nextAuthState = await authApi.me();
     return applyAuthState(nextAuthState);
   }, [applyAuthState]);
+
+  const loadMemberMessageUnreadCount = useCallback(async () => {
+    if (!authState?.authenticated) {
+      setMemberMessageUnreadCount(0);
+      return 0;
+    }
+
+    try {
+      const response = await authApi.getMyMessageUnreadCount();
+      const count = Number(response?.count) || 0;
+      setMemberMessageUnreadCount(count);
+      return count;
+    } catch (error) {
+      if (error.status === 401) {
+        setMemberMessageUnreadCount(0);
+      }
+      return 0;
+    }
+  }, [authState?.authenticated]);
 
   const loadAppliedScheduleItemIds = useCallback(async () => {
     if (!authState?.authenticated) {
@@ -3168,11 +3212,13 @@ function PublicApp() {
     if (!authState?.authenticated) {
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
+      setMemberMessageUnreadCount(0);
       return;
     }
 
     loadAppliedScheduleItemIds();
-  }, [authState?.authenticated, loadAppliedScheduleItemIds]);
+    loadMemberMessageUnreadCount();
+  }, [authState?.authenticated, loadAppliedScheduleItemIds, loadMemberMessageUnreadCount]);
 
   const handleLanguageSelect = (nextLanguage) => {
     const nextPreferredLanguage = toMemberPreferredLanguage(nextLanguage);
@@ -3249,6 +3295,7 @@ function PublicApp() {
     if (authState?.authenticated) {
       refreshAuthState().catch(() => null);
       loadAppliedScheduleItemIds().catch(() => null);
+      loadMemberMessageUnreadCount().catch(() => null);
     }
   };
 
@@ -3272,6 +3319,7 @@ function PublicApp() {
         setGuestLanguage(null);
         setAppliedScheduleItemIds([]);
         setIsAppliedScheduleLoading(false);
+        setMemberMessageUnreadCount(0);
         setIsAuthActionPending(false);
         if (
           currentPath === "/settings" ||
@@ -3306,6 +3354,7 @@ function PublicApp() {
     setGuestLanguage(null);
     setAppliedScheduleItemIds([]);
     setIsAppliedScheduleLoading(false);
+    setMemberMessageUnreadCount(0);
     setAccountNotice(message);
     navigateToPath("/");
   };
@@ -3399,6 +3448,7 @@ function PublicApp() {
             onMessages={handleMessagesOpen}
             onSettings={handleSettingsOpen}
             onLogout={handleLogout}
+            messageUnreadCount={memberMessageUnreadCount}
           />
         ) : isMyClassesPath ? (
           <MyClassesPage
@@ -3415,6 +3465,7 @@ function PublicApp() {
             language={activeLanguage}
             onLogin={handleLogin}
             onBack={handleMemberSubpageBack}
+            onUnreadChanged={loadMemberMessageUnreadCount}
           />
         ) : (
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>

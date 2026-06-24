@@ -70,6 +70,9 @@ class MemberMessageServiceTest {
         assertThat(savedMessage.getSenderMember()).isEqualTo(member);
         assertThat(savedMessage.getContent()).isEqualTo("수업 신청 관련해서 문의드립니다.");
         assertThat(thread.getLastMessageAt()).isNotNull();
+        assertThat(thread.getLastMemberMessageAt()).isNotNull();
+        assertThat(thread.isUnreadByAdmin()).isTrue();
+        assertThat(thread.isUnreadByMember()).isFalse();
     }
 
     @Test
@@ -136,6 +139,97 @@ class MemberMessageServiceTest {
         assertThat(savedMessage.getSenderAdminDisplayName()).isEqualTo("Gamja");
         assertThat(savedMessage.getContent()).isEqualTo("확인 후 안내드리겠습니다.");
         assertThat(thread.getLastMessageAt()).isNotNull();
+        assertThat(thread.getLastStaffMessageAt()).isNotNull();
+        assertThat(thread.isUnreadByAdmin()).isFalse();
+        assertThat(thread.isUnreadByMember()).isTrue();
+    }
+
+    @Test
+    void findAdminThreadMarksThreadReadForAllAdmins() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Gamja",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        thread.recordMemberMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        when(threadRepository.findById(10L)).thenReturn(Optional.of(thread));
+        when(messageRepository.findByThreadIdOrderByCreatedAtAscIdAsc(10L)).thenReturn(List.of());
+
+        memberMessageService.findAdminThread(staff, 10L);
+
+        assertThat(thread.getAdminLastReadAt()).isNotNull();
+        assertThat(thread.isUnreadByAdmin()).isFalse();
+    }
+
+    @Test
+    void findAdminUnreadCountCountsThreadsWithUnreadMemberMessages() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Gamja",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        MemberMessageThread readThread = MemberMessageThread.create(member, Instant.parse("2026-06-23T00:00:00Z"));
+        ReflectionTestUtils.setField(readThread, "id", 11L);
+        thread.recordMemberMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        readThread.recordMemberMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        readThread.markAdminRead(Instant.parse("2026-06-23T02:00:00Z"));
+        when(threadRepository.findAllByOrderByLastMessageAtDescIdDesc()).thenReturn(List.of(thread, readThread));
+
+        UnreadCountResponse response = memberMessageService.findAdminUnreadCount(staff);
+
+        assertThat(response.count()).isEqualTo(1);
+    }
+
+    @Test
+    void findAdminThreadsIncludesUnreadFlagAndUnreadMemberMessageCount() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Gamja",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        thread.recordMemberMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        when(threadRepository.findAllByOrderByLastMessageAtDescIdDesc()).thenReturn(List.of(thread));
+        when(messageRepository.findTopByThreadIdOrderByCreatedAtDescIdDesc(10L)).thenReturn(Optional.empty());
+        when(messageRepository.countByThreadIdAndSenderType(10L, MemberMessageSenderType.MEMBER)).thenReturn(2L);
+
+        List<AdminMessageThreadSummaryResponse> responses = memberMessageService.findAdminThreads(staff);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).unreadByAdmin()).isTrue();
+        assertThat(responses.get(0).unreadMessageCountForAdmin()).isEqualTo(2);
+    }
+
+    @Test
+    void findMyThreadMarksStaffMessagesReadForMember() {
+        thread.recordStaffMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        when(threadRepository.findByMemberId(1L)).thenReturn(Optional.of(thread));
+        when(messageRepository.findByThreadIdOrderByCreatedAtAscIdAsc(10L)).thenReturn(List.of());
+
+        MemberMessageThreadResponse response = memberMessageService.findMyThread(1L);
+
+        assertThat(thread.getMemberLastReadAt()).isNotNull();
+        assertThat(thread.isUnreadByMember()).isFalse();
+        assertThat(response.unreadByMember()).isFalse();
+        assertThat(response.unreadMessageCountForMember()).isZero();
+    }
+
+    @Test
+    void findMyUnreadCountCountsStaffRepliesOnly() {
+        thread.recordStaffMessage(Instant.parse("2026-06-23T01:00:00Z"));
+        when(threadRepository.findByMemberId(1L)).thenReturn(Optional.of(thread));
+
+        UnreadCountResponse response = memberMessageService.findMyUnreadCount(1L);
+
+        assertThat(response.count()).isEqualTo(1);
     }
 
     @Test

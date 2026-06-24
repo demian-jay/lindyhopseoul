@@ -58,6 +58,9 @@ export const authApi = {
   getMyMessages() {
     return request("/api/members/me/messages");
   },
+  getMyMessageUnreadCount() {
+    return request("/api/members/me/messages/unread-count");
+  },
   sendMyMessage(payload) {
     return request("/api/members/me/messages", {
       method: "POST",

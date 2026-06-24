@@ -1,5 +1,6 @@
 package com.lindyhopseoul.backend.membermessage;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,4 +14,12 @@ public interface MemberMessageRepository extends JpaRepository<MemberMessage, Lo
 
     @EntityGraph(attributePaths = {"thread", "senderMember"})
     Optional<MemberMessage> findTopByThreadIdOrderByCreatedAtDescIdDesc(Long threadId);
+
+    long countByThreadIdAndSenderType(Long threadId, MemberMessageSenderType senderType);
+
+    long countByThreadIdAndSenderTypeAndCreatedAtAfter(
+            Long threadId,
+            MemberMessageSenderType senderType,
+            Instant createdAt
+    );
 }

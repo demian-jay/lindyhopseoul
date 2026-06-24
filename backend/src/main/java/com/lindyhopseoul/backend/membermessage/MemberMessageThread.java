@@ -44,6 +44,18 @@ public class MemberMessageThread {
     @Column(name = "last_message_at")
     private Instant lastMessageAt;
 
+    @Column(name = "admin_last_read_at")
+    private Instant adminLastReadAt;
+
+    @Column(name = "member_last_read_at")
+    private Instant memberLastReadAt;
+
+    @Column(name = "last_member_message_at")
+    private Instant lastMemberMessageAt;
+
+    @Column(name = "last_staff_message_at")
+    private Instant lastStaffMessageAt;
+
     protected MemberMessageThread() {
     }
 
@@ -58,6 +70,39 @@ public class MemberMessageThread {
     public void recordMessage(Instant messageAt) {
         this.lastMessageAt = messageAt;
         this.updatedAt = messageAt;
+    }
+
+    public void recordMemberMessage(Instant messageAt) {
+        recordMessage(messageAt);
+        this.lastMemberMessageAt = messageAt;
+    }
+
+    public void recordStaffMessage(Instant messageAt) {
+        recordMessage(messageAt);
+        this.lastStaffMessageAt = messageAt;
+    }
+
+    public void markAdminRead(Instant readAt) {
+        this.adminLastReadAt = readAt;
+    }
+
+    public void markMemberRead(Instant readAt) {
+        this.memberLastReadAt = readAt;
+    }
+
+    public boolean isUnreadByAdmin() {
+        return isAfter(lastMemberMessageAt, adminLastReadAt);
+    }
+
+    public boolean isUnreadByMember() {
+        return isAfter(lastStaffMessageAt, memberLastReadAt);
+    }
+
+    private boolean isAfter(Instant messageAt, Instant readAt) {
+        if (messageAt == null) {
+            return false;
+        }
+        return readAt == null || messageAt.isAfter(readAt);
     }
 
     @PrePersist
@@ -94,5 +139,21 @@ public class MemberMessageThread {
 
     public Instant getLastMessageAt() {
         return lastMessageAt;
+    }
+
+    public Instant getAdminLastReadAt() {
+        return adminLastReadAt;
+    }
+
+    public Instant getMemberLastReadAt() {
+        return memberLastReadAt;
+    }
+
+    public Instant getLastMemberMessageAt() {
+        return lastMemberMessageAt;
+    }
+
+    public Instant getLastStaffMessageAt() {
+        return lastStaffMessageAt;
     }
 }
