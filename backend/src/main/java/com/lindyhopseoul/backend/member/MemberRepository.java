@@ -17,6 +17,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             from Member member
             where member.role = com.lindyhopseoul.backend.member.MemberRole.USER
               and member.status in :statuses
+              and (
+                :keyword is null
+                or lower(member.displayName) like :keyword
+                or lower(member.nickname) like :keyword
+                or lower(member.email) like :keyword
+              )
               and (:name is null or lower(member.displayName) like :name)
               and (:nickname is null or lower(member.nickname) like :nickname)
               and (:email is null or lower(member.email) like :email)
@@ -24,6 +30,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             order by member.createdAt desc, member.id desc
             """)
     List<Member> findAdminMembers(
+            @Param("keyword") String keyword,
             @Param("name") String name,
             @Param("nickname") String nickname,
             @Param("email") String email,

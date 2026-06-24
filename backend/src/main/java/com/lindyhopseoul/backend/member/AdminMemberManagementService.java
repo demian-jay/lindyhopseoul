@@ -51,9 +51,22 @@ public class AdminMemberManagementService {
             MemberStatus status,
             MemberPreferredLanguage preferredLanguage
     ) {
+        return findMembers(actor, null, name, nickname, email, status, preferredLanguage);
+    }
+
+    public List<AdminMemberResponse> findMembers(
+            AdminPrincipal actor,
+            String keyword,
+            String name,
+            String nickname,
+            String email,
+            MemberStatus status,
+            MemberPreferredLanguage preferredLanguage
+    ) {
         requireMemberAdmin(actor);
         Collection<MemberStatus> statuses = normalizeStatuses(status);
         List<Member> members = memberRepository.findAdminMembers(
+                likePattern(keyword),
                 likePattern(name),
                 likePattern(nickname),
                 likePattern(email),

@@ -172,6 +172,8 @@ const I18N = {
     adminMembers: {
       filtersTitle: "회원 검색",
       listTitle: "회원 목록",
+      keywordSearch: "이름 / 닉네임 / 이메일 검색",
+      keywordPlaceholder: "이름, 닉네임, 이메일로 검색",
       nameSearch: "이름 검색",
       namePlaceholder: "표시 이름으로 검색",
       nicknameSearch: "닉네임 검색",
@@ -422,6 +424,8 @@ const I18N = {
     adminMembers: {
       filtersTitle: "Member Search",
       listTitle: "Members",
+      keywordSearch: "Name / Nickname / Email",
+      keywordPlaceholder: "Search name, nickname, or email",
       nameSearch: "Name Search",
       namePlaceholder: "Search display name",
       nicknameSearch: "Nickname Search",
@@ -583,9 +587,7 @@ function createTeacherForm() {
 
 function createMemberFilters() {
   return {
-    name: "",
-    nickname: "",
-    email: "",
+    keyword: "",
     status: "ACTIVE",
     preferredLanguage: "ALL",
   };
@@ -593,9 +595,7 @@ function createMemberFilters() {
 
 function toMemberSearchParams(filters) {
   return {
-    name: filters.name.trim(),
-    nickname: filters.nickname.trim(),
-    email: filters.email.trim(),
+    keyword: filters.keyword.trim(),
     status: filters.status === "ALL" ? "" : filters.status,
     preferredLanguage: filters.preferredLanguage === "ALL" ? "" : filters.preferredLanguage,
   };
@@ -653,7 +653,7 @@ function MemberStatusBadge({ status, labels }) {
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return (
-    <span className={`inline-flex min-w-[86px] items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
+    <span className={`inline-flex min-w-[72px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold sm:min-w-[86px] sm:px-2.5 sm:py-1 sm:text-xs ${className}`}>
       {labels.memberStatuses[status] || status}
     </span>
   );
@@ -1556,75 +1556,67 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+    <section className="grid gap-4 sm:gap-5">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-3 sm:gap-3 sm:pb-4">
           <h2 className="text-lg font-bold text-zinc-950">{memberLabels.filtersTitle}</h2>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+              className="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 sm:min-h-[38px] sm:text-sm"
             >
               {memberLabels.reset}
             </button>
             <button
               type="submit"
-              className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800"
+              className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white transition hover:bg-teal-800 sm:min-h-[38px] sm:px-4 sm:text-sm"
             >
               {memberLabels.search}
             </button>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <Field label={memberLabels.nameSearch}>
-            <TextInput
-              name="name"
-              value={filters.name}
-              onChange={handleFilterChange}
-              placeholder={memberLabels.namePlaceholder}
-            />
-          </Field>
-          <Field label={memberLabels.nicknameSearch}>
-            <TextInput
-              name="nickname"
-              value={filters.nickname}
-              onChange={handleFilterChange}
-              placeholder={memberLabels.nicknamePlaceholder}
-            />
-          </Field>
-          <Field label={memberLabels.emailSearch}>
-            <TextInput
-              name="email"
-              value={filters.email}
-              onChange={handleFilterChange}
-              placeholder={memberLabels.emailPlaceholder}
-            />
-          </Field>
-          <Field label={memberLabels.statusFilter}>
-            <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
-              <option value="ALL">{labels.memberStatuses.ALL}</option>
-              <option value="ACTIVE">{labels.memberStatuses.ACTIVE}</option>
-              <option value="SUSPENDED">{labels.memberStatuses.SUSPENDED}</option>
-              <option value="WITHDRAWN">{labels.memberStatuses.WITHDRAWN}</option>
-            </SelectInput>
-          </Field>
-          <Field label={memberLabels.languageFilter}>
-            <SelectInput name="preferredLanguage" value={filters.preferredLanguage} onChange={handleFilterChange}>
-              <option value="ALL">{labels.memberLanguages.ALL}</option>
-              <option value="KO">{labels.memberLanguages.KO}</option>
-              <option value="EN">{labels.memberLanguages.EN}</option>
-            </SelectInput>
-          </Field>
+        <div className="mt-3 grid gap-2.5 sm:mt-4 sm:gap-3">
+          <div className="grid gap-2">
+            <Field label={memberLabels.keywordSearch}>
+              <TextInput
+                name="keyword"
+                value={filters.keyword}
+                onChange={handleFilterChange}
+                placeholder={memberLabels.keywordPlaceholder}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <div className="min-w-0 sm:w-44">
+              <Field label={memberLabels.statusFilter}>
+                <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
+                  <option value="ALL">{labels.memberStatuses.ALL}</option>
+                  <option value="ACTIVE">{labels.memberStatuses.ACTIVE}</option>
+                  <option value="SUSPENDED">{labels.memberStatuses.SUSPENDED}</option>
+                  <option value="WITHDRAWN">{labels.memberStatuses.WITHDRAWN}</option>
+                </SelectInput>
+              </Field>
+            </div>
+            <div className="min-w-0 sm:w-36">
+              <Field label={memberLabels.languageFilter}>
+                <SelectInput name="preferredLanguage" value={filters.preferredLanguage} onChange={handleFilterChange}>
+                  <option value="ALL">{labels.memberLanguages.ALL}</option>
+                  <option value="KO">{labels.memberLanguages.KO}</option>
+                  <option value="EN">{labels.memberLanguages.EN}</option>
+                </SelectInput>
+              </Field>
+            </div>
+          </div>
         </div>
       </form>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-zinc-200 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pb-4">
           <h2 className="text-lg font-bold text-zinc-950">{memberLabels.listTitle}</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-600">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="mr-auto text-xs font-semibold text-zinc-600 sm:mr-0 sm:text-sm">
               {memberLabels.selectedCount(selectedMemberIds.length)}
             </span>
             <SecondaryButton type="button" onClick={toggleVisibleSelection} disabled={items.length === 0}>
@@ -1647,8 +1639,94 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
         {items.length === 0 && !isLoading ? (
           <div className="py-10 text-center text-sm text-zinc-500">{memberLabels.empty}</div>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[1480px] w-full border-separate border-spacing-0 text-left text-sm">
+          <>
+            <div className="mt-3 divide-y divide-zinc-100 md:hidden">
+              {items.map((member) => (
+                <article key={member.memberId} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedMemberIdSet.has(member.memberId)}
+                      onChange={() => toggleMemberSelection(member.memberId)}
+                      aria-label={`${memberLabels.select}: ${member.displayName || member.email}`}
+                      className="mt-1 h-5 w-5 shrink-0 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <MemberNameLabel
+                            name={member.displayName || labels.common.empty}
+                            status={member.memberStatus}
+                            className="text-sm font-semibold text-zinc-950"
+                          />
+                          <div className="mt-1 truncate text-xs text-zinc-500">
+                            {member.nickname || labels.common.empty}
+                          </div>
+                        </div>
+                        <MemberStatusBadge status={member.memberStatus} labels={labels} />
+                      </div>
+                      <div className="mt-2 truncate text-xs text-zinc-600">{member.email}</div>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-5 text-zinc-500">
+                        <div className="min-w-0">
+                          <dt className="inline font-semibold text-zinc-600">{labels.fields.preferredLanguage}: </dt>
+                          <dd className="inline">
+                            {labels.memberLanguages[member.preferredLanguage] ||
+                              member.preferredLanguage ||
+                              labels.common.empty}
+                          </dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="inline font-semibold text-zinc-600">{labels.fields.createdAt}: </dt>
+                          <dd className="inline">{formatDate(member.createdAt, langCd)}</dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="inline font-semibold text-zinc-600">{labels.fields.lastLoginAt}: </dt>
+                          <dd className="inline">{formatDate(member.lastLoginAt, langCd)}</dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="inline font-semibold text-zinc-600">{labels.fields.withdrawnAt}: </dt>
+                          <dd className="inline">{formatDate(member.withdrawnAt, langCd)}</dd>
+                        </div>
+                      </dl>
+                      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-zinc-700">
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level1} {member.level1ApplicationCount}</span>
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level2} {member.level2ApplicationCount}</span>
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level3} {member.level3ApplicationCount}</span>
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level4} {member.level4ApplicationCount}</span>
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.workshop} {member.workshopApplicationCount}</span>
+                        <span className="rounded bg-teal-50 px-1.5 py-0.5 text-teal-800">
+                          {memberLabels.totalApplications} {member.totalApplicationCount}
+                        </span>
+                      </div>
+                      {canChangeMemberStatus && (member.memberStatus === "ACTIVE" || member.memberStatus === "SUSPENDED") ? (
+                        <div className="mt-3 flex justify-end">
+                          {member.memberStatus === "ACTIVE" ? (
+                            <button
+                              type="button"
+                              onClick={() => openStatusModal("suspend", member)}
+                              className="min-h-[32px] rounded-lg border border-amber-200 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-50"
+                            >
+                              {memberLabels.suspend}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openStatusModal("reactivate", member)}
+                              className="min-h-[32px] rounded-lg border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                            >
+                              {memberLabels.reactivate}
+                            </button>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-4 hidden overflow-x-auto md:block">
+              <table className="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-xs lg:text-sm">
               <thead>
                 <tr className="text-xs font-semibold uppercase text-zinc-500">
                   <th className="w-12 border-b border-zinc-200 px-3 py-2">
@@ -1759,8 +1837,9 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
       {isMessageModalOpen ? (
@@ -1819,8 +1898,8 @@ function MemberMessageSendModal({
   const moreCount = Math.max(0, members.length - previewMembers.length);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
-      <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/40 px-3 py-4 sm:items-center sm:px-4">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl sm:p-5">
         <h2 className="text-lg font-bold text-zinc-950">{labels.sendMessageTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-zinc-600">{labels.sendMessageDescription(members.length)}</p>
 
@@ -1863,17 +1942,17 @@ function MemberMessageSendModal({
             value={content}
             onChange={(event) => onContentChange(event.target.value)}
             maxLength={2000}
-            rows={6}
+            rows={5}
             placeholder={labels.messagePlaceholder}
-            className="mt-1.5 min-h-[160px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+            className="mt-1.5 min-h-[128px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 sm:min-h-[160px]"
           />
         </label>
         {error ? <div className="mt-2 text-sm font-semibold text-red-600">{error}</div> : null}
-        <div className="mt-5 flex justify-end gap-2">
-          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting} className="w-full sm:w-auto">
             {commonLabels.cancel}
           </SecondaryButton>
-          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting}>
+          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? labels.sendingMessage : labels.sendMessage}
           </PrimaryButton>
         </div>
@@ -1896,8 +1975,8 @@ function MemberStatusChangeModal({
 }) {
   const isSuspend = type === "suspend";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
-      <div className="w-full max-w-lg rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/40 px-3 py-4 sm:items-center sm:px-4">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl sm:p-5">
         <h2 className="text-lg font-bold text-zinc-950">
           {isSuspend ? labels.suspendTitle : labels.reactivateTitle}
         </h2>
@@ -1924,11 +2003,11 @@ function MemberStatusChangeModal({
           />
         </label>
         {reasonError ? <div className="mt-2 text-sm font-semibold text-red-600">{reasonError}</div> : null}
-        <div className="mt-5 flex justify-end gap-2">
-          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting} className="w-full sm:w-auto">
             {commonLabels.cancel}
           </SecondaryButton>
-          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting}>
+          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting} className="w-full sm:w-auto">
             {isSuspend ? labels.suspend : labels.reactivate}
           </PrimaryButton>
         </div>

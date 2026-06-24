@@ -30,6 +30,7 @@ public class AdminMemberManagementController {
     @GetMapping
     public List<AdminMemberResponse> findMembers(
             @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "nickname", required = false) String nickname,
             @RequestParam(value = "email", required = false) String email,
@@ -38,6 +39,7 @@ public class AdminMemberManagementController {
     ) {
         return adminMemberManagementService.findMembers(
                 adminSessionService.requirePrincipal(authorization),
+                keyword,
                 name,
                 nickname,
                 email,

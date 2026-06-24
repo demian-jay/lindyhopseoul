@@ -90,6 +90,7 @@ class AdminMemberManagementServiceTest {
         Event event = event();
 
         when(memberRepository.findAdminMembers(
+                null,
                 "%user%",
                 null,
                 "%example%",
@@ -123,6 +124,41 @@ class AdminMemberManagementServiceTest {
         assertThat(response.level3ApplicationCount()).isZero();
         assertThat(response.level4ApplicationCount()).isEqualTo(1);
         assertThat(response.workshopApplicationCount()).isEqualTo(2);
+    }
+
+    @Test
+    void findMembersUsesKeywordAcrossNameNicknameAndEmail() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Staff",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        Member member = member(1L);
+        when(memberRepository.findAdminMembers(
+                "%jay%",
+                null,
+                null,
+                null,
+                List.of(MemberStatus.ACTIVE),
+                null
+        )).thenReturn(List.of(member));
+        when(eventApplicationRepository.findByMemberIdsWithLesson(List.of(1L))).thenReturn(List.of());
+
+        List<AdminMemberResponse> responses = service.findMembers(
+                staff,
+                " Jay ",
+                null,
+                null,
+                null,
+                MemberStatus.ACTIVE,
+                null
+        );
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).memberId()).isEqualTo(1L);
     }
 
     @Test
