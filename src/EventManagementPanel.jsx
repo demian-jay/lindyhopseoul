@@ -206,6 +206,13 @@ const COPY_TEXT = {
     lessonStatusFilter: "강습 상태",
     participants: "수강생",
     noParticipants: "신청자가 없습니다.",
+    notices: "공지사항",
+    noticePlaceholder: "수강생에게 전달할 공지사항을 입력하세요.",
+    noticeSubmit: "공지 등록",
+    noticeSaving: "등록 중",
+    noticeLoadError: "공지사항을 불러오지 못했습니다.",
+    noticeRequired: "공지 내용을 입력해주세요.",
+    noticeAuthorFallback: "운영진",
     requestMemo: "질문사항 / 하고 싶은 말",
     noRequestMemo: "남긴 내용이 없습니다.",
     viewParticipantDetail: "상세 보기",
@@ -306,6 +313,13 @@ const COPY_TEXT = {
     lessonStatusFilter: "Lesson Status",
     participants: "Participants",
     noParticipants: "No applications yet.",
+    notices: "Notices",
+    noticePlaceholder: "Write a notice for students.",
+    noticeSubmit: "Post Notice",
+    noticeSaving: "Posting",
+    noticeLoadError: "Could not load notices.",
+    noticeRequired: "Please write a notice.",
+    noticeAuthorFallback: "Staff",
     requestMemo: "Questions / Anything to share",
     noRequestMemo: "No memo left.",
     viewParticipantDetail: "View details",
@@ -608,6 +622,122 @@ function previewText(value, maxLength = 80) {
     return normalized;
   }
   return `${normalized.slice(0, maxLength)}...`;
+}
+
+function formatNoticeDate(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function noticeAuthorLabel(notice, copy) {
+  const nickname = String(notice?.authorNickname || "").trim();
+  const displayName = String(notice?.authorDisplayName || "").trim();
+  if (nickname && displayName && nickname !== displayName) {
+    return `${nickname} / ${displayName}`;
+  }
+  return nickname || displayName || copy.noticeAuthorFallback;
+}
+
+function LessonNoticePanel({ token, lessonId, copy }) {
+  const [notices, setNotices] = useState([]);
+  const [content, setContent] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadNotices = useCallback(async () => {
+    if (!token || !lessonId) {
+      setNotices([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const nextNotices = await adminApi.findLessonNotices(token, lessonId);
+      setNotices(Array.isArray(nextNotices) ? nextNotices : []);
+      setError("");
+    } catch {
+      setNotices([]);
+      setError(copy.noticeLoadError);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [copy.noticeLoadError, lessonId, token]);
+
+  useEffect(() => {
+    loadNotices();
+  }, [loadNotices]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const normalizedContent = content.trim();
+    if (!normalizedContent) {
+      setError(copy.noticeRequired);
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    try {
+      await adminApi.createLessonNotice(token, lessonId, { content: normalizedContent });
+      setContent("");
+      await loadNotices();
+    } catch (nextError) {
+      setError(nextError.message || copy.noticeLoadError);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-xs font-semibold text-zinc-500">{copy.notices}</h4>
+        {isLoading ? <span className="text-xs text-zinc-400">{copy.loading}</span> : null}
+      </div>
+      <form onSubmit={handleSubmit} className="mt-3 grid gap-2">
+        <TextArea
+          value={content}
+          onChange={(event) => {
+            setContent(event.target.value);
+            setError("");
+          }}
+          maxLength={2000}
+          rows={3}
+          placeholder={copy.noticePlaceholder}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Notice>{error}</Notice>
+          <PrimaryButton type="submit" disabled={isSaving} className="ml-auto">
+            {isSaving ? copy.noticeSaving : copy.noticeSubmit}
+          </PrimaryButton>
+        </div>
+      </form>
+      {notices.length > 0 ? (
+        <div className="mt-3 grid gap-2">
+          {notices.map((notice) => (
+            <article key={notice.id} className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+              <div className="text-xs font-semibold text-zinc-500">
+                {noticeAuthorLabel(notice, copy)} · {formatNoticeDate(notice.createdAt)}
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-800">{notice.content}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function ParticipantList({ participants, copy, onRemoveParticipant }) {
@@ -1521,6 +1651,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
 
         {mode === "detail" ? (
           <EventDetail
+            token={token}
             copy={copy}
             event={selectedEvent}
             languageCode={languageCode}
@@ -1552,6 +1683,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
 }
 
 function EventDetail({
+  token,
   copy,
   event,
   languageCode,
@@ -1667,6 +1799,7 @@ function EventDetail({
                 copy={copy}
                 onRemoveParticipant={canRemoveApplication ? (participant) => onRemoveParticipant(lesson, participant) : null}
               />
+              <LessonNoticePanel token={token} lessonId={lesson.id} copy={copy} />
             </div>
           ))}
         </div>
@@ -2039,14 +2172,14 @@ export function TeacherDashboardPanel({ token, langCd }) {
           </div>
         </div>
         <div className="mt-4">
-          <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} />
+          <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} token={token} />
         </div>
       </div>
     </section>
   );
 }
 
-function LessonDashboardRows({ lessons, copy, languageCode }) {
+function LessonDashboardRows({ lessons, copy, languageCode, token }) {
   if (lessons.length === 0) {
     return <div className="text-sm text-zinc-500">{copy.noLessons}</div>;
   }
@@ -2075,6 +2208,7 @@ function LessonDashboardRows({ lessons, copy, languageCode }) {
             </div>
           </div>
           <ParticipantList participants={lesson.participants} copy={copy} />
+          <LessonNoticePanel token={token} lessonId={lesson.lessonId} copy={copy} />
         </div>
       ))}
     </div>

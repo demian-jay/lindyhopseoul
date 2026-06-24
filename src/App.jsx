@@ -722,6 +722,9 @@ const MY_CLASSES_COPY = {
     loading: "신청 내역을 불러오는 중입니다.",
     empty: "아직 신청한 수업이 없습니다.",
     loadError: "신청 내역을 불러오지 못했습니다.",
+    noticeLoadError: "강습 공지사항을 불러오지 못했습니다.",
+    notices: "공지사항",
+    noticeAuthorFallback: "운영진",
     status: "신청 완료",
     date: "날짜",
     role: "역할",
@@ -743,6 +746,9 @@ const MY_CLASSES_COPY = {
     loading: "Loading your applications.",
     empty: "You have not applied for any classes yet.",
     loadError: "Could not load your applications.",
+    noticeLoadError: "Could not load class notices.",
+    notices: "Notices",
+    noticeAuthorFallback: "Staff",
     status: "Applied",
     date: "Date",
     role: "Role",
@@ -1389,6 +1395,24 @@ function formatMessageDate(value, language) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function lessonIdFromApplication(application) {
+  const scheduleItemId = String(application?.scheduleItemId || "");
+  if (!scheduleItemId.startsWith("lesson-")) {
+    return null;
+  }
+  const lessonId = Number(scheduleItemId.replace("lesson-", ""));
+  return Number.isFinite(lessonId) ? lessonId : null;
+}
+
+function formatLessonNoticeAuthor(notice, labels) {
+  const nickname = String(notice?.authorNickname || "").trim();
+  const displayName = String(notice?.authorDisplayName || "").trim();
+  if (nickname && displayName && nickname !== displayName) {
+    return `${nickname} / ${displayName}`;
+  }
+  return nickname || displayName || labels.noticeAuthorFallback;
 }
 
 function formatStaffSenderLabel(message, labels) {
@@ -2556,30 +2580,74 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
   );
 }
 
-function MyClassesPage({ authState, isLoading, language, onLogin, onBack }) {
+function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnreadChanged }) {
   const labels = MY_CLASSES_COPY[language] ?? MY_CLASSES_COPY.ko;
   const [applications, setApplications] = useState([]);
+  const [noticesByLessonId, setNoticesByLessonId] = useState({});
   const [isApplicationsLoading, setIsApplicationsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [noticeError, setNoticeError] = useState("");
+
+  const loadLessonNotices = useCallback(async (nextApplications) => {
+    const lessonIds = [...new Set(
+      nextApplications
+        .map(lessonIdFromApplication)
+        .filter((lessonId) => lessonId !== null)
+    )];
+    if (lessonIds.length === 0) {
+      setNoticesByLessonId({});
+      return;
+    }
+
+    try {
+      const noticeEntries = await Promise.all(
+        lessonIds.map(async (lessonId) => {
+          const lessonNotices = await authApi.getMyLessonNotices(lessonId);
+          return [lessonId, Array.isArray(lessonNotices) ? lessonNotices : []];
+        })
+      );
+      const nextNoticesByLessonId = Object.fromEntries(noticeEntries);
+      setNoticesByLessonId(nextNoticesByLessonId);
+      setNoticeError("");
+
+      const visibleNoticeLessonIds = noticeEntries
+        .filter(([, lessonNotices]) => lessonNotices.length > 0)
+        .map(([lessonId]) => lessonId);
+      if (visibleNoticeLessonIds.length > 0) {
+        await Promise.allSettled(
+          visibleNoticeLessonIds.map((lessonId) => authApi.markMyLessonNoticesRead(lessonId))
+        );
+        await onUnreadChanged?.();
+      }
+    } catch (nextError) {
+      setNoticesByLessonId({});
+      setNoticeError(nextError.message || labels.noticeLoadError);
+    }
+  }, [labels.noticeLoadError, onUnreadChanged]);
 
   const loadApplications = useCallback(async () => {
     setIsApplicationsLoading(true);
     setError("");
+    setNoticeError("");
 
     try {
       const nextApplications = await authApi.getMyClassApplications(language);
-      setApplications(Array.isArray(nextApplications) ? nextApplications : []);
+      const normalizedApplications = Array.isArray(nextApplications) ? nextApplications : [];
+      setApplications(normalizedApplications);
+      await loadLessonNotices(normalizedApplications);
     } catch (nextError) {
       setApplications([]);
+      setNoticesByLessonId({});
       setError(nextError.message || labels.loadError);
     } finally {
       setIsApplicationsLoading(false);
     }
-  }, [language, labels.loadError]);
+  }, [language, labels.loadError, loadLessonNotices]);
 
   useEffect(() => {
     if (!authState?.authenticated) {
       setApplications([]);
+      setNoticesByLessonId({});
       return;
     }
 
@@ -2650,30 +2718,57 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack }) {
             </div>
           ) : null}
 
+          {!isApplicationsLoading && !error && noticeError ? (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {noticeError}
+            </div>
+          ) : null}
+
           {!isApplicationsLoading && !error && applications.length > 0 ? (
             <div className="grid gap-4">
-              {applications.map((application) => (
-                <article
-                  key={application.applicationId}
-                  className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="inline-flex min-h-[28px] items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
-                        {labels.status}
+              {applications.map((application) => {
+                const lessonId = lessonIdFromApplication(application);
+                const notices = lessonId === null ? [] : noticesByLessonId[lessonId] || [];
+                return (
+                  <article
+                    key={application.applicationId}
+                    className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="inline-flex min-h-[28px] items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
+                          {labels.status}
+                        </div>
+                        <h2 className="mt-3 text-lg font-semibold tracking-tight text-blue-950">
+                          {application.classTitle}
+                        </h2>
                       </div>
-                      <h2 className="mt-3 text-lg font-semibold tracking-tight text-blue-950">
-                        {application.classTitle}
-                      </h2>
                     </div>
-                  </div>
-                  <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
-                    <DetailRow label={labels.date} value={formatClassDate(application.classDate, language)} />
-                    <DetailRow label={labels.role} value={formatClassRole(application.role, labels)} />
-                    <DetailRow label={labels.appliedAt} value={formatMessageDate(application.appliedAt, language)} />
-                  </dl>
-                </article>
-              ))}
+                    <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+                      <DetailRow label={labels.date} value={formatClassDate(application.classDate, language)} />
+                      <DetailRow label={labels.role} value={formatClassRole(application.role, labels)} />
+                      <DetailRow label={labels.appliedAt} value={formatMessageDate(application.appliedAt, language)} />
+                    </dl>
+                    {notices.length > 0 ? (
+                      <section className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3">
+                        <div className="text-xs font-semibold text-blue-950/50">{labels.notices}</div>
+                        <div className="mt-3 grid gap-3">
+                          {notices.map((notice) => (
+                            <article key={notice.id} className="rounded-2xl border border-blue-100 bg-white px-4 py-3">
+                              <div className="text-xs font-semibold text-blue-950/50">
+                                {formatLessonNoticeAuthor(notice, labels)} · {formatMessageDate(notice.createdAt, language)}
+                              </div>
+                              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-blue-950/75">
+                                {notice.content}
+                              </p>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           ) : null}
         </div>
@@ -2876,6 +2971,7 @@ function MyPage({
   onSettings,
   onLogout,
   messageUnreadCount = 0,
+  classNoticeUnreadCount = 0,
 }) {
   const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
   const displayName = memberApplicationName(authState);
@@ -2947,7 +3043,12 @@ function MyPage({
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {labels.menu.map((item) => {
-            const unreadCount = item.id === "messages" ? messageUnreadCount : 0;
+            const unreadCount =
+              item.id === "messages"
+                ? messageUnreadCount
+                : item.id === "classes"
+                  ? classNoticeUnreadCount
+                  : 0;
             return (
               <button
                 key={item.id}
@@ -3013,6 +3114,7 @@ function PublicApp() {
   const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
   const [isAppliedScheduleLoading, setIsAppliedScheduleLoading] = useState(false);
   const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
+  const [lessonNoticeUnreadCount, setLessonNoticeUnreadCount] = useState(0);
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
@@ -3030,6 +3132,7 @@ function PublicApp() {
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
       setMemberMessageUnreadCount(0);
+      setLessonNoticeUnreadCount(0);
     }
 
     return normalizedAuthState;
@@ -3054,6 +3157,25 @@ function PublicApp() {
     } catch (error) {
       if (error.status === 401) {
         setMemberMessageUnreadCount(0);
+      }
+      return 0;
+    }
+  }, [authState?.authenticated]);
+
+  const loadLessonNoticeUnreadCount = useCallback(async () => {
+    if (!authState?.authenticated) {
+      setLessonNoticeUnreadCount(0);
+      return 0;
+    }
+
+    try {
+      const response = await authApi.getMyLessonNoticeUnreadCount();
+      const count = Number(response?.count) || 0;
+      setLessonNoticeUnreadCount(count);
+      return count;
+    } catch (error) {
+      if (error.status === 401) {
+        setLessonNoticeUnreadCount(0);
       }
       return 0;
     }
@@ -3213,12 +3335,14 @@ function PublicApp() {
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
       setMemberMessageUnreadCount(0);
+      setLessonNoticeUnreadCount(0);
       return;
     }
 
     loadAppliedScheduleItemIds();
     loadMemberMessageUnreadCount();
-  }, [authState?.authenticated, loadAppliedScheduleItemIds, loadMemberMessageUnreadCount]);
+    loadLessonNoticeUnreadCount();
+  }, [authState?.authenticated, loadAppliedScheduleItemIds, loadLessonNoticeUnreadCount, loadMemberMessageUnreadCount]);
 
   const handleLanguageSelect = (nextLanguage) => {
     const nextPreferredLanguage = toMemberPreferredLanguage(nextLanguage);
@@ -3296,6 +3420,7 @@ function PublicApp() {
       refreshAuthState().catch(() => null);
       loadAppliedScheduleItemIds().catch(() => null);
       loadMemberMessageUnreadCount().catch(() => null);
+      loadLessonNoticeUnreadCount().catch(() => null);
     }
   };
 
@@ -3320,6 +3445,7 @@ function PublicApp() {
         setAppliedScheduleItemIds([]);
         setIsAppliedScheduleLoading(false);
         setMemberMessageUnreadCount(0);
+        setLessonNoticeUnreadCount(0);
         setIsAuthActionPending(false);
         if (
           currentPath === "/settings" ||
@@ -3355,6 +3481,7 @@ function PublicApp() {
     setAppliedScheduleItemIds([]);
     setIsAppliedScheduleLoading(false);
     setMemberMessageUnreadCount(0);
+    setLessonNoticeUnreadCount(0);
     setAccountNotice(message);
     navigateToPath("/");
   };
@@ -3449,6 +3576,7 @@ function PublicApp() {
             onSettings={handleSettingsOpen}
             onLogout={handleLogout}
             messageUnreadCount={memberMessageUnreadCount}
+            classNoticeUnreadCount={lessonNoticeUnreadCount}
           />
         ) : isMyClassesPath ? (
           <MyClassesPage
@@ -3457,6 +3585,7 @@ function PublicApp() {
             language={activeLanguage}
             onLogin={handleLogin}
             onBack={handleMemberSubpageBack}
+            onUnreadChanged={loadLessonNoticeUnreadCount}
           />
         ) : isMessagesPath ? (
           <MemberMessagesPage

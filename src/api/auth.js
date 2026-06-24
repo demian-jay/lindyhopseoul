@@ -71,6 +71,17 @@ export const authApi = {
     const query = language ? `?language=${encodeURIComponent(language)}` : "";
     return request(`/api/members/me/class-applications${query}`);
   },
+  getMyLessonNotices(lessonId) {
+    return request(`/api/members/me/lessons/${lessonId}/notices`);
+  },
+  getMyLessonNoticeUnreadCount() {
+    return request("/api/members/me/lesson-notices/unread-count");
+  },
+  markMyLessonNoticesRead(lessonId) {
+    return request(`/api/members/me/lessons/${lessonId}/notices/read`, {
+      method: "PATCH",
+    });
+  },
   getAppliedClassIds() {
     return request("/api/members/me/applied-class-ids");
   },
