@@ -34,6 +34,12 @@ public class MemberMessage {
     @JoinColumn(name = "sender_member_id")
     private Member senderMember;
 
+    @Column(name = "sender_admin_id", length = 36)
+    private String senderAdminId;
+
+    @Column(name = "sender_admin_display_name", length = 100)
+    private String senderAdminDisplayName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "sender_type", nullable = false, length = 20)
     private MemberMessageSenderType senderType;
@@ -55,9 +61,41 @@ public class MemberMessage {
             String content,
             Instant createdAt
     ) {
+        return create(thread, senderMember, null, null, senderType, content, createdAt);
+    }
+
+    public static MemberMessage createAdmin(
+            MemberMessageThread thread,
+            String senderAdminId,
+            String senderAdminDisplayName,
+            String content,
+            Instant createdAt
+    ) {
+        return create(
+                thread,
+                null,
+                senderAdminId,
+                senderAdminDisplayName,
+                MemberMessageSenderType.ADMIN,
+                content,
+                createdAt
+        );
+    }
+
+    private static MemberMessage create(
+            MemberMessageThread thread,
+            Member senderMember,
+            String senderAdminId,
+            String senderAdminDisplayName,
+            MemberMessageSenderType senderType,
+            String content,
+            Instant createdAt
+    ) {
         MemberMessage message = new MemberMessage();
         message.thread = thread;
         message.senderMember = senderMember;
+        message.senderAdminId = senderAdminId;
+        message.senderAdminDisplayName = senderAdminDisplayName;
         message.senderType = senderType;
         message.content = content;
         message.createdAt = createdAt;
@@ -81,6 +119,14 @@ public class MemberMessage {
 
     public Member getSenderMember() {
         return senderMember;
+    }
+
+    public String getSenderAdminId() {
+        return senderAdminId;
+    }
+
+    public String getSenderAdminDisplayName() {
+        return senderAdminDisplayName;
     }
 
     public MemberMessageSenderType getSenderType() {

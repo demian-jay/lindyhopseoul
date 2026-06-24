@@ -156,7 +156,8 @@ const I18N = {
       memberInfo: "회원 정보",
       lastMessage: "마지막 메시지",
       lastMessageAt: "마지막 시간",
-      adminSender: "Swingpop 운영진",
+      adminSender: "운영진",
+      staffSender: (name) => (name ? `운영진 - (${name})` : "운영진"),
     },
     adminUsers: {
       createTitle: "관리자 계정 등록",
@@ -385,7 +386,8 @@ const I18N = {
       memberInfo: "Member Info",
       lastMessage: "Last Message",
       lastMessageAt: "Last Updated",
-      adminSender: "Swingpop Team",
+      adminSender: "Staff",
+      staffSender: (name) => (name ? `Staff - (${name})` : "Staff"),
     },
     adminUsers: {
       createTitle: "Create Admin Account",
@@ -486,6 +488,12 @@ function formatDate(value, langCd) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatStaffSenderLabel(message, labels) {
+  const displayName =
+    typeof message?.senderAdminDisplayName === "string" ? message.senderAdminDisplayName.trim() : "";
+  return labels.staffSender(displayName);
 }
 
 const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
@@ -2016,7 +2024,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels }) {
                       >
                         <div className={`text-xs font-semibold ${isAdmin ? "text-white/75" : "text-zinc-500"}`}>
                           {isAdmin ? (
-                            messageLabels.adminSender
+                            formatStaffSenderLabel(message, messageLabels)
                           ) : (
                             <MemberNameLabel name={message.senderName} status={detail?.member?.status} />
                           )}

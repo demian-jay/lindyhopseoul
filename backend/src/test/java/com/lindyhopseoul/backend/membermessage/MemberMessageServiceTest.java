@@ -111,7 +111,7 @@ class MemberMessageServiceTest {
     void createAdminMessageStoresAdminSenderAndUpdatesThread() {
         AdminPrincipal staff = new AdminPrincipal(
                 "staff-1",
-                "Staff",
+                "Gamja",
                 "staff",
                 AdminRole.STAFF,
                 List.of(AdminRole.STAFF),
@@ -132,7 +132,75 @@ class MemberMessageServiceTest {
 
         assertThat(savedMessage.getSenderType()).isEqualTo(MemberMessageSenderType.ADMIN);
         assertThat(savedMessage.getSenderMember()).isNull();
+        assertThat(savedMessage.getSenderAdminId()).isEqualTo("staff-1");
+        assertThat(savedMessage.getSenderAdminDisplayName()).isEqualTo("Gamja");
         assertThat(savedMessage.getContent()).isEqualTo("확인 후 안내드리겠습니다.");
         assertThat(thread.getLastMessageAt()).isNotNull();
+    }
+
+    @Test
+    void createAdminMessageDoesNotStoreLoginIdAsDisplayName() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "staff",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        when(threadRepository.findById(10L)).thenReturn(Optional.of(thread));
+        when(messageRepository.findByThreadIdOrderByCreatedAtAscIdAsc(10L)).thenReturn(List.of());
+
+        memberMessageService.createAdminMessage(
+                staff,
+                10L,
+                new MemberMessageCreateRequest("확인했습니다.")
+        );
+
+        ArgumentCaptor<MemberMessage> messageCaptor = ArgumentCaptor.forClass(MemberMessage.class);
+        org.mockito.Mockito.verify(messageRepository).save(messageCaptor.capture());
+
+        assertThat(messageCaptor.getValue().getSenderAdminDisplayName()).isNull();
+    }
+
+    @Test
+    void memberMessageResponseIncludesAdminDisplayNameOnlyForAdminMessages() {
+        MemberMessage adminMessage = MemberMessage.createAdmin(
+                thread,
+                "staff-1",
+                "Gamja",
+                "확인했습니다.",
+                Instant.parse("2026-06-23T01:00:00Z")
+        );
+        MemberMessage memberMessage = MemberMessage.create(
+                thread,
+                member,
+                MemberMessageSenderType.MEMBER,
+                "문의드립니다.",
+                Instant.parse("2026-06-23T00:00:00Z")
+        );
+
+        MemberMessageResponse adminResponse = MemberMessageResponse.from(adminMessage);
+        MemberMessageResponse memberResponse = MemberMessageResponse.from(memberMessage);
+
+        assertThat(adminResponse.senderAdminDisplayName()).isEqualTo("Gamja");
+        assertThat(adminResponse.senderName()).isEqualTo("Gamja");
+        assertThat(memberResponse.senderAdminDisplayName()).isNull();
+    }
+
+    @Test
+    void memberMessageResponseFallsBackWhenAdminDisplayNameIsMissing() {
+        MemberMessage adminMessage = MemberMessage.createAdmin(
+                thread,
+                "staff-1",
+                "admin@example.com",
+                "확인했습니다.",
+                Instant.parse("2026-06-23T01:00:00Z")
+        );
+
+        MemberMessageResponse response = MemberMessageResponse.from(adminMessage);
+
+        assertThat(response.senderAdminDisplayName()).isNull();
+        assertThat(response.senderName()).isEqualTo("Staff");
     }
 }

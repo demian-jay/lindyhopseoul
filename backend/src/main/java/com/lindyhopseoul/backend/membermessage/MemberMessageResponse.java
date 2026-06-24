@@ -6,6 +6,7 @@ public record MemberMessageResponse(
         Long id,
         MemberMessageSenderType senderType,
         String senderName,
+        String senderAdminDisplayName,
         String content,
         Instant createdAt
 ) {
@@ -15,6 +16,7 @@ public record MemberMessageResponse(
                 message.getId(),
                 message.getSenderType(),
                 senderName(message),
+                senderAdminDisplayName(message),
                 message.getContent(),
                 message.getCreatedAt()
         );
@@ -22,7 +24,8 @@ public record MemberMessageResponse(
 
     private static String senderName(MemberMessage message) {
         if (message.getSenderType() == MemberMessageSenderType.ADMIN) {
-            return "Swingpop 운영진";
+            String adminDisplayName = senderAdminDisplayName(message);
+            return adminDisplayName == null ? "Staff" : adminDisplayName;
         }
         if (message.getSenderMember() == null) {
             return "Member";
@@ -34,5 +37,17 @@ public record MemberMessageResponse(
             return message.getSenderMember().getDisplayName();
         }
         return message.getSenderMember().getEmail();
+    }
+
+    private static String senderAdminDisplayName(MemberMessage message) {
+        if (message.getSenderType() != MemberMessageSenderType.ADMIN) {
+            return null;
+        }
+        String displayName = message.getSenderAdminDisplayName();
+        if (displayName == null || displayName.isBlank()) {
+            return null;
+        }
+        String normalizedDisplayName = displayName.strip();
+        return normalizedDisplayName.contains("@") ? null : normalizedDisplayName;
     }
 }

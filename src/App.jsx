@@ -688,6 +688,7 @@ const MEMBER_MESSAGES_COPY = {
     sent: "메시지가 전송되었습니다.",
     member: "나",
     admin: "운영진",
+    staffSender: (name) => (name ? `운영진 - (${name})` : "운영진"),
   },
   en: {
     title: "Messages",
@@ -705,7 +706,8 @@ const MEMBER_MESSAGES_COPY = {
     sendError: "Could not send message.",
     sent: "Message sent.",
     member: "Me",
-    admin: "Team",
+    admin: "Staff",
+    staffSender: (name) => (name ? `Staff - (${name})` : "Staff"),
   },
 };
 
@@ -1387,6 +1389,12 @@ function formatMessageDate(value, language) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatStaffSenderLabel(message, labels) {
+  const displayName =
+    typeof message?.senderAdminDisplayName === "string" ? message.senderAdminDisplayName.trim() : "";
+  return labels.staffSender(displayName);
 }
 
 function formatClassDate(value, language) {
@@ -2801,7 +2809,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack })
                       }`}
                     >
                       <div className={`text-xs font-semibold ${isMember ? "text-white/75" : "text-blue-950/55"}`}>
-                        {isMember ? labels.member : message.senderName || labels.admin}
+                        {isMember ? labels.member : formatStaffSenderLabel(message, labels)}
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
                       <div className={`mt-2 text-[11px] ${isMember ? "text-white/65" : "text-blue-950/45"}`}>

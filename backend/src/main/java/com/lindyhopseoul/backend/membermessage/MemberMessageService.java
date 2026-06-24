@@ -90,10 +90,10 @@ public class MemberMessageService {
         String content = normalizeContent(request == null ? null : request.content());
         Instant now = Instant.now();
 
-        messageRepository.save(MemberMessage.create(
+        messageRepository.save(MemberMessage.createAdmin(
                 thread,
-                null,
-                MemberMessageSenderType.ADMIN,
+                actor.userCd(),
+                adminDisplayName(actor),
                 content,
                 now
         ));
@@ -141,6 +141,19 @@ public class MemberMessageService {
         if (actor == null || !actor.canManageEvents()) {
             throw new ForbiddenException("Only administrators can manage member messages.");
         }
+    }
+
+    private String adminDisplayName(AdminPrincipal actor) {
+        if (actor == null || actor.userNm() == null || actor.userNm().isBlank()) {
+            return null;
+        }
+
+        String displayName = actor.userNm().strip();
+        String loginId = actor.loginId();
+        if (displayName.contains("@") || (loginId != null && displayName.equalsIgnoreCase(loginId.strip()))) {
+            return null;
+        }
+        return displayName;
     }
 
     private String normalizeContent(String content) {
