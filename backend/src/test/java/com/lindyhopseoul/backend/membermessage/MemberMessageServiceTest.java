@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -255,6 +258,98 @@ class MemberMessageServiceTest {
         org.mockito.Mockito.verify(messageRepository).save(messageCaptor.capture());
 
         assertThat(messageCaptor.getValue().getSenderAdminDisplayName()).isNull();
+    }
+
+    @Test
+    void sendAdminMessagesCreatesIndividualStaffMessagesAndSkipsUnavailableMembers() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Gamja",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        Member suspendedMember = Member.createGoogle(
+                "google-sub-2",
+                "suspended@example.com",
+                "Suspended User",
+                Instant.parse("2026-06-23T00:00:00Z")
+        );
+        ReflectionTestUtils.setField(suspendedMember, "id", 2L);
+        suspendedMember.suspend();
+
+        when(memberRepository.findAllById(List.of(1L, 2L, 99L))).thenReturn(List.of(member, suspendedMember));
+        when(threadRepository.findByMemberId(1L)).thenReturn(Optional.empty());
+        when(threadRepository.save(any(MemberMessageThread.class))).thenReturn(thread);
+
+        AdminMemberMessageSendResponse response = memberMessageService.sendAdminMessages(
+                staff,
+                new AdminMemberMessageSendRequest(List.of(1L, 2L, 2L, 99L), "  안녕하세요. 안내드립니다.  ")
+        );
+
+        ArgumentCaptor<MemberMessage> messageCaptor = ArgumentCaptor.forClass(MemberMessage.class);
+        verify(messageRepository).save(messageCaptor.capture());
+        MemberMessage savedMessage = messageCaptor.getValue();
+
+        assertThat(response.requestedCount()).isEqualTo(3);
+        assertThat(response.sentCount()).isEqualTo(1);
+        assertThat(response.skippedCount()).isEqualTo(2);
+        assertThat(response.skippedMembers())
+                .extracting(AdminMemberMessageSendResponse.SkippedMember::memberId)
+                .containsExactly(2L, 99L);
+        assertThat(response.skippedMembers())
+                .extracting(AdminMemberMessageSendResponse.SkippedMember::reason)
+                .containsExactly("SUSPENDED", "NOT_FOUND");
+        assertThat(savedMessage.getSenderType()).isEqualTo(MemberMessageSenderType.ADMIN);
+        assertThat(savedMessage.getSenderMember()).isNull();
+        assertThat(savedMessage.getSenderAdminId()).isEqualTo("staff-1");
+        assertThat(savedMessage.getSenderAdminDisplayName()).isEqualTo("Gamja");
+        assertThat(savedMessage.getContent()).isEqualTo("안녕하세요. 안내드립니다.");
+        assertThat(thread.getLastStaffMessageAt()).isNotNull();
+        assertThat(thread.isUnreadByMember()).isTrue();
+        assertThat(thread.isUnreadByAdmin()).isFalse();
+    }
+
+    @Test
+    void sendAdminMessagesReusesExistingMemberThread() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Gamja",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+        when(memberRepository.findAllById(List.of(1L))).thenReturn(List.of(member));
+        when(threadRepository.findByMemberId(1L)).thenReturn(Optional.of(thread));
+
+        AdminMemberMessageSendResponse response = memberMessageService.sendAdminMessages(
+                staff,
+                new AdminMemberMessageSendRequest(List.of(1L), "기존 대화방으로 보냅니다.")
+        );
+
+        verify(threadRepository, never()).save(any(MemberMessageThread.class));
+        verify(messageRepository, times(1)).save(any(MemberMessage.class));
+        assertThat(response.sentCount()).isEqualTo(1);
+        assertThat(thread.getLastStaffMessageAt()).isNotNull();
+    }
+
+    @Test
+    void sendAdminMessagesRejectsUnauthorizedPrincipal() {
+        AdminPrincipal memberPrincipal = new AdminPrincipal(
+                "member-admin",
+                "Member Admin",
+                "member",
+                AdminRole.MEMBER,
+                List.of(AdminRole.MEMBER),
+                AdminLanguage.Kor
+        );
+
+        assertThatThrownBy(() -> memberMessageService.sendAdminMessages(
+                memberPrincipal,
+                new AdminMemberMessageSendRequest(List.of(1L), "안내드립니다.")
+        )).isInstanceOf(ForbiddenException.class);
     }
 
     @Test

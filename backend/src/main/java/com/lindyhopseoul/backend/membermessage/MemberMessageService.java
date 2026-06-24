@@ -1,7 +1,13 @@
 package com.lindyhopseoul.backend.membermessage;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.exception.BadRequestException;
@@ -10,6 +16,7 @@ import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
 import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import com.lindyhopseoul.backend.member.Member;
 import com.lindyhopseoul.backend.member.MemberRepository;
+import com.lindyhopseoul.backend.member.MemberStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -128,6 +135,58 @@ public class MemberMessageService {
         return toAdminThreadDetailResponse(thread, findMessages(thread.getId()));
     }
 
+    @Transactional
+    public AdminMemberMessageSendResponse sendAdminMessages(
+            AdminPrincipal actor,
+            AdminMemberMessageSendRequest request
+    ) {
+        requireMessageAdmin(actor);
+        List<Long> memberIds = normalizeMemberIds(request == null ? null : request.memberIds());
+        String content = normalizeContent(request == null ? null : request.content());
+        Map<Long, Member> membersById = memberRepository.findAllById(memberIds)
+                .stream()
+                .collect(Collectors.toMap(Member::getId, Function.identity()));
+        List<AdminMemberMessageSendResponse.SkippedMember> skippedMembers = new ArrayList<>();
+        Instant now = Instant.now();
+        int sentCount = 0;
+
+        for (Long memberId : memberIds) {
+            Member targetMember = membersById.get(memberId);
+            if (targetMember == null) {
+                skippedMembers.add(new AdminMemberMessageSendResponse.SkippedMember(memberId, "NOT_FOUND"));
+                continue;
+            }
+            MemberStatus targetStatus = targetMember.getStatus();
+            if (targetStatus != MemberStatus.ACTIVE) {
+                skippedMembers.add(new AdminMemberMessageSendResponse.SkippedMember(
+                        memberId,
+                        targetStatus == null ? "UNAVAILABLE" : targetStatus.name()
+                ));
+                continue;
+            }
+
+            MemberMessageThread thread = threadRepository.findByMemberId(memberId)
+                    .orElseGet(() -> threadRepository.save(MemberMessageThread.create(targetMember, now)));
+            messageRepository.save(MemberMessage.createAdmin(
+                    thread,
+                    actor.userCd(),
+                    adminDisplayName(actor),
+                    content,
+                    now
+            ));
+            thread.recordStaffMessage(now);
+            thread.markAdminRead(now);
+            sentCount++;
+        }
+
+        return new AdminMemberMessageSendResponse(
+                memberIds.size(),
+                sentCount,
+                skippedMembers.size(),
+                skippedMembers
+        );
+    }
+
     private Member findMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new UnauthorizedException("Login is required."));
@@ -210,6 +269,22 @@ public class MemberMessageService {
             return null;
         }
         return displayName;
+    }
+
+    private List<Long> normalizeMemberIds(List<Long> memberIds) {
+        if (memberIds == null) {
+            throw new BadRequestException("Member ids are required.");
+        }
+
+        List<Long> normalizedMemberIds = memberIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new))
+                .stream()
+                .toList();
+        if (normalizedMemberIds.isEmpty()) {
+            throw new BadRequestException("Member ids are required.");
+        }
+        return normalizedMemberIds;
     }
 
     private String normalizeContent(String content) {

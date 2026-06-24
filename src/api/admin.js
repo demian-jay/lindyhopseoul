@@ -317,6 +317,13 @@ export const adminApi = {
       body: payload,
     });
   },
+  sendMemberMessages(token, payload) {
+    return request("/api/admin/member-messages/send", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
   findTeacherDashboard(token) {
     return request("/api/teacher/dashboard", { token });
   },

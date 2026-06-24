@@ -202,6 +202,25 @@ const I18N = {
       reasonRequired: "사유를 입력해주세요.",
       suspended: "회원 계정을 비활성화했습니다.",
       reactivated: "회원 계정을 재활성화했습니다.",
+      select: "선택",
+      selectAllVisible: "현재 목록 전체 선택",
+      selectedCount: (count) => `선택된 회원 ${count}명`,
+      sendMessage: "메시지 보내기",
+      sendMessageTitle: "회원에게 메시지 보내기",
+      sendMessageDescription: (count) => `선택한 ${count}명의 회원에게 메시지를 보냅니다.`,
+      sendMessagePrivacyNote: "각 회원에게 개별 메시지로 전송되며, 다른 수신자는 표시되지 않습니다.",
+      activeRecipients: (count) => `발송 가능 대상 ${count}명`,
+      excludedRecipients: (count) => `발송 불가 대상 ${count}명`,
+      messageLabel: "메시지 내용",
+      messagePlaceholder: "회원에게 보낼 메시지를 입력해주세요.",
+      messageRequired: "메시지 내용을 입력해주세요.",
+      sendingMessage: "보내는 중",
+      messageSent: ({ sentCount, skippedCount }) =>
+        skippedCount > 0
+          ? `${sentCount}명에게 메시지를 보냈습니다. 비활성 또는 탈퇴 회원 ${skippedCount}명은 제외되었습니다.`
+          : `${sentCount}명에게 메시지를 보냈습니다.`,
+      messageSendError: "메시지를 보내지 못했습니다.",
+      previewMore: (count) => `외 ${count}명`,
     },
     memberActionLogs: {
       filtersTitle: "로그 검색",
@@ -433,6 +452,25 @@ const I18N = {
       reasonRequired: "Please enter a reason.",
       suspended: "Member account has been suspended.",
       reactivated: "Member account has been reactivated.",
+      select: "Select",
+      selectAllVisible: "Select Current List",
+      selectedCount: (count) => `${count} selected`,
+      sendMessage: "Send Message",
+      sendMessageTitle: "Send Message To Members",
+      sendMessageDescription: (count) => `Send a message to ${count} selected member${count === 1 ? "" : "s"}.`,
+      sendMessagePrivacyNote: "Each member receives an individual message. Other recipients are not shown.",
+      activeRecipients: (count) => `${count} can receive`,
+      excludedRecipients: (count) => `${count} excluded`,
+      messageLabel: "Message",
+      messagePlaceholder: "Write the message to send to members.",
+      messageRequired: "Please enter a message.",
+      sendingMessage: "Sending",
+      messageSent: ({ sentCount, skippedCount }) =>
+        skippedCount > 0
+          ? `Sent messages to ${sentCount}. ${skippedCount} inactive or withdrawn member${skippedCount === 1 ? " was" : "s were"} excluded.`
+          : `Sent messages to ${sentCount}.`,
+      messageSendError: "Could not send messages.",
+      previewMore: (count) => `and ${count} more`,
     },
     memberActionLogs: {
       filtersTitle: "Log Search",
@@ -1339,9 +1377,23 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   const [statusReason, setStatusReason] = useState("");
   const [statusReasonError, setStatusReasonError] = useState("");
   const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState("");
+  const [messageError, setMessageError] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const memberLabels = labels.adminMembers;
   const canChangeMemberStatus = hasRole(currentUser, "SUPER_ADMIN");
+  const selectedMemberIdSet = useMemo(() => new Set(selectedMemberIds), [selectedMemberIds]);
+  const selectedMembers = useMemo(
+    () => items.filter((member) => selectedMemberIdSet.has(member.memberId)),
+    [items, selectedMemberIdSet],
+  );
+  const selectedActiveCount = selectedMembers.filter((member) => member.memberStatus === "ACTIVE").length;
+  const selectedExcludedCount = selectedMembers.length - selectedActiveCount;
+  const isAllVisibleSelected =
+    items.length > 0 && items.every((member) => selectedMemberIdSet.has(member.memberId));
 
   const loadItems = useCallback(async () => {
     setIsLoading(true);
@@ -1361,6 +1413,11 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
     loadItems();
   }, [loadItems]);
 
+  useEffect(() => {
+    const visibleMemberIds = new Set(items.map((member) => member.memberId));
+    setSelectedMemberIds((currentIds) => currentIds.filter((memberId) => visibleMemberIds.has(memberId)));
+  }, [items]);
+
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
     setFilters((currentFilters) => ({ ...currentFilters, [name]: value }));
@@ -1377,6 +1434,79 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
     setNotice("");
+    setSelectedMemberIds([]);
+  };
+
+  const toggleMemberSelection = (memberId) => {
+    setSelectedMemberIds((currentIds) =>
+      currentIds.includes(memberId)
+        ? currentIds.filter((currentId) => currentId !== memberId)
+        : [...currentIds, memberId],
+    );
+    setNotice("");
+    setError("");
+  };
+
+  const toggleVisibleSelection = () => {
+    setSelectedMemberIds((currentIds) => {
+      if (isAllVisibleSelected) {
+        return currentIds.filter((memberId) => !items.some((member) => member.memberId === memberId));
+      }
+      const nextIds = new Set(currentIds);
+      items.forEach((member) => nextIds.add(member.memberId));
+      return Array.from(nextIds);
+    });
+    setNotice("");
+    setError("");
+  };
+
+  const openMessageModal = () => {
+    if (selectedMemberIds.length === 0) {
+      return;
+    }
+    setIsMessageModalOpen(true);
+    setMessageContent("");
+    setMessageError("");
+    setError("");
+    setNotice("");
+  };
+
+  const closeMessageModal = () => {
+    if (isSendingMessage) {
+      return;
+    }
+    setIsMessageModalOpen(false);
+    setMessageContent("");
+    setMessageError("");
+  };
+
+  const submitMemberMessage = async () => {
+    const normalizedContent = messageContent.trim();
+    if (!normalizedContent) {
+      setMessageError(memberLabels.messageRequired);
+      return;
+    }
+
+    setIsSendingMessage(true);
+    setMessageError("");
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await adminApi.sendMemberMessages(token, {
+        memberIds: selectedMemberIds,
+        content: normalizedContent,
+      });
+      setNotice(memberLabels.messageSent(response));
+      setSelectedMemberIds([]);
+      setIsMessageModalOpen(false);
+      setMessageContent("");
+      await loadItems();
+    } catch (nextError) {
+      setMessageError(nextError.message || memberLabels.messageSendError);
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   const openStatusModal = (type, member) => {
@@ -1493,9 +1623,20 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
       <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
           <h2 className="text-lg font-bold text-zinc-950">{memberLabels.listTitle}</h2>
-          <span className="text-sm text-zinc-500">
-            {isLoading ? memberLabels.loading : labels.common.count(items.length)}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-zinc-600">
+              {memberLabels.selectedCount(selectedMemberIds.length)}
+            </span>
+            <SecondaryButton type="button" onClick={toggleVisibleSelection} disabled={items.length === 0}>
+              {memberLabels.selectAllVisible}
+            </SecondaryButton>
+            <PrimaryButton type="button" onClick={openMessageModal} disabled={selectedMemberIds.length === 0}>
+              {memberLabels.sendMessage}
+            </PrimaryButton>
+            <span className="text-sm text-zinc-500">
+              {isLoading ? memberLabels.loading : labels.common.count(items.length)}
+            </span>
+          </div>
         </div>
 
         <div className="mt-4" aria-live="polite">
@@ -1507,9 +1648,19 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
           <div className="py-10 text-center text-sm text-zinc-500">{memberLabels.empty}</div>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[1420px] w-full border-separate border-spacing-0 text-left text-sm">
+            <table className="min-w-[1480px] w-full border-separate border-spacing-0 text-left text-sm">
               <thead>
                 <tr className="text-xs font-semibold uppercase text-zinc-500">
+                  <th className="w-12 border-b border-zinc-200 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={isAllVisibleSelected}
+                      onChange={toggleVisibleSelection}
+                      disabled={items.length === 0}
+                      aria-label={memberLabels.selectAllVisible}
+                      className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                    />
+                  </th>
                   <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.name}</th>
                   <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.nickname}</th>
                   <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.email}</th>
@@ -1530,6 +1681,15 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
               <tbody>
                 {items.map((member) => (
                   <tr key={member.memberId} className="align-middle">
+                    <td className="border-b border-zinc-100 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedMemberIdSet.has(member.memberId)}
+                        onChange={() => toggleMemberSelection(member.memberId)}
+                        aria-label={`${memberLabels.select}: ${member.displayName || member.email}`}
+                        className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                      />
+                    </td>
                     <td className="border-b border-zinc-100 px-3 py-3">
                       <MemberNameLabel
                         name={member.displayName || labels.common.empty}
@@ -1603,6 +1763,24 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
           </div>
         )}
       </div>
+      {isMessageModalOpen ? (
+        <MemberMessageSendModal
+          labels={memberLabels}
+          commonLabels={labels.common}
+          members={selectedMembers}
+          activeCount={selectedActiveCount}
+          excludedCount={selectedExcludedCount}
+          content={messageContent}
+          error={messageError}
+          isSubmitting={isSendingMessage}
+          onContentChange={(value) => {
+            setMessageContent(value);
+            setMessageError("");
+          }}
+          onCancel={closeMessageModal}
+          onSubmit={submitMemberMessage}
+        />
+      ) : null}
       {statusModal ? (
         <MemberStatusChangeModal
           labels={memberLabels}
@@ -1621,6 +1799,86 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
         />
       ) : null}
     </section>
+  );
+}
+
+function MemberMessageSendModal({
+  labels,
+  commonLabels,
+  members,
+  activeCount,
+  excludedCount,
+  content,
+  error,
+  isSubmitting,
+  onContentChange,
+  onCancel,
+  onSubmit,
+}) {
+  const previewMembers = members.slice(0, 5);
+  const moreCount = Math.max(0, members.length - previewMembers.length);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
+      <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-bold text-zinc-950">{labels.sendMessageTitle}</h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-600">{labels.sendMessageDescription(members.length)}</p>
+
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
+              {labels.activeRecipients(activeCount)}
+            </span>
+            {excludedCount > 0 ? (
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">
+                {labels.excludedRecipients(excludedCount)}
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {previewMembers.map((member) => (
+              <span
+                key={member.memberId}
+                className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700"
+              >
+                <MemberNameLabel
+                  name={member.displayName || commonLabels.empty}
+                  status={member.memberStatus}
+                />
+              </span>
+            ))}
+            {moreCount > 0 ? (
+              <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500">
+                {labels.previewMore(moreCount)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs leading-5 text-zinc-500">{labels.sendMessagePrivacyNote}</p>
+
+        <label className="mt-4 block">
+          <span className="text-xs font-semibold text-zinc-600">{labels.messageLabel}</span>
+          <textarea
+            value={content}
+            onChange={(event) => onContentChange(event.target.value)}
+            maxLength={2000}
+            rows={6}
+            placeholder={labels.messagePlaceholder}
+            className="mt-1.5 min-h-[160px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          />
+        </label>
+        {error ? <div className="mt-2 text-sm font-semibold text-red-600">{error}</div> : null}
+        <div className="mt-5 flex justify-end gap-2">
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
+            {commonLabels.cancel}
+          </SecondaryButton>
+          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting}>
+            {isSubmitting ? labels.sendingMessage : labels.sendMessage}
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
   );
 }
 
