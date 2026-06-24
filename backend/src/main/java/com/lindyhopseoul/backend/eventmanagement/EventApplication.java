@@ -59,6 +59,19 @@ public class EventApplication {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private EventApplicationStatus status;
+
+    @Column
+    private Instant removedAt;
+
+    @Column(length = 80)
+    private String removedBy;
+
+    @Column(length = 1000)
+    private String removedReason;
+
     protected EventApplication() {
     }
 
@@ -96,12 +109,29 @@ public class EventApplication {
         application.requestMemo = requestMemo;
         application.languageCode = languageCode;
         application.danceRole = danceRole;
+        application.status = EventApplicationStatus.ACTIVE;
         return application;
     }
 
     @PrePersist
     void prePersist() {
-        createdAt = Instant.now();
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (status == null) {
+            status = EventApplicationStatus.ACTIVE;
+        }
+    }
+
+    public void markRemoved(String removedBy, String removedReason) {
+        this.status = EventApplicationStatus.REMOVED;
+        this.removedAt = Instant.now();
+        this.removedBy = removedBy;
+        this.removedReason = removedReason;
+    }
+
+    public boolean isActive() {
+        return status == null || status == EventApplicationStatus.ACTIVE;
     }
 
     public Long getId() {
@@ -146,5 +176,21 @@ public class EventApplication {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public EventApplicationStatus getStatus() {
+        return status == null ? EventApplicationStatus.ACTIVE : status;
+    }
+
+    public Instant getRemovedAt() {
+        return removedAt;
+    }
+
+    public String getRemovedBy() {
+        return removedBy;
+    }
+
+    public String getRemovedReason() {
+        return removedReason;
     }
 }

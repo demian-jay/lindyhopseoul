@@ -209,6 +209,11 @@ const COPY_TEXT = {
     requestMemo: "질문사항 / 하고 싶은 말",
     noRequestMemo: "남긴 내용이 없습니다.",
     viewParticipantDetail: "상세 보기",
+    removeApplication: "목록에서 제거",
+    removeApplicationTitle: "수강생을 이 수업에서 제거할까요?",
+    removeApplicationBody: "이 작업은 해당 수업의 수강 신청 목록에서만 제거됩니다.",
+    removeApplicationConfirm: "제거하기",
+    applicationRemoved: "수강 신청을 목록에서 제거했습니다.",
     legacyContact: "기존 연락처",
     contactMethods: {
       PHONE: "전화번호",
@@ -304,6 +309,11 @@ const COPY_TEXT = {
     requestMemo: "Questions / Anything to share",
     noRequestMemo: "No memo left.",
     viewParticipantDetail: "View details",
+    removeApplication: "Remove from list",
+    removeApplicationTitle: "Remove this student from this lesson?",
+    removeApplicationBody: "This only removes the application from this lesson's participant list.",
+    removeApplicationConfirm: "Remove",
+    applicationRemoved: "Application has been removed from the list.",
     legacyContact: "Previous contact",
     contactMethods: {
       PHONE: "Phone",
@@ -600,7 +610,7 @@ function previewText(value, maxLength = 80) {
   return `${normalized.slice(0, maxLength)}...`;
 }
 
-function ParticipantList({ participants, copy }) {
+function ParticipantList({ participants, copy, onRemoveParticipant }) {
   const items = Array.isArray(participants) ? participants : [];
   return (
     <div className="mt-4 w-full basis-full rounded-lg border border-zinc-200 bg-zinc-50 p-3">
@@ -612,8 +622,19 @@ function ParticipantList({ participants, copy }) {
         <div className="participant-card-grid mt-3">
           {items.map((participant) => (
             <div key={participant.id} className="min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2">
-              <div className="text-sm font-semibold text-zinc-950">
-                <MemberNameLabel name={participant.applicantName} status={participant.memberStatus} />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 text-sm font-semibold text-zinc-950">
+                  <MemberNameLabel name={participant.applicantName} status={participant.memberStatus} />
+                </div>
+                {onRemoveParticipant ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveParticipant(participant)}
+                    className="shrink-0 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                  >
+                    {copy.removeApplication}
+                  </button>
+                ) : null}
               </div>
               {participantSummaryText(participant, copy) ? (
                 <div className="mt-1 text-xs text-zinc-600">{participantSummaryText(participant, copy)}</div>
@@ -1111,7 +1132,10 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [removingParticipant, setRemovingParticipant] = useState(null);
+  const [isRemovingParticipant, setIsRemovingParticipant] = useState(false);
   const canDelete = hasRole(currentUser, "SUPER_ADMIN");
+  const canRemoveApplication = hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF");
 
   const loadEvents = useCallback(async () => {
     setIsLoading(true);
@@ -1289,6 +1313,38 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
       await loadEventDetail();
     } catch (nextError) {
       setError(nextError.message);
+    }
+  };
+
+  const startRemoveParticipant = (lesson, participant) => {
+    setRemovingParticipant({ lesson, participant });
+    setError("");
+    setNotice("");
+  };
+
+  const cancelRemoveParticipant = () => {
+    if (isRemovingParticipant) {
+      return;
+    }
+    setRemovingParticipant(null);
+  };
+
+  const confirmRemoveParticipant = async () => {
+    if (!removingParticipant?.participant) {
+      return;
+    }
+    setIsRemovingParticipant(true);
+    setError("");
+    setNotice("");
+    try {
+      await adminApi.removeEventApplication(token, removingParticipant.participant.id, { reason: null });
+      setNotice(copy.applicationRemoved);
+      setRemovingParticipant(null);
+      await loadEventDetail();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsRemovingParticipant(false);
     }
   };
 
@@ -1474,7 +1530,20 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             onAddLesson={startCreateLesson}
             onEditLesson={startEditLesson}
             onDeleteLesson={deleteLesson}
+            canRemoveApplication={canRemoveApplication}
+            onRemoveParticipant={startRemoveParticipant}
             onPromotion={() => setMode("promotion")}
+          />
+        ) : null}
+        {removingParticipant ? (
+          <ConfirmDialog
+            title={copy.removeApplicationTitle}
+            body={copy.removeApplicationBody}
+            cancelLabel={copy.cancel}
+            confirmLabel={copy.removeApplicationConfirm}
+            isSubmitting={isRemovingParticipant}
+            onCancel={cancelRemoveParticipant}
+            onConfirm={confirmRemoveParticipant}
           />
         ) : null}
       </div>
@@ -1492,6 +1561,8 @@ function EventDetail({
   onAddLesson,
   onEditLesson,
   onDeleteLesson,
+  canRemoveApplication,
+  onRemoveParticipant,
   onPromotion,
 }) {
   if (!event) {
@@ -1591,9 +1662,40 @@ function EventDetail({
                   ) : null}
                 </div>
               </div>
-              <ParticipantList participants={lesson.participants} copy={copy} />
+              <ParticipantList
+                participants={lesson.participants}
+                copy={copy}
+                onRemoveParticipant={canRemoveApplication ? (participant) => onRemoveParticipant(lesson, participant) : null}
+              />
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  body,
+  cancelLabel,
+  confirmLabel,
+  isSubmitting,
+  onCancel,
+  onConfirm,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
+      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-bold text-zinc-950">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-600">{body}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
+            {cancelLabel}
+          </SecondaryButton>
+          <DangerButton type="button" onClick={onConfirm} disabled={isSubmitting}>
+            {confirmLabel}
+          </DangerButton>
         </div>
       </div>
     </div>

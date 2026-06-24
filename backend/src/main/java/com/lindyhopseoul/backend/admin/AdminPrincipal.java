@@ -83,6 +83,10 @@ public record AdminPrincipal(
         return hasRole(AdminRole.SUPER_ADMIN);
     }
 
+    public boolean canManageMembers() {
+        return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
+    }
+
     public boolean canRenderPromotionMessages() {
         return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
     }

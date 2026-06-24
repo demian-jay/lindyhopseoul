@@ -26,6 +26,8 @@ import com.lindyhopseoul.backend.admin.TeacherUserRepository;
 import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
+import com.lindyhopseoul.backend.member.AdminMemberActionLog;
+import com.lindyhopseoul.backend.member.AdminMemberActionLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,19 +46,22 @@ public class EventManagementService {
     private final MessageTemplateRepository messageTemplateRepository;
     private final TeacherUserRepository teacherUserRepository;
     private final EventApplicationRepository eventApplicationRepository;
+    private final AdminMemberActionLogRepository adminMemberActionLogRepository;
 
     public EventManagementService(
             EventRepository eventRepository,
             LessonRepository lessonRepository,
             MessageTemplateRepository messageTemplateRepository,
             TeacherUserRepository teacherUserRepository,
-            EventApplicationRepository eventApplicationRepository
+            EventApplicationRepository eventApplicationRepository,
+            AdminMemberActionLogRepository adminMemberActionLogRepository
     ) {
         this.eventRepository = eventRepository;
         this.lessonRepository = lessonRepository;
         this.messageTemplateRepository = messageTemplateRepository;
         this.teacherUserRepository = teacherUserRepository;
         this.eventApplicationRepository = eventApplicationRepository;
+        this.adminMemberActionLogRepository = adminMemberActionLogRepository;
     }
 
     public List<EventResponse> findEvents(
@@ -198,6 +203,36 @@ public class EventManagementService {
     public void deleteLesson(AdminPrincipal actor, Long lessonId) {
         requireEventDeleter(actor);
         lessonRepository.delete(findLessonEntity(lessonId));
+    }
+
+    @Transactional
+    public EventApplicationResponse removeEventApplication(
+            AdminPrincipal actor,
+            Long applicationId,
+            EventApplicationRemoveRequest request
+    ) {
+        requireApplicationRemover(actor);
+        EventApplication application = eventApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event application not found: " + applicationId));
+        if (!application.isActive()) {
+            throw new ConflictException("This application has already been removed or cancelled.");
+        }
+
+        String reason = cleanNullable(request == null ? null : request.reason());
+        String eventTitle = findEventText(application.getEvent(), DEFAULT_LANGUAGE, EventTranslation::getTitle);
+        String lessonTitle = application.getLesson() == null
+                ? null
+                : findLessonText(application.getLesson(), DEFAULT_LANGUAGE, LessonTranslation::getTitle);
+
+        application.markRemoved(actor.userCd(), reason);
+        adminMemberActionLogRepository.save(AdminMemberActionLog.lessonApplicationRemoved(
+                actor,
+                application,
+                eventTitle,
+                lessonTitle,
+                reason
+        ));
+        return EventApplicationResponse.from(application);
     }
 
     public List<ActiveTeacherResponse> findActiveTeachers(AdminPrincipal actor) {
@@ -696,6 +731,12 @@ public class EventManagementService {
     private void requireEventDeleter(AdminPrincipal actor) {
         if (!actor.canDeleteEvents()) {
             throw new ForbiddenException("Only super admins can delete events and lessons.");
+        }
+    }
+
+    private void requireApplicationRemover(AdminPrincipal actor) {
+        if (!actor.canManageEvents()) {
+            throw new ForbiddenException("This account cannot remove lesson applications.");
         }
     }
 

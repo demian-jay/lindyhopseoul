@@ -10,6 +10,7 @@ const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 
 const LANGUAGES = ["Kor", "Eng"];
 const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
+const MEMBER_ACTION_TYPES = ["LESSON_APPLICATION_REMOVED"];
 
 const I18N = {
   Kor: {
@@ -20,9 +21,11 @@ const I18N = {
       OPERATION_CHECK: "운영 체크",
       EVENT_MANAGEMENT: "이벤트/강습 관리",
       MEMBER_MESSAGES: "회원 메시지",
+      MEMBER_ACTION_LOGS: "수강생 처리 로그",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
       MESSAGE_TEMPLATES: "메시지 템플릿",
-      ADMIN_USERS: "사용자 계정 관리",
+      ADMIN_USERS: "관리자 계정",
+      MEMBERS: "회원 관리",
       TEACHER_USERS: "강사 프로필 관리",
     },
     roles: {
@@ -34,6 +37,16 @@ const I18N = {
     statuses: {
       Y: "사용",
       N: "비활성",
+    },
+    memberStatuses: {
+      ALL: "전체",
+      ACTIVE: "활성 회원",
+      WITHDRAWN: "탈퇴 회원",
+    },
+    memberLanguages: {
+      ALL: "전체",
+      KO: "KO",
+      EN: "EN",
     },
     languages: {
       label: "언어",
@@ -65,9 +78,15 @@ const I18N = {
       loginId: "아이디",
       password: "비밀번호",
       newPassword: "새 비밀번호",
+      nickname: "닉네임",
+      email: "이메일",
       role: "권한",
       status: "상태",
       language: "표시 언어",
+      preferredLanguage: "선호 언어",
+      createdAt: "가입일",
+      lastLoginAt: "마지막 로그인",
+      withdrawnAt: "탈퇴일",
       updatedAt: "수정일",
       actions: "작업",
     },
@@ -139,13 +158,63 @@ const I18N = {
       adminSender: "Swingpop 운영진",
     },
     adminUsers: {
-      createTitle: "사용자 계정 등록",
-      editTitle: "사용자 계정 수정",
-      listTitle: "사용자 계정",
-      created: "사용자 계정이 등록되었습니다.",
-      updated: "사용자 계정이 수정되었습니다.",
-      deactivated: "사용자 계정이 비활성화되었습니다.",
+      createTitle: "관리자 계정 등록",
+      editTitle: "관리자 계정 수정",
+      listTitle: "관리자 계정",
+      created: "관리자 계정이 등록되었습니다.",
+      updated: "관리자 계정이 수정되었습니다.",
+      deactivated: "관리자 계정이 비활성화되었습니다.",
       confirmDeactivate: (name) => `${name} 계정을 비활성화할까요?`,
+    },
+    adminMembers: {
+      filtersTitle: "회원 검색",
+      listTitle: "회원 목록",
+      nameSearch: "이름 검색",
+      namePlaceholder: "표시 이름으로 검색",
+      nicknameSearch: "닉네임 검색",
+      nicknamePlaceholder: "닉네임으로 검색",
+      emailSearch: "이메일 검색",
+      emailPlaceholder: "이메일로 검색",
+      statusFilter: "회원 상태",
+      languageFilter: "선호 언어",
+      search: "검색",
+      reset: "초기화",
+      loading: "불러오는 중",
+      empty: "조건에 맞는 회원이 없습니다.",
+      loadError: "회원 목록을 불러오지 못했습니다.",
+      level1: "Level 1",
+      level2: "Level 2",
+      level3: "Level 3",
+      level4: "Level 4",
+      workshop: "워크샵",
+      totalApplications: "총 신청 횟수",
+    },
+    memberActionLogs: {
+      filtersTitle: "로그 검색",
+      listTitle: "수강생 처리 로그",
+      from: "시작일",
+      to: "종료일",
+      action: "처리 동작",
+      allActions: "전체",
+      search: "검색",
+      reset: "초기화",
+      loading: "불러오는 중",
+      empty: "처리 로그가 없습니다.",
+      loadError: "처리 로그를 불러오지 못했습니다.",
+      actionAt: "처리 일시",
+      actor: "처리자",
+      actorRole: "처리자 역할",
+      targetMember: "대상 회원",
+      targetEmail: "대상 이메일",
+      lessonTitle: "수업명",
+      lessonDate: "수업 날짜",
+      actionType: "처리 동작",
+      summary: "처리 내용",
+      reason: "사유",
+      noReason: "-",
+      actions: {
+        LESSON_APPLICATION_REMOVED: "수업 신청 목록에서 제거",
+      },
     },
     teacherUsers: {
       createTitle: "강사 프로필 등록",
@@ -165,9 +234,11 @@ const I18N = {
       OPERATION_CHECK: "Operation Check",
       EVENT_MANAGEMENT: "Events & Lessons",
       MEMBER_MESSAGES: "Member Messages",
+      MEMBER_ACTION_LOGS: "Student Action Logs",
       KNOWLEDGE_BASE: "Manual Repository",
       MESSAGE_TEMPLATES: "Message Templates",
-      ADMIN_USERS: "User Accounts",
+      ADMIN_USERS: "Admin Accounts",
+      MEMBERS: "Member Management",
       TEACHER_USERS: "Teacher Profiles",
     },
     roles: {
@@ -179,6 +250,16 @@ const I18N = {
     statuses: {
       Y: "Active",
       N: "Inactive",
+    },
+    memberStatuses: {
+      ALL: "All",
+      ACTIVE: "Active",
+      WITHDRAWN: "Withdrawn",
+    },
+    memberLanguages: {
+      ALL: "All",
+      KO: "KO",
+      EN: "EN",
     },
     languages: {
       label: "Language",
@@ -210,9 +291,15 @@ const I18N = {
       loginId: "Login ID",
       password: "Password",
       newPassword: "New Password",
+      nickname: "Nickname",
+      email: "Email",
       role: "Role",
       status: "Status",
       language: "Display Language",
+      preferredLanguage: "Preferred Language",
+      createdAt: "Joined",
+      lastLoginAt: "Last Login",
+      withdrawnAt: "Withdrawn",
       updatedAt: "Updated",
       actions: "Actions",
     },
@@ -284,13 +371,63 @@ const I18N = {
       adminSender: "Swingpop Team",
     },
     adminUsers: {
-      createTitle: "Create User Account",
-      editTitle: "Edit User Account",
-      listTitle: "User Accounts",
-      created: "User account has been created.",
-      updated: "User account has been updated.",
-      deactivated: "User account has been deactivated.",
+      createTitle: "Create Admin Account",
+      editTitle: "Edit Admin Account",
+      listTitle: "Admin Accounts",
+      created: "Admin account has been created.",
+      updated: "Admin account has been updated.",
+      deactivated: "Admin account has been deactivated.",
       confirmDeactivate: (name) => `Deactivate ${name}?`,
+    },
+    adminMembers: {
+      filtersTitle: "Member Search",
+      listTitle: "Members",
+      nameSearch: "Name Search",
+      namePlaceholder: "Search display name",
+      nicknameSearch: "Nickname Search",
+      nicknamePlaceholder: "Search nickname",
+      emailSearch: "Email Search",
+      emailPlaceholder: "Search email",
+      statusFilter: "Member Status",
+      languageFilter: "Preferred Language",
+      search: "Search",
+      reset: "Reset",
+      loading: "Loading",
+      empty: "No members match these filters.",
+      loadError: "Could not load members.",
+      level1: "Level 1",
+      level2: "Level 2",
+      level3: "Level 3",
+      level4: "Level 4",
+      workshop: "Workshop",
+      totalApplications: "Total Applications",
+    },
+    memberActionLogs: {
+      filtersTitle: "Log Search",
+      listTitle: "Student Action Logs",
+      from: "From",
+      to: "To",
+      action: "Action",
+      allActions: "All",
+      search: "Search",
+      reset: "Reset",
+      loading: "Loading",
+      empty: "No action logs.",
+      loadError: "Could not load action logs.",
+      actionAt: "Processed At",
+      actor: "Actor",
+      actorRole: "Actor Role",
+      targetMember: "Target Member",
+      targetEmail: "Target Email",
+      lessonTitle: "Lesson",
+      lessonDate: "Lesson Date",
+      actionType: "Action",
+      summary: "Summary",
+      reason: "Reason",
+      noReason: "-",
+      actions: {
+        LESSON_APPLICATION_REMOVED: "Removed from lesson application list",
+      },
     },
     teacherUsers: {
       createTitle: "Create Teacher Profile",
@@ -364,6 +501,52 @@ function createTeacherForm() {
   };
 }
 
+function createMemberFilters() {
+  return {
+    name: "",
+    nickname: "",
+    email: "",
+    status: "ACTIVE",
+    preferredLanguage: "ALL",
+  };
+}
+
+function toMemberSearchParams(filters) {
+  return {
+    name: filters.name.trim(),
+    nickname: filters.nickname.trim(),
+    email: filters.email.trim(),
+    status: filters.status === "ALL" ? "" : filters.status,
+    preferredLanguage: filters.preferredLanguage === "ALL" ? "" : filters.preferredLanguage,
+  };
+}
+
+function createMemberActionLogFilters() {
+  return {
+    from: "",
+    to: "",
+    action: "",
+  };
+}
+
+function toMemberActionLogSearchParams(filters) {
+  return {
+    from: filters.from,
+    to: filters.to,
+    action: filters.action,
+  };
+}
+
+function formatDateRange(startDate, endDate, empty = "-") {
+  if (!startDate && !endDate) {
+    return empty;
+  }
+  if (!endDate || startDate === endDate) {
+    return startDate || empty;
+  }
+  return `${startDate} - ${endDate}`;
+}
+
 function StatusBadge({ useYn, labels }) {
   const isActive = useYn === "Y";
 
@@ -376,6 +559,19 @@ function StatusBadge({ useYn, labels }) {
       }`}
     >
       {labels.statuses[useYn] || useYn}
+    </span>
+  );
+}
+
+function MemberStatusBadge({ status, labels }) {
+  const isWithdrawn = status === "WITHDRAWN";
+  const className = isWithdrawn
+    ? "border-red-200 bg-red-50 text-red-700"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+  return (
+    <span className={`inline-flex min-w-[86px] items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
+      {labels.memberStatuses[status] || status}
     </span>
   );
 }
@@ -447,6 +643,24 @@ function Notice({ type = "error", children }) {
       : "border-red-200 bg-red-50 text-red-700";
 
   return <div className={`rounded-lg border px-3 py-2 text-sm leading-6 ${className}`}>{children}</div>;
+}
+
+function PrimaryButton(props) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 ${props.className || ""}`}
+    />
+  );
+}
+
+function SecondaryButton(props) {
+  return (
+    <button
+      {...props}
+      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+    />
+  );
 }
 
 function LanguageOptions({ labels }) {
@@ -1069,6 +1283,353 @@ function AccountTable({
   );
 }
 
+function AdminMembersPanel({ token, langCd, labels }) {
+  const [filters, setFilters] = useState(() => createMemberFilters());
+  const [appliedFilters, setAppliedFilters] = useState(() => createMemberFilters());
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const memberLabels = labels.adminMembers;
+
+  const loadItems = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      setItems(await adminApi.findMembers(token, toMemberSearchParams(appliedFilters)));
+    } catch (nextError) {
+      setError(nextError.message || memberLabels.loadError);
+      setItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [appliedFilters, memberLabels.loadError, token]);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((currentFilters) => ({ ...currentFilters, [name]: value }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setAppliedFilters(filters);
+  };
+
+  const handleReset = () => {
+    const nextFilters = createMemberFilters();
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
+  };
+
+  return (
+    <section className="grid gap-5">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{memberLabels.filtersTitle}</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+            >
+              {memberLabels.reset}
+            </button>
+            <button
+              type="submit"
+              className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800"
+            >
+              {memberLabels.search}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <Field label={memberLabels.nameSearch}>
+            <TextInput
+              name="name"
+              value={filters.name}
+              onChange={handleFilterChange}
+              placeholder={memberLabels.namePlaceholder}
+            />
+          </Field>
+          <Field label={memberLabels.nicknameSearch}>
+            <TextInput
+              name="nickname"
+              value={filters.nickname}
+              onChange={handleFilterChange}
+              placeholder={memberLabels.nicknamePlaceholder}
+            />
+          </Field>
+          <Field label={memberLabels.emailSearch}>
+            <TextInput
+              name="email"
+              value={filters.email}
+              onChange={handleFilterChange}
+              placeholder={memberLabels.emailPlaceholder}
+            />
+          </Field>
+          <Field label={memberLabels.statusFilter}>
+            <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
+              <option value="ALL">{labels.memberStatuses.ALL}</option>
+              <option value="ACTIVE">{labels.memberStatuses.ACTIVE}</option>
+              <option value="WITHDRAWN">{labels.memberStatuses.WITHDRAWN}</option>
+            </SelectInput>
+          </Field>
+          <Field label={memberLabels.languageFilter}>
+            <SelectInput name="preferredLanguage" value={filters.preferredLanguage} onChange={handleFilterChange}>
+              <option value="ALL">{labels.memberLanguages.ALL}</option>
+              <option value="KO">{labels.memberLanguages.KO}</option>
+              <option value="EN">{labels.memberLanguages.EN}</option>
+            </SelectInput>
+          </Field>
+        </div>
+      </form>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{memberLabels.listTitle}</h2>
+          <span className="text-sm text-zinc-500">
+            {isLoading ? memberLabels.loading : labels.common.count(items.length)}
+          </span>
+        </div>
+
+        <div className="mt-4" aria-live="polite">
+          <Notice>{error}</Notice>
+        </div>
+
+        {items.length === 0 && !isLoading ? (
+          <div className="py-10 text-center text-sm text-zinc-500">{memberLabels.empty}</div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-[1320px] w-full border-separate border-spacing-0 text-left text-sm">
+              <thead>
+                <tr className="text-xs font-semibold uppercase text-zinc-500">
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.name}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.nickname}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.email}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.status}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.preferredLanguage}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.createdAt}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.lastLoginAt}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.withdrawnAt}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level1}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level2}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level3}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level4}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.workshop}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.totalApplications}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((member) => (
+                  <tr key={member.memberId} className="align-middle">
+                    <td className="border-b border-zinc-100 px-3 py-3">
+                      <MemberNameLabel
+                        name={member.displayName || labels.common.empty}
+                        status={member.memberStatus}
+                        className="font-semibold text-zinc-950"
+                      />
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
+                      {member.nickname || labels.common.empty}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">{member.email}</td>
+                    <td className="border-b border-zinc-100 px-3 py-3">
+                      <MemberStatusBadge status={member.memberStatus} labels={labels} />
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
+                      {labels.memberLanguages[member.preferredLanguage] || member.preferredLanguage || labels.common.empty}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                      {formatDate(member.createdAt, langCd)}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                      {formatDate(member.lastLoginAt, langCd)}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                      {formatDate(member.withdrawnAt, langCd)}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                      {member.level1ApplicationCount}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                      {member.level2ApplicationCount}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                      {member.level3ApplicationCount}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                      {member.level4ApplicationCount}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                      {member.workshopApplicationCount}
+                    </td>
+                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-bold text-zinc-950">
+                      {member.totalApplicationCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AdminMemberActionLogsPanel({ token, langCd, labels }) {
+  const logLabels = labels.memberActionLogs;
+  const [filters, setFilters] = useState(() => createMemberActionLogFilters());
+  const [logs, setLogs] = useState([]);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadLogs = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      setLogs(await adminApi.findMemberActionLogs(token, toMemberActionLogSearchParams(filters)));
+    } catch (nextError) {
+      setError(nextError.message || logLabels.loadError);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, logLabels.loadError, token]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    loadLogs();
+  };
+
+  const handleReset = () => {
+    setFilters(createMemberActionLogFilters());
+  };
+
+  return (
+    <section className="grid gap-5">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{logLabels.filtersTitle}</h2>
+          <div className="flex gap-2">
+            <SecondaryButton type="button" onClick={handleReset}>
+              {logLabels.reset}
+            </SecondaryButton>
+            <PrimaryButton type="submit">{logLabels.search}</PrimaryButton>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <Field label={logLabels.from}>
+            <TextInput type="date" name="from" value={filters.from} onChange={handleChange} />
+          </Field>
+          <Field label={logLabels.to}>
+            <TextInput type="date" name="to" value={filters.to} onChange={handleChange} />
+          </Field>
+          <Field label={logLabels.action}>
+            <SelectInput name="action" value={filters.action} onChange={handleChange}>
+              <option value="">{logLabels.allActions}</option>
+              {MEMBER_ACTION_TYPES.map((action) => (
+                <option key={action} value={action}>
+                  {logLabels.actions[action] || action}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        </div>
+      </form>
+
+      <Notice>{error}</Notice>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-lg font-bold text-zinc-950">{logLabels.listTitle}</h2>
+          <span className="text-sm font-semibold text-zinc-500">{labels.common.count(logs.length)}</span>
+        </div>
+        {isLoading ? <div className="py-8 text-center text-sm text-zinc-500">{logLabels.loading}</div> : null}
+        {!isLoading && logs.length === 0 ? (
+          <div className="py-8 text-center text-sm text-zinc-500">{logLabels.empty}</div>
+        ) : null}
+        {!isLoading && logs.length > 0 ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-[1100px] w-full divide-y divide-zinc-200 text-left text-sm">
+              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <tr>
+                  <th className="px-3 py-3">{logLabels.actionAt}</th>
+                  <th className="px-3 py-3">{logLabels.actor}</th>
+                  <th className="px-3 py-3">{logLabels.actorRole}</th>
+                  <th className="px-3 py-3">{logLabels.targetMember}</th>
+                  <th className="px-3 py-3">{logLabels.targetEmail}</th>
+                  <th className="px-3 py-3">{logLabels.lessonTitle}</th>
+                  <th className="px-3 py-3">{logLabels.lessonDate}</th>
+                  <th className="px-3 py-3">{logLabels.actionType}</th>
+                  <th className="px-3 py-3">{logLabels.summary}</th>
+                  <th className="px-3 py-3">{logLabels.reason}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {logs.map((log) => {
+                  const targetName = log.targetMemberNickname || log.targetMemberDisplayName || log.applicantName;
+                  const targetEmail = log.targetMemberEmail || log.applicantEmail || labels.common.empty;
+                  return (
+                    <tr key={log.id} className="align-top">
+                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(log.actionAt, langCd)}</td>
+                      <td className="px-3 py-3">
+                        <div className="font-semibold text-zinc-900">{log.actorAdminName || log.actorLoginId}</div>
+                        <div className="mt-1 text-xs text-zinc-500">{log.actorLoginId || log.actorAdminId}</div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <RoleBadge role={log.actorRole} labels={labels} />
+                      </td>
+                      <td className="px-3 py-3 font-semibold text-zinc-900">
+                        <MemberNameLabel
+                          member={{
+                            memberNickname: log.targetMemberNickname,
+                            memberDisplayName: log.targetMemberDisplayName,
+                            email: log.targetMemberEmail || log.applicantEmail,
+                            status: log.targetMemberStatus,
+                          }}
+                          name={targetName}
+                          status={log.targetMemberStatus}
+                          fallback={labels.common.empty}
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-zinc-600">{targetEmail}</td>
+                      <td className="px-3 py-3 text-zinc-900">
+                        <div className="font-semibold">{log.lessonTitle || log.eventTitle || labels.common.empty}</div>
+                        <div className="mt-1 text-xs text-zinc-500">#{log.lessonId || log.eventId}</div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                        {formatDateRange(log.lessonStartDate, log.lessonEndDate, labels.common.empty)}
+                      </td>
+                      <td className="px-3 py-3 text-zinc-700">{logLabels.actions[log.action] || log.action}</td>
+                      <td className="px-3 py-3 text-zinc-700">{log.summary || labels.common.empty}</td>
+                      <td className="px-3 py-3 text-zinc-600">{log.reason || logLabels.noReason}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function AdminMemberMessagesPanel({ token, langCd, labels }) {
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -1519,6 +2080,12 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "MEMBER_MESSAGES" ? (
             <AdminMemberMessagesPanel token={token} langCd={langCd} labels={labels} />
+          ) : null}
+          {safeActiveMenu === "MEMBER_ACTION_LOGS" ? (
+            <AdminMemberActionLogsPanel token={token} langCd={langCd} labels={labels} />
+          ) : null}
+          {safeActiveMenu === "MEMBERS" ? (
+            <AdminMembersPanel token={token} langCd={langCd} labels={labels} />
           ) : null}
           {safeActiveMenu === "KNOWLEDGE_BASE" ? (
             <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />

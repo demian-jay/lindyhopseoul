@@ -10,9 +10,11 @@ public enum AdminMenu {
     OPERATION_CHECK,
     EVENT_MANAGEMENT,
     MEMBER_MESSAGES,
+    MEMBER_ACTION_LOGS,
     KNOWLEDGE_BASE,
     MESSAGE_TEMPLATES,
     ADMIN_USERS,
+    MEMBERS,
     TEACHER_USERS;
 
     public static List<AdminMenu> forRoles(Collection<AdminRole> roles) {
@@ -35,11 +37,21 @@ public enum AdminMenu {
                     OPERATION_CHECK,
                     EVENT_MANAGEMENT,
                     MEMBER_MESSAGES,
+                    MEMBER_ACTION_LOGS,
                     KNOWLEDGE_BASE,
                     MESSAGE_TEMPLATES,
-                    ADMIN_USERS
+                    ADMIN_USERS,
+                    MEMBERS
             );
-            case STAFF -> List.of(DASHBOARD, OPERATION_CHECK, EVENT_MANAGEMENT, MEMBER_MESSAGES, KNOWLEDGE_BASE, ADMIN_USERS);
+            case STAFF -> List.of(
+                    DASHBOARD,
+                    OPERATION_CHECK,
+                    EVENT_MANAGEMENT,
+                    MEMBER_MESSAGES,
+                    KNOWLEDGE_BASE,
+                    ADMIN_USERS,
+                    MEMBERS
+            );
             case TEACHER -> List.of(DASHBOARD);
             case MEMBER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
         };

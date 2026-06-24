@@ -9,15 +9,42 @@ import org.springframework.data.repository.query.Param;
 
 public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
 
-    List<EventApplication> findByLesson_IdInOrderByCreatedAtAscIdAsc(Collection<Long> lessonIds);
+    @Query("""
+            select application
+            from EventApplication application
+            left join fetch application.member
+            where application.lesson.id in :lessonIds
+              and (application.status is null or application.status = com.lindyhopseoul.backend.eventmanagement.EventApplicationStatus.ACTIVE)
+            order by application.createdAt asc, application.id asc
+            """)
+    List<EventApplication> findByLesson_IdInOrderByCreatedAtAscIdAsc(@Param("lessonIds") Collection<Long> lessonIds);
 
-    List<EventApplication> findByMember_IdOrderByCreatedAtDescIdDesc(Long memberId);
+    @Query("""
+            select application
+            from EventApplication application
+            left join fetch application.event
+            left join fetch application.lesson
+            where application.member.id = :memberId
+              and (application.status is null or application.status = com.lindyhopseoul.backend.eventmanagement.EventApplicationStatus.ACTIVE)
+            order by application.createdAt desc, application.id desc
+            """)
+    List<EventApplication> findByMember_IdOrderByCreatedAtDescIdDesc(@Param("memberId") Long memberId);
+
+    @Query("""
+            select application
+            from EventApplication application
+            left join fetch application.lesson
+            where application.member.id in :memberIds
+              and (application.status is null or application.status = com.lindyhopseoul.backend.eventmanagement.EventApplicationStatus.ACTIVE)
+            """)
+    List<EventApplication> findByMemberIdsWithLesson(@Param("memberIds") Collection<Long> memberIds);
 
     @Query("""
             select count(application)
             from EventApplication application
             where application.member.id = :memberId
               and application.event.id = :eventId
+              and (application.status is null or application.status = com.lindyhopseoul.backend.eventmanagement.EventApplicationStatus.ACTIVE)
               and (
                     (:lessonId is null and application.lesson is null)
                     or application.lesson.id = :lessonId

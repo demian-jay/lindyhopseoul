@@ -2,6 +2,9 @@ package com.lindyhopseoul.backend.eventmanagement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -19,11 +22,16 @@ import com.lindyhopseoul.backend.admin.TeacherUser;
 import com.lindyhopseoul.backend.admin.TeacherUserRepository;
 import com.lindyhopseoul.backend.admin.UserAccount;
 import com.lindyhopseoul.backend.exception.ConflictException;
+import com.lindyhopseoul.backend.member.AdminMemberActionLog;
+import com.lindyhopseoul.backend.member.AdminMemberActionLogRepository;
+import com.lindyhopseoul.backend.member.AdminMemberActionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class EventManagementServiceTest {
@@ -43,6 +51,9 @@ class EventManagementServiceTest {
     @Mock
     private EventApplicationRepository eventApplicationRepository;
 
+    @Mock
+    private AdminMemberActionLogRepository adminMemberActionLogRepository;
+
     private EventManagementService service;
     private AdminPrincipal superAdmin;
 
@@ -53,7 +64,8 @@ class EventManagementServiceTest {
                 lessonRepository,
                 messageTemplateRepository,
                 teacherUserRepository,
-                eventApplicationRepository
+                eventApplicationRepository,
+                adminMemberActionLogRepository
         );
         superAdmin = new AdminPrincipal(
                 "A1",
@@ -63,6 +75,106 @@ class EventManagementServiceTest {
                 List.of(AdminRole.SUPER_ADMIN),
                 AdminLanguage.Kor
         );
+    }
+
+    @Test
+    void removeEventApplicationMarksApplicationRemovedAndWritesLog() {
+        Event event = Event.create(
+                EventType.REGULAR_CLASS,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Studio",
+                EventStatus.PUBLISHED,
+                10
+        );
+        event.replaceTranslations(Set.of(
+                new EventTranslation("ko", "스윙팝 정규수업", "안내", "설명")
+        ));
+        Lesson lesson = Lesson.create(
+                event,
+                LessonType.LEVEL1,
+                LessonScheduleType.PERIOD,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0),
+                new BigDecimal("80000"),
+                "KRW",
+                LessonStatus.PUBLISHED,
+                10
+        );
+        lesson.replaceTranslations(Set.of(
+                new LessonTranslation("ko", "레벨1", "초급 수업")
+        ));
+        EventApplication application = EventApplication.create(
+                event,
+                lesson,
+                "Alex",
+                ApplicationContactMethod.EMAIL,
+                "alex@example.com",
+                "",
+                "ko",
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 9L);
+        when(eventApplicationRepository.findById(9L)).thenReturn(Optional.of(application));
+        when(adminMemberActionLogRepository.save(any(AdminMemberActionLog.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventApplicationResponse response = service.removeEventApplication(
+                superAdmin,
+                9L,
+                new EventApplicationRemoveRequest(null)
+        );
+
+        assertThat(response.id()).isEqualTo(9L);
+        assertThat(application.getStatus()).isEqualTo(EventApplicationStatus.REMOVED);
+        assertThat(application.getRemovedBy()).isEqualTo("A1");
+        assertThat(application.getRemovedAt()).isNotNull();
+
+        ArgumentCaptor<AdminMemberActionLog> logCaptor = ArgumentCaptor.forClass(AdminMemberActionLog.class);
+        verify(adminMemberActionLogRepository).save(logCaptor.capture());
+        AdminMemberActionLog log = logCaptor.getValue();
+        assertThat(log.getAction()).isEqualTo(AdminMemberActionType.LESSON_APPLICATION_REMOVED);
+        assertThat(log.getActorAdminId()).isEqualTo("A1");
+        assertThat(log.getActorRole()).isEqualTo(AdminRole.SUPER_ADMIN);
+        assertThat(log.getEventApplicationId()).isEqualTo(9L);
+        assertThat(log.getApplicantName()).isEqualTo("Alex");
+        assertThat(log.getApplicantEmail()).isEqualTo("alex@example.com");
+        assertThat(log.getLessonTitle()).isEqualTo("레벨1");
+    }
+
+    @Test
+    void removeEventApplicationRejectsAlreadyRemovedApplication() {
+        Event event = Event.create(
+                EventType.REGULAR_CLASS,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Studio",
+                EventStatus.PUBLISHED,
+                10
+        );
+        EventApplication application = EventApplication.create(
+                event,
+                null,
+                "Alex",
+                ApplicationContactMethod.KAKAO_TALK,
+                "alex",
+                "",
+                "ko",
+                null
+        );
+        application.markRemoved("A1", null);
+        when(eventApplicationRepository.findById(9L)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> service.removeEventApplication(superAdmin, 9L, null))
+                .isInstanceOf(ConflictException.class);
+
+        verify(adminMemberActionLogRepository, never()).save(any(AdminMemberActionLog.class));
     }
 
     @Test

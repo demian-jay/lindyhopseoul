@@ -77,6 +77,12 @@ export const adminApi = {
       token,
     });
   },
+  findMembers(token, params = {}) {
+    return request(`/api/admin/members${buildQuery(params)}`, { token });
+  },
+  findMemberActionLogs(token, params = {}) {
+    return request(`/api/admin/member-action-logs${buildQuery(params)}`, { token });
+  },
   findOperationCheckAssignees(token) {
     return request("/api/admin/operation-checks/assignees", { token });
   },
@@ -236,6 +242,13 @@ export const adminApi = {
     return request(`/api/admin/lessons/${lessonId}`, {
       method: "DELETE",
       token,
+    });
+  },
+  removeEventApplication(token, applicationId, payload = {}) {
+    return request(`/api/admin/event-applications/${applicationId}/remove`, {
+      method: "PATCH",
+      token,
+      body: payload,
     });
   },
   findActiveTeachers(token) {
