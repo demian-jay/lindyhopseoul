@@ -46,4 +46,22 @@ class CurrentMemberServiceTest {
 
         assertThat(currentMemberService.findCurrentMember(request)).isEmpty();
     }
+
+    @Test
+    void findCurrentMemberIgnoresSuspendedMemberInSession() {
+        Member member = Member.createGoogle(
+                "google-sub-1",
+                "user@example.com",
+                "Google Name",
+                Instant.parse("2026-06-01T00:00:00Z")
+        );
+        ReflectionTestUtils.setField(member, "id", 123L);
+        member.suspend();
+        when(memberRepository.findById(123L)).thenReturn(Optional.of(member));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.getSession(true).setAttribute(AuthSessionConstants.MEMBER_ID_ATTRIBUTE, 123L);
+
+        assertThat(currentMemberService.findCurrentMember(request)).isEmpty();
+    }
 }

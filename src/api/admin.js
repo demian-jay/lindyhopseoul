@@ -80,6 +80,20 @@ export const adminApi = {
   findMembers(token, params = {}) {
     return request(`/api/admin/members${buildQuery(params)}`, { token });
   },
+  suspendMember(token, memberId, payload) {
+    return request(`/api/admin/members/${memberId}/suspend`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
+  reactivateMember(token, memberId, payload) {
+    return request(`/api/admin/members/${memberId}/reactivate`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   findMemberActionLogs(token, params = {}) {
     return request(`/api/admin/member-action-logs${buildQuery(params)}`, { token });
   },

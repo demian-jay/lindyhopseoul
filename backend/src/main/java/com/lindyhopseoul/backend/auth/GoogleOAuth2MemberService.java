@@ -6,6 +6,7 @@ import java.time.Instant;
 import com.lindyhopseoul.backend.member.Member;
 import com.lindyhopseoul.backend.member.MemberProvider;
 import com.lindyhopseoul.backend.member.MemberRepository;
+import com.lindyhopseoul.backend.member.MemberStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -20,6 +21,9 @@ public class GoogleOAuth2MemberService {
 
     private static final OAuth2Error INVALID_GOOGLE_USER =
             new OAuth2Error("invalid_google_user");
+    public static final String SUSPENDED_MEMBER_ERROR_CODE = "member_suspended";
+    private static final OAuth2Error SUSPENDED_MEMBER =
+            new OAuth2Error(SUSPENDED_MEMBER_ERROR_CODE);
 
     private final MemberRepository memberRepository;
     private final Clock clock;
@@ -40,17 +44,33 @@ public class GoogleOAuth2MemberService {
         Instant loginAt = Instant.now(clock);
 
         return memberRepository.findByProviderAndProviderId(MemberProvider.GOOGLE, profile.sub())
-                .filter(Member::isActive)
-                .map(member -> {
-                    member.recordLogin(profile.email(), profile.displayName(), loginAt);
-                    return member;
-                })
+                .map(member -> existingMemberLogin(member, profile, loginAt))
                 .orElseGet(() -> memberRepository.save(Member.createGoogle(
                         profile.sub(),
                         profile.email(),
                         profile.displayName(),
                         loginAt
                 )));
+    }
+
+    private Member existingMemberLogin(Member member, GoogleProfile profile, Instant loginAt) {
+        if (member.getStatus() == MemberStatus.SUSPENDED) {
+            throw new OAuth2AuthenticationException(
+                    SUSPENDED_MEMBER,
+                    "Member account access has been restricted."
+            );
+        }
+        if (!member.isActive()) {
+            return memberRepository.save(Member.createGoogle(
+                    profile.sub(),
+                    profile.email(),
+                    profile.displayName(),
+                    loginAt
+            ));
+        }
+
+        member.recordLogin(profile.email(), profile.displayName(), loginAt);
+        return member;
     }
 
     private GoogleProfile extractProfile(Authentication authentication) {

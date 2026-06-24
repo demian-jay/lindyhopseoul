@@ -108,6 +108,14 @@ public class Member {
         this.withdrawnAt = withdrawnAt == null ? Instant.now() : withdrawnAt;
     }
 
+    public void suspend() {
+        this.status = MemberStatus.SUSPENDED;
+    }
+
+    public void reactivate() {
+        this.status = MemberStatus.ACTIVE;
+    }
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();

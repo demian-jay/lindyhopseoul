@@ -59,6 +59,14 @@ public class AdminMemberActionLog {
     @Column(length = 20, columnDefinition = "varchar(20)")
     private MemberStatus targetMemberStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, columnDefinition = "varchar(20)")
+    private MemberStatus previousMemberStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, columnDefinition = "varchar(20)")
+    private MemberStatus nextMemberStatus;
+
     @Column(length = 100)
     private String applicantName;
 
@@ -138,6 +146,36 @@ public class AdminMemberActionLog {
         return log;
     }
 
+    public static AdminMemberActionLog memberStatusChanged(
+            AdminPrincipal actor,
+            Member member,
+            MemberStatus previousStatus,
+            MemberStatus nextStatus,
+            AdminMemberActionType action,
+            String reason
+    ) {
+        AdminMemberActionLog log = new AdminMemberActionLog();
+        log.actorAdminId = actor.userCd();
+        log.actorAdminName = actor.userNm();
+        log.actorLoginId = actor.loginId();
+        log.actorRole = actor.role();
+        log.targetMemberId = member.getId();
+        log.targetMemberDisplayName = member.getDisplayName();
+        log.targetMemberNickname = member.getNickname();
+        log.targetMemberEmail = member.getEmail();
+        log.targetMemberStatus = nextStatus;
+        log.previousMemberStatus = previousStatus;
+        log.nextMemberStatus = nextStatus;
+        log.action = action;
+        log.summary = switch (action) {
+            case MEMBER_SUSPENDED -> "회원 계정을 비활성화함";
+            case MEMBER_REACTIVATED -> "회원 계정을 재활성화함";
+            default -> "회원 상태를 변경함";
+        };
+        log.reason = cleanNullable(reason);
+        return log;
+    }
+
     @PrePersist
     void prePersist() {
         if (actionAt == null) {
@@ -195,6 +233,14 @@ public class AdminMemberActionLog {
 
     public MemberStatus getTargetMemberStatus() {
         return targetMemberStatus;
+    }
+
+    public MemberStatus getPreviousMemberStatus() {
+        return previousMemberStatus;
+    }
+
+    public MemberStatus getNextMemberStatus() {
+        return nextMemberStatus;
     }
 
     public String getApplicantName() {

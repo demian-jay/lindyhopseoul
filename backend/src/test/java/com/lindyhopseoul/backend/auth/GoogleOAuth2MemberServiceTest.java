@@ -127,6 +127,30 @@ class GoogleOAuth2MemberServiceTest {
     }
 
     @Test
+    void handleLoginRejectsSuspendedMemberWithoutCreatingDuplicate() {
+        Member suspendedMember = Member.createGoogle(
+                "google-sub-1",
+                "old@example.com",
+                "Old Name",
+                Instant.parse("2026-06-01T00:00:00Z")
+        );
+        suspendedMember.suspend();
+        when(memberRepository.findByProviderAndProviderId(MemberProvider.GOOGLE, "google-sub-1"))
+                .thenReturn(Optional.of(suspendedMember));
+
+        assertThatThrownBy(() -> memberService.handleLogin(authentication(Map.of(
+                "sub", "google-sub-1",
+                "email", "new@example.com",
+                "name", "New Name"
+        ))))
+                .isInstanceOf(OAuth2AuthenticationException.class)
+                .extracting(error -> ((OAuth2AuthenticationException) error).getError().getErrorCode())
+                .isEqualTo(GoogleOAuth2MemberService.SUSPENDED_MEMBER_ERROR_CODE);
+
+        verify(memberRepository, never()).save(any(Member.class));
+    }
+
+    @Test
     void handleLoginRejectsProfileWithoutGoogleSub() {
         assertThatThrownBy(() -> memberService.handleLogin(authentication(Map.of(
                 "email", "user@example.com",

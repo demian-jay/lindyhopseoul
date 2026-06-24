@@ -12,8 +12,10 @@ import com.lindyhopseoul.backend.eventmanagement.EventApplication;
 import com.lindyhopseoul.backend.eventmanagement.EventApplicationRepository;
 import com.lindyhopseoul.backend.eventmanagement.Lesson;
 import com.lindyhopseoul.backend.eventmanagement.LessonType;
+import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.BadRequestException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
+import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,18 +25,22 @@ public class AdminMemberManagementService {
 
     private static final EnumSet<MemberStatus> VISIBLE_MEMBER_STATUSES = EnumSet.of(
             MemberStatus.ACTIVE,
-            MemberStatus.WITHDRAWN
+            MemberStatus.WITHDRAWN,
+            MemberStatus.SUSPENDED
     );
 
     private final MemberRepository memberRepository;
     private final EventApplicationRepository eventApplicationRepository;
+    private final AdminMemberActionLogRepository adminMemberActionLogRepository;
 
     public AdminMemberManagementService(
             MemberRepository memberRepository,
-            EventApplicationRepository eventApplicationRepository
+            EventApplicationRepository eventApplicationRepository,
+            AdminMemberActionLogRepository adminMemberActionLogRepository
     ) {
         this.memberRepository = memberRepository;
         this.eventApplicationRepository = eventApplicationRepository;
+        this.adminMemberActionLogRepository = adminMemberActionLogRepository;
     }
 
     public List<AdminMemberResponse> findMembers(
@@ -61,10 +67,91 @@ public class AdminMemberManagementService {
                 .toList();
     }
 
+    @Transactional
+    public AdminMemberResponse suspendMember(
+            AdminPrincipal actor,
+            Long memberId,
+            AdminMemberStatusChangeRequest request
+    ) {
+        requireSuperAdmin(actor);
+        String reason = requireReason(request);
+        Member member = findMember(memberId);
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new ConflictException("Withdrawn members cannot be suspended.");
+        }
+        if (member.getStatus() != MemberStatus.ACTIVE) {
+            throw new ConflictException("Only active members can be suspended.");
+        }
+
+        MemberStatus previousStatus = member.getStatus();
+        member.suspend();
+        adminMemberActionLogRepository.save(AdminMemberActionLog.memberStatusChanged(
+                actor,
+                member,
+                previousStatus,
+                member.getStatus(),
+                AdminMemberActionType.MEMBER_SUSPENDED,
+                reason
+        ));
+        return AdminMemberResponse.from(member, summarizeApplications(List.of(member)).get(member.getId()));
+    }
+
+    @Transactional
+    public AdminMemberResponse reactivateMember(
+            AdminPrincipal actor,
+            Long memberId,
+            AdminMemberStatusChangeRequest request
+    ) {
+        requireSuperAdmin(actor);
+        String reason = requireReason(request);
+        Member member = findMember(memberId);
+        if (member.getStatus() == MemberStatus.WITHDRAWN) {
+            throw new ConflictException("Withdrawn members cannot be reactivated.");
+        }
+        if (member.getStatus() != MemberStatus.SUSPENDED) {
+            throw new ConflictException("Only suspended members can be reactivated.");
+        }
+
+        MemberStatus previousStatus = member.getStatus();
+        member.reactivate();
+        adminMemberActionLogRepository.save(AdminMemberActionLog.memberStatusChanged(
+                actor,
+                member,
+                previousStatus,
+                member.getStatus(),
+                AdminMemberActionType.MEMBER_REACTIVATED,
+                reason
+        ));
+        return AdminMemberResponse.from(member, summarizeApplications(List.of(member)).get(member.getId()));
+    }
+
     private void requireMemberAdmin(AdminPrincipal actor) {
         if (actor == null || !actor.canManageMembers()) {
             throw new ForbiddenException("Only super administrators and staff can manage members.");
         }
+    }
+
+    private void requireSuperAdmin(AdminPrincipal actor) {
+        if (actor == null || !actor.hasRole(com.lindyhopseoul.backend.admin.AdminRole.SUPER_ADMIN)) {
+            throw new ForbiddenException("Only super administrators can change member status.");
+        }
+    }
+
+    private Member findMember(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member not found: " + memberId));
+    }
+
+    private String requireReason(AdminMemberStatusChangeRequest request) {
+        String reason = request == null ? null : request.reason();
+        String normalized = reason == null ? "" : reason.trim();
+        if (normalized.isBlank()) {
+            throw new BadRequestException("Reason is required.");
+        }
+        if (normalized.length() > 1000) {
+            throw new BadRequestException("Reason must be 1000 characters or fewer.");
+        }
+        return normalized;
     }
 
     private Collection<MemberStatus> normalizeStatuses(MemberStatus status) {

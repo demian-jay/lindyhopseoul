@@ -536,6 +536,18 @@ const CONTENT = {
   },
 };
 
+const ACCOUNT_RESTRICTED_MESSAGES = {
+  ko: "계정 이용이 제한되었습니다. 자세한 내용은 운영진에게 문의해주세요.",
+  en: "Your account access has been restricted. Please contact the Swingpop team for more information.",
+};
+
+function accountRestrictedMessage() {
+  if (typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("ko")) {
+    return ACCOUNT_RESTRICTED_MESSAGES.ko;
+  }
+  return ACCOUNT_RESTRICTED_MESSAGES.en;
+}
+
 const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule"];
 const LANGUAGE_STORAGE_KEYS_TO_CLEAR = [
   "swingpop-language",
@@ -3125,6 +3137,13 @@ function PublicApp() {
       .finally(() => {
         if (isMounted) {
           if (window.location.pathname === "/oauth/success") {
+            window.history.replaceState({}, "", "/");
+            setCurrentPath("/");
+          } else if (window.location.pathname === "/oauth/error") {
+            const reason = new URLSearchParams(window.location.search).get("reason");
+            if (reason === "account_restricted") {
+              setAccountNotice(accountRestrictedMessage());
+            }
             window.history.replaceState({}, "", "/");
             setCurrentPath("/");
           }

@@ -10,7 +10,7 @@ const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 
 const LANGUAGES = ["Kor", "Eng"];
 const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
-const MEMBER_ACTION_TYPES = ["LESSON_APPLICATION_REMOVED"];
+const MEMBER_ACTION_TYPES = ["LESSON_APPLICATION_REMOVED", "MEMBER_SUSPENDED", "MEMBER_REACTIVATED"];
 
 const I18N = {
   Kor: {
@@ -42,6 +42,7 @@ const I18N = {
       ALL: "전체",
       ACTIVE: "활성 회원",
       WITHDRAWN: "탈퇴 회원",
+      SUSPENDED: "비활성 회원",
     },
     memberLanguages: {
       ALL: "전체",
@@ -188,6 +189,17 @@ const I18N = {
       level4: "Level 4",
       workshop: "워크샵",
       totalApplications: "총 신청 횟수",
+      suspend: "비활성화",
+      reactivate: "재활성화",
+      suspendTitle: "회원 계정을 비활성화할까요?",
+      reactivateTitle: "회원 계정을 재활성화할까요?",
+      suspendBody: "비활성 회원은 로그인과 일반 회원 기능을 사용할 수 없습니다. 기존 기록은 유지됩니다.",
+      reactivateBody: "재활성화하면 회원이 다시 로그인하고 일반 회원 기능을 사용할 수 있습니다.",
+      reasonLabel: "사유",
+      reasonPlaceholder: "처리 사유를 입력해주세요.",
+      reasonRequired: "사유를 입력해주세요.",
+      suspended: "회원 계정을 비활성화했습니다.",
+      reactivated: "회원 계정을 재활성화했습니다.",
     },
     memberActionLogs: {
       filtersTitle: "로그 검색",
@@ -209,11 +221,15 @@ const I18N = {
       lessonTitle: "수업명",
       lessonDate: "수업 날짜",
       actionType: "처리 동작",
+      previousStatus: "처리 전 상태",
+      nextStatus: "처리 후 상태",
       summary: "처리 내용",
       reason: "사유",
       noReason: "-",
       actions: {
         LESSON_APPLICATION_REMOVED: "수업 신청 목록에서 제거",
+        MEMBER_SUSPENDED: "회원 계정 비활성화",
+        MEMBER_REACTIVATED: "회원 계정 재활성화",
       },
     },
     teacherUsers: {
@@ -255,6 +271,7 @@ const I18N = {
       ALL: "All",
       ACTIVE: "Active",
       WITHDRAWN: "Withdrawn",
+      SUSPENDED: "Suspended",
     },
     memberLanguages: {
       ALL: "All",
@@ -401,6 +418,17 @@ const I18N = {
       level4: "Level 4",
       workshop: "Workshop",
       totalApplications: "Total Applications",
+      suspend: "Suspend",
+      reactivate: "Reactivate",
+      suspendTitle: "Suspend this member account?",
+      reactivateTitle: "Reactivate this member account?",
+      suspendBody: "Suspended members cannot log in or use member features. Existing records are kept.",
+      reactivateBody: "Reactivated members can log in and use member features again.",
+      reasonLabel: "Reason",
+      reasonPlaceholder: "Enter a reason or memo.",
+      reasonRequired: "Please enter a reason.",
+      suspended: "Member account has been suspended.",
+      reactivated: "Member account has been reactivated.",
     },
     memberActionLogs: {
       filtersTitle: "Log Search",
@@ -422,11 +450,15 @@ const I18N = {
       lessonTitle: "Lesson",
       lessonDate: "Lesson Date",
       actionType: "Action",
+      previousStatus: "Previous Status",
+      nextStatus: "Next Status",
       summary: "Summary",
       reason: "Reason",
       noReason: "-",
       actions: {
         LESSON_APPLICATION_REMOVED: "Removed from lesson application list",
+        MEMBER_SUSPENDED: "Suspended member account",
+        MEMBER_REACTIVATED: "Reactivated member account",
       },
     },
     teacherUsers: {
@@ -565,8 +597,11 @@ function StatusBadge({ useYn, labels }) {
 
 function MemberStatusBadge({ status, labels }) {
   const isWithdrawn = status === "WITHDRAWN";
+  const isSuspended = status === "SUSPENDED";
   const className = isWithdrawn
     ? "border-red-200 bg-red-50 text-red-700"
+    : isSuspended
+      ? "border-amber-200 bg-amber-50 text-amber-800"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return (
@@ -1283,14 +1318,20 @@ function AccountTable({
   );
 }
 
-function AdminMembersPanel({ token, langCd, labels }) {
+function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   const [filters, setFilters] = useState(() => createMemberFilters());
   const [appliedFilters, setAppliedFilters] = useState(() => createMemberFilters());
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [statusModal, setStatusModal] = useState(null);
+  const [statusReason, setStatusReason] = useState("");
+  const [statusReasonError, setStatusReasonError] = useState("");
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   const memberLabels = labels.adminMembers;
+  const canChangeMemberStatus = hasRole(currentUser, "SUPER_ADMIN");
 
   const loadItems = useCallback(async () => {
     setIsLoading(true);
@@ -1317,6 +1358,7 @@ function AdminMembersPanel({ token, langCd, labels }) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    setNotice("");
     setAppliedFilters(filters);
   };
 
@@ -1324,6 +1366,53 @@ function AdminMembersPanel({ token, langCd, labels }) {
     const nextFilters = createMemberFilters();
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
+    setNotice("");
+  };
+
+  const openStatusModal = (type, member) => {
+    setStatusModal({ type, member });
+    setStatusReason("");
+    setStatusReasonError("");
+    setError("");
+    setNotice("");
+  };
+
+  const closeStatusModal = () => {
+    if (isChangingStatus) {
+      return;
+    }
+    setStatusModal(null);
+    setStatusReason("");
+    setStatusReasonError("");
+  };
+
+  const submitStatusChange = async () => {
+    const reason = statusReason.trim();
+    if (!reason) {
+      setStatusReasonError(memberLabels.reasonRequired);
+      return;
+    }
+
+    setIsChangingStatus(true);
+    setStatusReasonError("");
+    setError("");
+    setNotice("");
+    try {
+      if (statusModal.type === "suspend") {
+        await adminApi.suspendMember(token, statusModal.member.memberId, { reason });
+        setNotice(memberLabels.suspended);
+      } else {
+        await adminApi.reactivateMember(token, statusModal.member.memberId, { reason });
+        setNotice(memberLabels.reactivated);
+      }
+      setStatusModal(null);
+      setStatusReason("");
+      await loadItems();
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setIsChangingStatus(false);
+    }
   };
 
   return (
@@ -1377,6 +1466,7 @@ function AdminMembersPanel({ token, langCd, labels }) {
             <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
               <option value="ALL">{labels.memberStatuses.ALL}</option>
               <option value="ACTIVE">{labels.memberStatuses.ACTIVE}</option>
+              <option value="SUSPENDED">{labels.memberStatuses.SUSPENDED}</option>
               <option value="WITHDRAWN">{labels.memberStatuses.WITHDRAWN}</option>
             </SelectInput>
           </Field>
@@ -1400,13 +1490,14 @@ function AdminMembersPanel({ token, langCd, labels }) {
 
         <div className="mt-4" aria-live="polite">
           <Notice>{error}</Notice>
+          <Notice type="success">{notice}</Notice>
         </div>
 
         {items.length === 0 && !isLoading ? (
           <div className="py-10 text-center text-sm text-zinc-500">{memberLabels.empty}</div>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[1320px] w-full border-separate border-spacing-0 text-left text-sm">
+            <table className="min-w-[1420px] w-full border-separate border-spacing-0 text-left text-sm">
               <thead>
                 <tr className="text-xs font-semibold uppercase text-zinc-500">
                   <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.name}</th>
@@ -1423,6 +1514,7 @@ function AdminMembersPanel({ token, langCd, labels }) {
                   <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level4}</th>
                   <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.workshop}</th>
                   <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.totalApplications}</th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{labels.fields.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1472,6 +1564,28 @@ function AdminMembersPanel({ token, langCd, labels }) {
                     <td className="border-b border-zinc-100 px-3 py-3 text-right font-bold text-zinc-950">
                       {member.totalApplicationCount}
                     </td>
+                    <td className="border-b border-zinc-100 px-3 py-3">
+                      <div className="flex justify-end gap-2">
+                        {canChangeMemberStatus && member.memberStatus === "ACTIVE" ? (
+                          <button
+                            type="button"
+                            onClick={() => openStatusModal("suspend", member)}
+                            className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-50"
+                          >
+                            {memberLabels.suspend}
+                          </button>
+                        ) : null}
+                        {canChangeMemberStatus && member.memberStatus === "SUSPENDED" ? (
+                          <button
+                            type="button"
+                            onClick={() => openStatusModal("reactivate", member)}
+                            className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                          >
+                            {memberLabels.reactivate}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1479,7 +1593,79 @@ function AdminMembersPanel({ token, langCd, labels }) {
           </div>
         )}
       </div>
+      {statusModal ? (
+        <MemberStatusChangeModal
+          labels={memberLabels}
+          commonLabels={labels.common}
+          member={statusModal.member}
+          type={statusModal.type}
+          reason={statusReason}
+          reasonError={statusReasonError}
+          isSubmitting={isChangingStatus}
+          onReasonChange={(value) => {
+            setStatusReason(value);
+            setStatusReasonError("");
+          }}
+          onCancel={closeStatusModal}
+          onSubmit={submitStatusChange}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function MemberStatusChangeModal({
+  labels,
+  commonLabels,
+  member,
+  type,
+  reason,
+  reasonError,
+  isSubmitting,
+  onReasonChange,
+  onCancel,
+  onSubmit,
+}) {
+  const isSuspend = type === "suspend";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
+      <div className="w-full max-w-lg rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-bold text-zinc-950">
+          {isSuspend ? labels.suspendTitle : labels.reactivateTitle}
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-600">
+          {isSuspend ? labels.suspendBody : labels.reactivateBody}
+        </p>
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+          <MemberNameLabel
+            name={member.displayName || commonLabels.empty}
+            status={member.memberStatus}
+            className="font-semibold text-zinc-950"
+          />
+          <div className="mt-1 text-xs text-zinc-500">{member.email}</div>
+        </div>
+        <label className="mt-4 block">
+          <span className="text-xs font-semibold text-zinc-600">{labels.reasonLabel}</span>
+          <textarea
+            value={reason}
+            onChange={(event) => onReasonChange(event.target.value)}
+            maxLength={1000}
+            rows={4}
+            placeholder={labels.reasonPlaceholder}
+            className="mt-1.5 min-h-[112px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          />
+        </label>
+        {reasonError ? <div className="mt-2 text-sm font-semibold text-red-600">{reasonError}</div> : null}
+        <div className="mt-5 flex justify-end gap-2">
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
+            {commonLabels.cancel}
+          </SecondaryButton>
+          <PrimaryButton type="button" onClick={onSubmit} disabled={isSubmitting}>
+            {isSuspend ? labels.suspend : labels.reactivate}
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1576,6 +1762,8 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                   <th className="px-3 py-3">{logLabels.lessonTitle}</th>
                   <th className="px-3 py-3">{logLabels.lessonDate}</th>
                   <th className="px-3 py-3">{logLabels.actionType}</th>
+                  <th className="px-3 py-3">{logLabels.previousStatus}</th>
+                  <th className="px-3 py-3">{logLabels.nextStatus}</th>
                   <th className="px-3 py-3">{logLabels.summary}</th>
                   <th className="px-3 py-3">{logLabels.reason}</th>
                 </tr>
@@ -1616,6 +1804,12 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                         {formatDateRange(log.lessonStartDate, log.lessonEndDate, labels.common.empty)}
                       </td>
                       <td className="px-3 py-3 text-zinc-700">{logLabels.actions[log.action] || log.action}</td>
+                      <td className="px-3 py-3 text-zinc-600">
+                        {labels.memberStatuses[log.previousMemberStatus] || log.previousMemberStatus || labels.common.empty}
+                      </td>
+                      <td className="px-3 py-3 text-zinc-600">
+                        {labels.memberStatuses[log.nextMemberStatus] || log.nextMemberStatus || labels.common.empty}
+                      </td>
                       <td className="px-3 py-3 text-zinc-700">{log.summary || labels.common.empty}</td>
                       <td className="px-3 py-3 text-zinc-600">{log.reason || logLabels.noReason}</td>
                     </tr>
@@ -2085,7 +2279,7 @@ export default function AdminApp() {
             <AdminMemberActionLogsPanel token={token} langCd={langCd} labels={labels} />
           ) : null}
           {safeActiveMenu === "MEMBERS" ? (
-            <AdminMembersPanel token={token} langCd={langCd} labels={labels} />
+            <AdminMembersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
           {safeActiveMenu === "KNOWLEDGE_BASE" ? (
             <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />

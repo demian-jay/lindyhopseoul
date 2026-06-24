@@ -2,6 +2,8 @@ package com.lindyhopseoul.backend.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -24,10 +26,13 @@ import com.lindyhopseoul.backend.eventmanagement.Lesson;
 import com.lindyhopseoul.backend.eventmanagement.LessonScheduleType;
 import com.lindyhopseoul.backend.eventmanagement.LessonStatus;
 import com.lindyhopseoul.backend.eventmanagement.LessonType;
+import com.lindyhopseoul.backend.exception.BadRequestException;
+import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -41,11 +46,18 @@ class AdminMemberManagementServiceTest {
     @Mock
     private EventApplicationRepository eventApplicationRepository;
 
+    @Mock
+    private AdminMemberActionLogRepository adminMemberActionLogRepository;
+
     private AdminMemberManagementService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminMemberManagementService(memberRepository, eventApplicationRepository);
+        service = new AdminMemberManagementService(
+                memberRepository,
+                eventApplicationRepository,
+                adminMemberActionLogRepository
+        );
     }
 
     @Test
@@ -113,6 +125,109 @@ class AdminMemberManagementServiceTest {
         assertThat(response.workshopApplicationCount()).isEqualTo(2);
     }
 
+    @Test
+    void suspendMemberRequiresSuperAdminAndReason() {
+        AdminPrincipal staff = new AdminPrincipal(
+                "staff-1",
+                "Staff",
+                "staff",
+                AdminRole.STAFF,
+                List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+
+        assertThatThrownBy(() -> service.suspendMember(
+                staff,
+                1L,
+                new AdminMemberStatusChangeRequest("policy violation")
+        )).isInstanceOf(ForbiddenException.class);
+        verifyNoInteractions(memberRepository, adminMemberActionLogRepository);
+
+        AdminPrincipal superAdmin = superAdmin();
+        assertThatThrownBy(() -> service.suspendMember(
+                superAdmin,
+                1L,
+                new AdminMemberStatusChangeRequest(" ")
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void suspendMemberChangesActiveMemberAndWritesLog() {
+        AdminPrincipal superAdmin = superAdmin();
+        Member member = member(1L);
+        when(memberRepository.findById(1L)).thenReturn(java.util.Optional.of(member));
+        when(adminMemberActionLogRepository.save(any(AdminMemberActionLog.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventApplicationRepository.findByMemberIdsWithLesson(List.of(1L))).thenReturn(List.of());
+
+        AdminMemberResponse response = service.suspendMember(
+                superAdmin,
+                1L,
+                new AdminMemberStatusChangeRequest("운영 정책 위반")
+        );
+
+        assertThat(response.memberStatus()).isEqualTo(MemberStatus.SUSPENDED);
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.SUSPENDED);
+        assertThat(member.getEmail()).isEqualTo("user1@example.com");
+        assertThat(member.getProviderId()).isEqualTo("google-sub-1");
+
+        ArgumentCaptor<AdminMemberActionLog> logCaptor = ArgumentCaptor.forClass(AdminMemberActionLog.class);
+        verify(adminMemberActionLogRepository).save(logCaptor.capture());
+        AdminMemberActionLog log = logCaptor.getValue();
+        assertThat(log.getAction()).isEqualTo(AdminMemberActionType.MEMBER_SUSPENDED);
+        assertThat(log.getPreviousMemberStatus()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(log.getNextMemberStatus()).isEqualTo(MemberStatus.SUSPENDED);
+        assertThat(log.getReason()).isEqualTo("운영 정책 위반");
+    }
+
+    @Test
+    void reactivateMemberChangesSuspendedMemberAndWritesLog() {
+        AdminPrincipal superAdmin = superAdmin();
+        Member member = member(1L);
+        member.suspend();
+        when(memberRepository.findById(1L)).thenReturn(java.util.Optional.of(member));
+        when(adminMemberActionLogRepository.save(any(AdminMemberActionLog.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventApplicationRepository.findByMemberIdsWithLesson(List.of(1L))).thenReturn(List.of());
+
+        AdminMemberResponse response = service.reactivateMember(
+                superAdmin,
+                1L,
+                new AdminMemberStatusChangeRequest("소명 확인")
+        );
+
+        assertThat(response.memberStatus()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
+
+        ArgumentCaptor<AdminMemberActionLog> logCaptor = ArgumentCaptor.forClass(AdminMemberActionLog.class);
+        verify(adminMemberActionLogRepository).save(logCaptor.capture());
+        AdminMemberActionLog log = logCaptor.getValue();
+        assertThat(log.getAction()).isEqualTo(AdminMemberActionType.MEMBER_REACTIVATED);
+        assertThat(log.getPreviousMemberStatus()).isEqualTo(MemberStatus.SUSPENDED);
+        assertThat(log.getNextMemberStatus()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(log.getReason()).isEqualTo("소명 확인");
+    }
+
+    @Test
+    void withdrawnMemberCannotBeSuspendedOrReactivated() {
+        AdminPrincipal superAdmin = superAdmin();
+        Member member = member(1L);
+        member.withdraw(Instant.parse("2026-06-24T00:00:00Z"));
+        when(memberRepository.findById(1L)).thenReturn(java.util.Optional.of(member));
+
+        assertThatThrownBy(() -> service.suspendMember(
+                superAdmin,
+                1L,
+                new AdminMemberStatusChangeRequest("reason")
+        )).isInstanceOf(ConflictException.class);
+
+        assertThatThrownBy(() -> service.reactivateMember(
+                superAdmin,
+                1L,
+                new AdminMemberStatusChangeRequest("reason")
+        )).isInstanceOf(ConflictException.class);
+    }
+
     private Member member(Long id) {
         Member member = Member.createGoogle(
                 "google-sub-" + id,
@@ -123,6 +238,17 @@ class AdminMemberManagementServiceTest {
         member.updateSettings("Nick " + id, MemberPreferredLanguage.EN);
         ReflectionTestUtils.setField(member, "id", id);
         return member;
+    }
+
+    private AdminPrincipal superAdmin() {
+        return new AdminPrincipal(
+                "super-1",
+                "Super",
+                "super",
+                AdminRole.SUPER_ADMIN,
+                List.of(AdminRole.SUPER_ADMIN),
+                AdminLanguage.Kor
+        );
     }
 
     private Event event() {
