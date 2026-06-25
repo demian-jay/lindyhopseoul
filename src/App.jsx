@@ -903,10 +903,8 @@ const PRIVACY_POLICY_COPY = {
       {
         title: "회원 탈퇴",
         items: [
-          "회원 탈퇴 시 회원 row는 삭제하지 않습니다.",
-          "운영 기록 유지를 위해 수업 신청 및 운영 기록은 유지될 수 있습니다.",
-          "이메일 등 개인정보는 마스킹 처리됩니다.",
-          "이름 또는 표시 이름은 운영 기록 식별을 위해 유지될 수 있습니다.",
+          "회원 탈퇴 시 회원 정보는 복구할 수 없습니다.",
+          "이메일 등 개인을 식별할 수 있는 정보는 삭제 또는 복구할 수 없는 방식으로 마스킹 처리됩니다.",
         ],
       },
       {
@@ -965,10 +963,8 @@ const PRIVACY_POLICY_COPY = {
       {
         title: "Account Withdrawal",
         items: [
-          "When a member withdraws, the member row is not deleted.",
-          "Class application and operational records may be retained to preserve operational history.",
-          "Personal information such as email addresses is masked.",
-          "Name or display name may be retained to identify operational records.",
+          "Once you withdraw your membership, your member information cannot be restored.",
+          "Information that can identify you, such as your email address, will be deleted or masked in a non-recoverable way.",
         ],
       },
       {
