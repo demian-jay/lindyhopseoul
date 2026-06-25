@@ -637,6 +637,7 @@ const SETTINGS_COPY = {
     loginRequiredBody: "내 설정은 Google 로그인 후 사용할 수 있습니다.",
     login: "Sign in with Google",
     back: "뒤로가기",
+    privacyLink: "개인정보처리방침",
     korean: "한국어",
     english: "English",
   },
@@ -665,6 +666,7 @@ const SETTINGS_COPY = {
     loginRequiredBody: "My Settings is available after Google login.",
     login: "Sign in with Google",
     back: "Back",
+    privacyLink: "Privacy Policy",
     korean: "한국어",
     english: "English",
   },
@@ -766,6 +768,7 @@ const MY_PAGE_COPY = {
   ko: {
     topButton: "내 페이지",
     login: "Sign in with Google",
+    privacyLink: "개인정보처리방침",
     title: "내 페이지",
     description: "신청 내역, 메시지, 계정 설정을 한곳에서 확인합니다.",
     loginRequiredTitle: "로그인이 필요합니다",
@@ -796,6 +799,7 @@ const MY_PAGE_COPY = {
   en: {
     topButton: "My Page",
     login: "Sign in with Google",
+    privacyLink: "Privacy Policy",
     title: "My Page",
     description: "Manage your classes, messages, and profile.",
     loginRequiredTitle: "Login required",
@@ -820,6 +824,164 @@ const MY_PAGE_COPY = {
         id: "settings",
         title: "Settings",
         description: "Manage your nickname and preferred language.",
+      },
+    ],
+  },
+};
+
+const LOGIN_CONSENT_COPY = {
+  ko: {
+    eyebrow: "Google 로그인",
+    title: "개인정보처리방침 확인",
+    description:
+      "Google 로그인 또는 첫 회원 등록을 진행하기 전에 개인정보 처리 내용을 확인해주세요.",
+    summary:
+      "로그인 시 수업 신청과 내 신청 내역 확인을 위해 Google 계정의 고유 식별자, 이메일, 이름 또는 표시 이름 등 최소한의 계정 정보가 저장됩니다.",
+    noToken:
+      "Google Access Token, Refresh Token, 프로필 이미지 등 불필요한 정보는 저장하지 않습니다.",
+    checkbox: "개인정보처리방침을 확인했으며 Google 로그인/회원가입을 진행합니다.",
+    privacyLink: "개인정보처리방침",
+    continue: "Google로 계속",
+    back: "메인으로",
+  },
+  en: {
+    eyebrow: "Google Sign-In",
+    title: "Review Privacy Policy",
+    description:
+      "Please review how personal information is handled before continuing with Google sign-in or first-time registration.",
+    summary:
+      "When you sign in, SwingPop saves only the minimum account information needed for class applications and application history, such as your Google account identifier, email, and name or display name.",
+    noToken:
+      "Google Access Tokens, Refresh Tokens, profile images, and other unnecessary information are not stored.",
+    checkbox: "I have reviewed the Privacy Policy and want to continue with Google sign-in or registration.",
+    privacyLink: "Privacy Policy",
+    continue: "Continue with Google",
+    back: "Home",
+  },
+};
+
+const PRIVACY_POLICY_COPY = {
+  ko: {
+    back: "메인으로",
+    eyebrow: "Privacy",
+    title: "개인정보처리방침",
+    intro: "스윙팝은 Google 로그인을 통해 회원을 식별하기 위해 필요한 최소한의 정보만 저장합니다.",
+    sections: [
+      {
+        title: "수집하는 정보",
+        items: [
+          "Google 계정의 고유 식별자",
+          "이메일",
+          "이름 또는 표시 이름",
+          "회원 역할",
+          "회원 상태",
+          "가입일, 수정일, 마지막 로그인 시각",
+        ],
+      },
+      {
+        title: "수집하지 않는 정보",
+        items: [
+          "Google Access Token",
+          "Google Refresh Token",
+          "Google 프로필 이미지",
+          "전화번호",
+          "주소",
+          "생년월일",
+          "성별",
+          "기타 불필요한 개인정보",
+        ],
+      },
+      {
+        title: "수집 목적",
+        items: [
+          "로그인 및 회원 식별",
+          "수업 신청 내역 관리",
+          "내 신청 내역 확인",
+          "운영상 필요한 회원 상태 관리",
+        ],
+      },
+      {
+        title: "회원 탈퇴",
+        items: [
+          "회원 탈퇴 시 회원 row는 삭제하지 않습니다.",
+          "운영 기록 유지를 위해 수업 신청 및 운영 기록은 유지될 수 있습니다.",
+          "이메일 등 개인정보는 마스킹 처리됩니다.",
+          "이름 또는 표시 이름은 운영 기록 식별을 위해 유지될 수 있습니다.",
+        ],
+      },
+      {
+        title: "보관 및 관리",
+        items: [
+          "스윙팝은 서비스 운영에 필요한 최소한의 개인정보만 보관합니다.",
+          "불필요한 Google 토큰 정보는 저장하지 않습니다.",
+          "개인정보는 운영 목적 외로 사용하지 않습니다.",
+        ],
+      },
+      {
+        title: "문의",
+        items: ["개인정보 관련 문의는 스윙팝 운영진에게 연락해주세요."],
+      },
+    ],
+  },
+  en: {
+    back: "Home",
+    eyebrow: "Privacy",
+    title: "Privacy Policy",
+    intro: "SwingPop stores only the minimum information needed to identify members through Google sign-in.",
+    sections: [
+      {
+        title: "Information We Collect",
+        items: [
+          "Google account unique identifier",
+          "Email address",
+          "Name or display name",
+          "Member role",
+          "Member status",
+          "Signup date, updated date, and last login time",
+        ],
+      },
+      {
+        title: "Information We Do Not Collect",
+        items: [
+          "Google Access Token",
+          "Google Refresh Token",
+          "Google profile image",
+          "Phone number",
+          "Address",
+          "Date of birth",
+          "Gender",
+          "Other unnecessary personal information",
+        ],
+      },
+      {
+        title: "Purpose of Collection",
+        items: [
+          "Login and member identification",
+          "Managing class application history",
+          "Viewing my application history",
+          "Managing member status required for service operation",
+        ],
+      },
+      {
+        title: "Account Withdrawal",
+        items: [
+          "When a member withdraws, the member row is not deleted.",
+          "Class application and operational records may be retained to preserve operational history.",
+          "Personal information such as email addresses is masked.",
+          "Name or display name may be retained to identify operational records.",
+        ],
+      },
+      {
+        title: "Retention and Management",
+        items: [
+          "SwingPop keeps only the minimum personal information needed to operate the service.",
+          "Unnecessary Google token information is not stored.",
+          "Personal information is not used for purposes other than service operation.",
+        ],
+      },
+      {
+        title: "Contact",
+        items: ["For privacy-related questions, please contact the SwingPop team."],
       },
     ],
   },
@@ -2309,7 +2471,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
   );
 }
 
-function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, onSaved, onWithdraw }) {
+function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, onSaved, onWithdraw, onPrivacy }) {
   const labels = SETTINGS_COPY[language] ?? SETTINGS_COPY.ko;
   const [form, setForm] = useState({ nickname: "", preferredLanguage: "KO" });
   const [settings, setSettings] = useState(null);
@@ -2434,6 +2596,15 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
               {labels.back}
             </button>
           </div>
+          <div className="mt-5 text-right">
+            <a
+              href="/privacy"
+              onClick={onPrivacy}
+              className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+            >
+              {labels.privacyLink}
+            </a>
+          </div>
         </section>
       </main>
     );
@@ -2541,6 +2712,16 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
             </div>
           </form>
         )}
+
+        <div className="mt-5 text-right">
+          <a
+            href="/privacy"
+            onClick={onPrivacy}
+            className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+          >
+            {labels.privacyLink}
+          </a>
+        </div>
       </section>
 
       {isWithdrawConfirmOpen ? (
@@ -2970,6 +3151,7 @@ function MyPage({
   onMessages,
   onSettings,
   onLogout,
+  onPrivacy,
   messageUnreadCount = 0,
   classNoticeUnreadCount = 0,
 }) {
@@ -3080,6 +3262,16 @@ function MyPage({
             {isPending ? labels.loggingOut : labels.logout}
           </button>
         </div>
+
+        <div className="mt-5 text-right">
+          <a
+            href="/privacy"
+            onClick={onPrivacy}
+            className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+          >
+            {labels.privacyLink}
+          </a>
+        </div>
       </section>
     </main>
   );
@@ -3100,6 +3292,127 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
         {isLoading || isPending ? "..." : isAuthenticated ? labels.topButton : labels.login}
       </button>
     </div>
+  );
+}
+
+function LoginConsentPage({ language, onBack, onContinue, onPrivacy }) {
+  const labels = LOGIN_CONSENT_COPY[language] ?? LOGIN_CONSENT_COPY.ko;
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl items-center px-5 py-24 text-blue-950 md:px-8">
+      <section className="w-full rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-900/45">{labels.eyebrow}</p>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{labels.title}</h1>
+        <p className="mt-4 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+
+        <div className="mt-6 space-y-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-4 text-sm leading-7 text-blue-950/70">
+          <p>{labels.summary}</p>
+          <p>{labels.noToken}</p>
+          <a
+            href="/privacy"
+            onClick={onPrivacy}
+            className="inline-flex text-sm font-semibold text-blue-800 underline decoration-blue-800/30 underline-offset-2 transition hover:text-blue-950"
+          >
+            {labels.privacyLink}
+          </a>
+        </div>
+
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-blue-100 bg-white px-4 py-4 text-sm leading-6 text-blue-950/75 transition hover:border-blue-200 hover:bg-blue-50/50">
+          <input
+            type="checkbox"
+            checked={isConfirmed}
+            onChange={(event) => setIsConfirmed(event.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-blue-300 text-blue-700 focus:ring-blue-500"
+          />
+          <span>{labels.checkbox}</span>
+        </label>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.back}
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!isConfirmed}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+          >
+            {labels.continue}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function PrivacyPolicyPage({ language, onBack }) {
+  const initialPolicyLanguage = language === "en" ? "en" : "ko";
+  const [policyLanguage, setPolicyLanguage] = useState(initialPolicyLanguage);
+  const labels = PRIVACY_POLICY_COPY[policyLanguage] ?? PRIVACY_POLICY_COPY.ko;
+
+  useEffect(() => {
+    setPolicyLanguage(language === "en" ? "en" : "ko");
+  }, [language]);
+
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-24 text-blue-950 md:px-8 md:py-28">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-blue-200 bg-white/80 px-4 text-sm font-semibold text-blue-950/70 shadow-sm backdrop-blur transition hover:bg-white hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {labels.back}
+        </button>
+        <div className="inline-flex rounded-full border border-blue-200 bg-white/80 p-1 shadow-sm backdrop-blur">
+          {[
+            { value: "ko", label: "한국어" },
+            { value: "en", label: "English" },
+          ].map((option) => {
+            const isActive = policyLanguage === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPolicyLanguage(option.value)}
+                className={`min-h-[32px] rounded-full px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isActive ? "bg-blue-700 text-white shadow-sm" : "text-blue-950/60 hover:bg-blue-50 hover:text-blue-950"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <article className="mt-8 rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur md:p-8">
+        <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-900/45">{labels.eyebrow}</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">{labels.title}</h1>
+        <p className="mt-5 text-base leading-8 text-blue-950/70">{labels.intro}</p>
+
+        <div className="mt-8 space-y-8">
+          {labels.sections.map((section) => (
+            <section key={section.title}>
+              <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
+              <ul className="mt-3 space-y-2 text-sm leading-7 text-blue-950/70">
+                {section.items.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </article>
+    </main>
   );
 }
 
@@ -3382,10 +3695,14 @@ function PublicApp() {
       });
   };
 
-  const handleLogin = () => {
+  const handleGoogleLogin = () => {
     if (typeof window !== "undefined") {
       window.location.href = authApi.googleLoginUrl();
     }
+  };
+
+  const handleLogin = () => {
+    navigateToPath("/login");
   };
 
   const navigateToPath = (path) => {
@@ -3422,6 +3739,11 @@ function PublicApp() {
       loadMemberMessageUnreadCount().catch(() => null);
       loadLessonNoticeUnreadCount().catch(() => null);
     }
+  };
+
+  const handlePrivacyOpen = (event) => {
+    event.preventDefault();
+    navigateToPath("/privacy");
   };
 
   const handleMemberSubpageBack = () => {
@@ -3507,8 +3829,14 @@ function PublicApp() {
   const isAuthenticated = Boolean(authState?.authenticated);
   const memberLanguage = isAuthenticated ? toAppLanguage(authState.preferredLanguage) : null;
   const effectiveLanguage = isAuthenticated ? memberLanguage : guestLanguage;
+  const isPrivacyPath = currentPath === "/privacy";
+  const isLoginConsentPath = currentPath === "/login";
   const shouldShowLanguageModal =
-    hasHydrated && !isAuthLoading && (isAuthenticated ? !memberLanguage : !guestLanguage);
+    !isPrivacyPath &&
+    !isLoginConsentPath &&
+    hasHydrated &&
+    !isAuthLoading &&
+    (isAuthenticated ? !memberLanguage : !guestLanguage);
   const t = useMemo(() => CONTENT[effectiveLanguage] ?? CONTENT.ko, [effectiveLanguage]);
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
   const isSettingsPath = currentPath === "/settings";
@@ -3540,14 +3868,16 @@ function PublicApp() {
       ) : null}
 
       <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
-        <AuthControl
-          authState={authState}
-          isLoading={isAuthLoading}
-          isPending={isAuthActionPending}
-          language={activeLanguage}
-          onLogin={handleLogin}
-          onMyPage={handleMyPageOpen}
-        />
+        {!isLoginConsentPath ? (
+          <AuthControl
+            authState={authState}
+            isLoading={isAuthLoading}
+            isPending={isAuthActionPending}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onMyPage={handleMyPageOpen}
+          />
+        ) : null}
         {accountNotice ? (
           <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
             {accountNotice}
@@ -3562,6 +3892,7 @@ function PublicApp() {
             onBack={handleMemberSubpageBack}
             onSaved={handleSettingsSaved}
             onWithdraw={handleWithdrawComplete}
+            onPrivacy={handlePrivacyOpen}
           />
         ) : isMyPagePath ? (
           <MyPage
@@ -3575,6 +3906,7 @@ function PublicApp() {
             onMessages={handleMessagesOpen}
             onSettings={handleSettingsOpen}
             onLogout={handleLogout}
+            onPrivacy={handlePrivacyOpen}
             messageUnreadCount={memberMessageUnreadCount}
             classNoticeUnreadCount={lessonNoticeUnreadCount}
           />
@@ -3596,6 +3928,15 @@ function PublicApp() {
             onBack={handleMemberSubpageBack}
             onUnreadChanged={loadMemberMessageUnreadCount}
           />
+        ) : isLoginConsentPath ? (
+          <LoginConsentPage
+            language={activeLanguage}
+            onBack={handleMainOpen}
+            onContinue={handleGoogleLogin}
+            onPrivacy={handlePrivacyOpen}
+          />
+        ) : isPrivacyPath ? (
+          <PrivacyPolicyPage language={activeLanguage} onBack={handleMainOpen} />
         ) : (
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
           <SectionWrapper id="top" contentClassName="pt-10 pb-8">
@@ -3763,13 +4104,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta

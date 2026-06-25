@@ -1,6 +1,6 @@
 # Google OAuth Member Login Notes
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 This document captures the current Google OAuth login and automatic member signup state for future user/member-related work.
 
@@ -8,6 +8,8 @@ This document captures the current Google OAuth login and automatic member signu
 
 - Google OAuth login and automatic member creation are implemented in backend and frontend code.
 - Logged-in member settings are implemented for nickname and preferred language.
+- Google login now passes through a lightweight privacy confirmation page before redirecting to Google OAuth.
+- The `/privacy` 개인정보처리방침 page is available from the privacy confirmation and member account screens without showing a persistent top-page notice.
 - Backend local port is configured as `18080` for the current Google OAuth client redirect URI.
 - Frontend local dev URL is `http://localhost:5173`.
 - `VITE_API_BASE_URL` is configured as `http://localhost:18080` in local `.env` and `.env.example`.
@@ -176,8 +178,13 @@ Behavior:
 - A small fixed login button is displayed at the top-right of the public page.
 - On mount, frontend calls `GET /api/auth/me` with `credentials: "include"`.
 - Logged-out state shows `Sign in with Google`.
-- Login click navigates to `${VITE_API_BASE_URL}/oauth2/authorization/google`.
+- Logged-out state does not show a persistent privacy notice in the fixed top login control.
+- Login click navigates to `/login`, where the user must check the privacy confirmation before continuing.
+- After confirmation, the frontend navigates to `${VITE_API_BASE_URL}/oauth2/authorization/google`.
 - Logged-in state shows `Settings`, `Logout`, and, on larger screens, the nickname, display name, or email.
+- My Page includes a small `/privacy` link for logged-in members.
+- My Settings includes a small `/privacy` link so members can review the policy while setting up account information.
+- `/privacy` includes Korean and English policy views with an in-page language switcher.
 - Logout calls `POST /api/auth/logout` with `credentials: "include"`.
 - `/settings` shows the logged-in member settings form:
   - read-only email
@@ -305,3 +312,4 @@ docker exec lindyhopseoul-mariadb mariadb -ulindyhop_dev -plindyhop_dev_password
 - If login succeeds but no member row is created, check `OAuth2LoginSuccessHandler` and `GoogleOAuth2MemberService`.
 - If duplicate members are created, verify `provider_id` comes from Google `sub` and the unique constraint exists.
 - If `.env` changes, restart Vite. Vite does not reliably pick up env file changes without a restart.
+- Re-registering with the same Google account after member withdrawal may still be blocked by the existing withdrawal/restricted-account policy. Use a fresh Google account or reset local test data when verifying first-time automatic member creation.
