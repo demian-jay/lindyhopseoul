@@ -560,7 +560,9 @@ function hasAnyRole(userLike, roles) {
 }
 
 function filterVisibleMenus(menus = []) {
-  return menus.filter((menu) => !HIDDEN_ADMIN_MENUS.has(menu));
+  return menus.filter((menu) => (
+    Object.prototype.hasOwnProperty.call(I18N.Kor.menus, menu) && !HIDDEN_ADMIN_MENUS.has(menu)
+  ));
 }
 
 function createAdminForm() {
