@@ -40,6 +40,29 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
     List<EventApplication> findByMemberIdsWithLesson(@Param("memberIds") Collection<Long> memberIds);
 
     @Query("""
+            select distinct application
+            from EventApplication application
+            join fetch application.member member
+            join fetch application.event event
+            left join fetch event.translations
+            left join fetch application.lesson lesson
+            left join fetch lesson.translations
+            where (application.status is null or application.status = com.lindyhopseoul.backend.eventmanagement.EventApplicationStatus.ACTIVE)
+              and member.status = com.lindyhopseoul.backend.member.MemberStatus.ACTIVE
+              and event.status = com.lindyhopseoul.backend.eventmanagement.EventStatus.PUBLISHED
+              and event.endDate >= :today
+              and (
+                    lesson is null
+                    or (
+                        lesson.status = com.lindyhopseoul.backend.eventmanagement.LessonStatus.PUBLISHED
+                        and coalesce(lesson.endDate, event.endDate) >= :today
+                    )
+              )
+            order by application.createdAt desc, application.id desc
+            """)
+    List<EventApplication> findAgoraParticipantAvatarCandidates(@Param("today") java.time.LocalDate today);
+
+    @Query("""
             select count(application)
             from EventApplication application
             where application.member.id = :memberId

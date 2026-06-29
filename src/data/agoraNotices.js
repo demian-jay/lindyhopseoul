@@ -1,0 +1,32 @@
+export const SWINGPOP_AGORA_NOTICES = [
+  {
+    id: "agora-2026-summer-social",
+    titleKo: "6월 소셜 댄스 안내",
+    titleEn: "June Social Dance Notice",
+    contentKo: "이번 달 소셜 댄스는 수업 후 같은 홀에서 이어집니다. 편한 실내용 신발과 물을 준비해주세요.",
+    contentEn: "This month's social dance continues in the same hall after class. Please bring comfortable indoor shoes and water.",
+    createdAt: "2026-06-20T09:00:00+09:00",
+    visible: true,
+    important: true,
+  },
+  {
+    id: "agora-2026-beginner-welcome",
+    titleKo: "처음 오시는 분 환영 안내",
+    titleEn: "Welcome Guide for First-Timers",
+    contentKo: "처음 방문하시는 분은 시작 10분 전에 도착하시면 운영진이 장소와 수업 흐름을 안내해드립니다.",
+    contentEn: "If this is your first visit, arrive 10 minutes early and the team will guide you through the venue and class flow.",
+    createdAt: "2026-06-12T12:00:00+09:00",
+    visible: true,
+    important: false,
+  },
+  {
+    id: "agora-2026-practice-note",
+    titleKo: "연습 시간 이용 안내",
+    titleEn: "Practice Time Note",
+    contentKo: "연습 시간에는 서로의 공간을 존중하며 천천히 움직여주세요. 궁금한 점은 가까운 운영진에게 물어보셔도 됩니다.",
+    contentEn: "During practice time, please move gently and respect each other's space. You can ask nearby staff if you have questions.",
+    createdAt: "2026-06-05T18:30:00+09:00",
+    visible: true,
+    important: false,
+  },
+];

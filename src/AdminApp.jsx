@@ -20,6 +20,8 @@ const I18N = {
       DASHBOARD: "관리자 홈",
       OPERATION_CHECK: "운영 체크",
       EVENT_MANAGEMENT: "이벤트/강습 관리",
+      AGORA_NOTICES: "Agora 공지",
+      AGORA_GUESTBOOK: "Agora 방명록",
       MEMBER_MESSAGES: "회원 메시지",
       MEMBER_ACTION_LOGS: "수강생 처리 로그",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
@@ -160,6 +162,55 @@ const I18N = {
       staffSender: (name) => (name ? `운영진 - (${name})` : "운영진"),
       unread: "새 메시지",
     },
+    agoraNotices: {
+      title: "Swingpop Agora 공지",
+      formCreateTitle: "Agora 공지 등록",
+      formEditTitle: "Agora 공지 수정",
+      listTitle: "공지 목록",
+      titleKo: "한글 제목",
+      titleEn: "영문 제목",
+      contentKo: "한글 내용",
+      contentEn: "영문 내용",
+      important: "중요공지",
+      visible: "노출",
+      status: "표시 여부",
+      visibleStatus: "노출 중",
+      hiddenStatus: "숨김",
+      hide: "숨김",
+      show: "노출",
+      edit: "수정",
+      cancelEdit: "수정 취소",
+      createdAt: "등록일",
+      updatedAt: "수정일",
+      empty: "등록된 Agora 공지가 없습니다.",
+      required: "제목과 내용을 모두 입력해주세요.",
+      created: "Agora 공지가 등록되었습니다.",
+      updated: "Agora 공지가 수정되었습니다.",
+      visibilityUpdated: "노출 상태가 변경되었습니다.",
+      loadError: "Agora 공지를 불러오지 못했습니다.",
+      saveError: "Agora 공지를 저장하지 못했습니다.",
+      visibilityError: "노출 상태를 변경하지 못했습니다.",
+    },
+    agoraGuestbook: {
+      title: "Swingpop Agora 방명록",
+      listTitle: "방명록 메시지",
+      nickname: "작성자 닉네임",
+      message: "메시지",
+      createdAt: "작성일",
+      expiresAt: "만료일",
+      visible: "표시 여부",
+      hiddenByAdmin: "관리자 숨김",
+      visibleStatus: "표시 가능",
+      hiddenStatus: "숨김",
+      expiredStatus: "만료",
+      hide: "숨김 처리",
+      unhide: "숨김 해제",
+      empty: "등록된 방명록 메시지가 없습니다.",
+      loading: "방명록 메시지를 불러오는 중",
+      loadError: "방명록 메시지를 불러오지 못했습니다.",
+      hiddenUpdated: "방명록 메시지 숨김 상태가 변경되었습니다.",
+      hiddenUpdateError: "방명록 메시지 숨김 상태를 변경하지 못했습니다.",
+    },
     adminUsers: {
       createTitle: "관리자 계정 등록",
       editTitle: "관리자 계정 수정",
@@ -272,6 +323,8 @@ const I18N = {
       DASHBOARD: "Dashboard",
       OPERATION_CHECK: "Operation Check",
       EVENT_MANAGEMENT: "Events & Lessons",
+      AGORA_NOTICES: "Agora Notices",
+      AGORA_GUESTBOOK: "Agora Guestbook",
       MEMBER_MESSAGES: "Member Messages",
       MEMBER_ACTION_LOGS: "Student Action Logs",
       KNOWLEDGE_BASE: "Manual Repository",
@@ -411,6 +464,55 @@ const I18N = {
       adminSender: "Staff",
       staffSender: (name) => (name ? `Staff - (${name})` : "Staff"),
       unread: "Unread",
+    },
+    agoraNotices: {
+      title: "Swingpop Agora Notices",
+      formCreateTitle: "Create Agora Notice",
+      formEditTitle: "Edit Agora Notice",
+      listTitle: "Notice List",
+      titleKo: "Korean Title",
+      titleEn: "English Title",
+      contentKo: "Korean Content",
+      contentEn: "English Content",
+      important: "Important",
+      visible: "Visible",
+      status: "Visibility",
+      visibleStatus: "Visible",
+      hiddenStatus: "Hidden",
+      hide: "Hide",
+      show: "Show",
+      edit: "Edit",
+      cancelEdit: "Cancel Edit",
+      createdAt: "Created",
+      updatedAt: "Updated",
+      empty: "No Agora notices have been created.",
+      required: "Please enter every title and content field.",
+      created: "Agora notice has been created.",
+      updated: "Agora notice has been updated.",
+      visibilityUpdated: "Visibility has been updated.",
+      loadError: "Could not load Agora notices.",
+      saveError: "Could not save Agora notice.",
+      visibilityError: "Could not update visibility.",
+    },
+    agoraGuestbook: {
+      title: "Swingpop Agora Guestbook",
+      listTitle: "Guestbook Messages",
+      nickname: "Nickname",
+      message: "Message",
+      createdAt: "Created",
+      expiresAt: "Expires",
+      visible: "Visible",
+      hiddenByAdmin: "Hidden By Admin",
+      visibleStatus: "Displayable",
+      hiddenStatus: "Hidden",
+      expiredStatus: "Expired",
+      hide: "Hide",
+      unhide: "Unhide",
+      empty: "No guestbook messages have been posted.",
+      loading: "Loading guestbook messages",
+      loadError: "Could not load guestbook messages.",
+      hiddenUpdated: "Guestbook hidden status has been updated.",
+      hiddenUpdateError: "Could not update guestbook hidden status.",
     },
     adminUsers: {
       createTitle: "Create Admin Account",
@@ -615,6 +717,32 @@ function toMemberActionLogSearchParams(filters) {
     to: filters.to,
     action: filters.action,
   };
+}
+
+function createAgoraNoticeForm(notice = null) {
+  return {
+    titleKo: notice?.titleKo || "",
+    titleEn: notice?.titleEn || "",
+    contentKo: notice?.contentKo || "",
+    contentEn: notice?.contentEn || "",
+    important: Boolean(notice?.important),
+    visible: notice?.visible ?? true,
+  };
+}
+
+function toAgoraNoticePayload(form) {
+  return {
+    titleKo: form.titleKo.trim(),
+    titleEn: form.titleEn.trim(),
+    contentKo: form.contentKo.trim(),
+    contentEn: form.contentEn.trim(),
+    important: Boolean(form.important),
+    visible: Boolean(form.visible),
+  };
+}
+
+function isAgoraGuestbookExpired(item) {
+  return item?.expiresAt ? new Date(item.expiresAt).getTime() <= Date.now() : false;
 }
 
 function formatDateRange(startDate, endDate, empty = "-") {
@@ -2171,6 +2299,394 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
   );
 }
 
+function AdminAgoraNoticesPanel({ token, langCd, labels }) {
+  const noticeLabels = labels.agoraNotices;
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState(() => createAgoraNoticeForm());
+  const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visibilityUpdatingId, setVisibilityUpdatingId] = useState(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadItems = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await adminApi.findAgoraNotices(token);
+      setItems(Array.isArray(response) ? response : []);
+    } catch (nextError) {
+      setError(nextError.message || noticeLabels.loadError);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [noticeLabels.loadError, token]);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
+  const handleChange = (event) => {
+    const { name, type, checked, value } = event.target;
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    setError("");
+    setNotice("");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const payload = toAgoraNoticePayload(form);
+
+    if (!payload.titleKo || !payload.titleEn || !payload.contentKo || !payload.contentEn) {
+      setError(noticeLabels.required);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+    setNotice("");
+
+    try {
+      if (editingId) {
+        await adminApi.updateAgoraNotice(token, editingId, payload);
+        setNotice(noticeLabels.updated);
+      } else {
+        await adminApi.createAgoraNotice(token, payload);
+        setNotice(noticeLabels.created);
+      }
+
+      setEditingId(null);
+      setForm(createAgoraNoticeForm());
+      await loadItems();
+    } catch (nextError) {
+      setError(nextError.message || noticeLabels.saveError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setForm(createAgoraNoticeForm(item));
+    setError("");
+    setNotice("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setForm(createAgoraNoticeForm());
+    setError("");
+    setNotice("");
+  };
+
+  const handleVisibilityToggle = async (item) => {
+    setVisibilityUpdatingId(item.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const updatedNotice = await adminApi.updateAgoraNoticeVisibility(token, item.id, {
+        visible: !item.visible,
+      });
+      setItems((currentItems) =>
+        currentItems.map((currentItem) => (currentItem.id === updatedNotice.id ? updatedNotice : currentItem))
+      );
+      setNotice(noticeLabels.visibilityUpdated);
+      if (editingId === item.id) {
+        setForm((currentForm) => ({ ...currentForm, visible: updatedNotice.visible }));
+      }
+    } catch (nextError) {
+      setError(nextError.message || noticeLabels.visibilityError);
+    } finally {
+      setVisibilityUpdatingId(null);
+    }
+  };
+
+  return (
+    <section className="grid gap-5">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-zinc-950">
+              {editingId ? noticeLabels.formEditTitle : noticeLabels.formCreateTitle}
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">{noticeLabels.title}</p>
+          </div>
+          {editingId ? (
+            <SecondaryButton type="button" onClick={handleCancelEdit}>
+              {noticeLabels.cancelEdit}
+            </SecondaryButton>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label={noticeLabels.titleKo}>
+            <TextInput name="titleKo" value={form.titleKo} onChange={handleChange} maxLength={160} />
+          </Field>
+          <Field label={noticeLabels.titleEn}>
+            <TextInput name="titleEn" value={form.titleEn} onChange={handleChange} maxLength={160} />
+          </Field>
+          <Field label={noticeLabels.contentKo}>
+            <textarea
+              name="contentKo"
+              value={form.contentKo}
+              onChange={handleChange}
+              maxLength={2000}
+              rows={5}
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+            />
+          </Field>
+          <Field label={noticeLabels.contentEn}>
+            <textarea
+              name="contentEn"
+              value={form.contentEn}
+              onChange={handleChange}
+              maxLength={2000}
+              rows={5}
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+            <input
+              type="checkbox"
+              name="important"
+              checked={form.important}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+            />
+            {noticeLabels.important}
+          </label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+            <input
+              type="checkbox"
+              name="visible"
+              checked={form.visible}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+            />
+            {noticeLabels.visible}
+          </label>
+        </div>
+
+        <div className="mt-5 grid gap-3" aria-live="polite">
+          <Notice>{error}</Notice>
+          <Notice type="success">{notice}</Notice>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? labels.common.saving : editingId ? labels.common.save : labels.common.create}
+          </PrimaryButton>
+        </div>
+      </form>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <h2 className="text-xl font-bold tracking-tight text-zinc-950">{noticeLabels.listTitle}</h2>
+          <span className="text-sm font-semibold text-zinc-500">{labels.common.count(items.length)}</span>
+        </div>
+
+        {isLoading ? (
+          <div className="py-10 text-center text-sm font-semibold text-zinc-500">{labels.common.loading}</div>
+        ) : items.length === 0 ? (
+          <div className="py-10 text-center text-sm text-zinc-500">{noticeLabels.empty}</div>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {items.map((item) => (
+              <article key={item.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-zinc-950">{item.titleKo}</h3>
+                      {item.important ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800">
+                          {noticeLabels.important}
+                        </span>
+                      ) : null}
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
+                          item.visible
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-zinc-200 bg-zinc-100 text-zinc-500"
+                        }`}
+                      >
+                        {item.visible ? noticeLabels.visibleStatus : noticeLabels.hiddenStatus}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-zinc-600">{item.titleEn}</p>
+                    <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                      <div>
+                        <dt className="inline font-semibold">{noticeLabels.createdAt}: </dt>
+                        <dd className="inline">{formatDate(item.createdAt, langCd)}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">{noticeLabels.updatedAt}: </dt>
+                        <dd className="inline">{formatDate(item.updatedAt, langCd)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <SecondaryButton type="button" onClick={() => handleEdit(item)}>
+                      {noticeLabels.edit}
+                    </SecondaryButton>
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => handleVisibilityToggle(item)}
+                      disabled={visibilityUpdatingId === item.id}
+                    >
+                      {item.visible ? noticeLabels.hide : noticeLabels.show}
+                    </SecondaryButton>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AdminAgoraGuestbookPanel({ token, langCd, labels }) {
+  const guestbookLabels = labels.agoraGuestbook;
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadItems = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await adminApi.findAgoraGuestbookMessages(token);
+      setItems(Array.isArray(response) ? response : []);
+    } catch (nextError) {
+      setError(nextError.message || guestbookLabels.loadError);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [guestbookLabels.loadError, token]);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
+  const handleHiddenToggle = async (item) => {
+    setUpdatingId(item.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const updatedMessage = await adminApi.updateAgoraGuestbookMessageHidden(token, item.id, {
+        hidden: !item.hiddenByAdmin,
+      });
+      setItems((currentItems) =>
+        currentItems.map((currentItem) => (currentItem.id === updatedMessage.id ? updatedMessage : currentItem))
+      );
+      setNotice(guestbookLabels.hiddenUpdated);
+    } catch (nextError) {
+      setError(nextError.message || guestbookLabels.hiddenUpdateError);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-zinc-950">{guestbookLabels.title}</h2>
+          <p className="mt-2 text-sm text-zinc-500">{guestbookLabels.listTitle}</p>
+        </div>
+        <span className="text-sm font-semibold text-zinc-500">{labels.common.count(items.length)}</span>
+      </div>
+
+      <div className="mt-4 grid gap-3" aria-live="polite">
+        <Notice>{error}</Notice>
+        <Notice type="success">{notice}</Notice>
+      </div>
+
+      {isLoading ? (
+        <div className="py-10 text-center text-sm font-semibold text-zinc-500">{guestbookLabels.loading}</div>
+      ) : items.length === 0 ? (
+        <div className="py-10 text-center text-sm text-zinc-500">{guestbookLabels.empty}</div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {items.map((item) => {
+            const isExpired = isAgoraGuestbookExpired(item);
+            return (
+              <article key={item.id} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-zinc-950">
+                        {item.nickname || item.nicknameSnapshot || labels.common.empty}
+                      </h3>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
+                          item.hiddenByAdmin
+                            ? "border-red-200 bg-red-50 text-red-700"
+                            : isExpired
+                              ? "border-zinc-200 bg-zinc-100 text-zinc-500"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        {item.hiddenByAdmin
+                          ? guestbookLabels.hiddenStatus
+                          : isExpired
+                            ? guestbookLabels.expiredStatus
+                            : guestbookLabels.visibleStatus}
+                      </span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-700">
+                      {item.message}
+                    </p>
+                    <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                      <div>
+                        <dt className="inline font-semibold">{guestbookLabels.createdAt}: </dt>
+                        <dd className="inline">{formatDate(item.createdAt, langCd)}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">{guestbookLabels.expiresAt}: </dt>
+                        <dd className="inline">{formatDate(item.expiresAt, langCd)}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">{guestbookLabels.visible}: </dt>
+                        <dd className="inline">{item.visible ? guestbookLabels.visibleStatus : guestbookLabels.hiddenStatus}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">{guestbookLabels.hiddenByAdmin}: </dt>
+                        <dd className="inline">{item.hiddenByAdmin ? guestbookLabels.hiddenStatus : "-"}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => handleHiddenToggle(item)}
+                    disabled={updatingId === item.id}
+                  >
+                    {item.hiddenByAdmin ? guestbookLabels.unhide : guestbookLabels.hide}
+                  </SecondaryButton>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -2669,6 +3185,12 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "EVENT_MANAGEMENT" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
+          {safeActiveMenu === "AGORA_NOTICES" ? (
+            <AdminAgoraNoticesPanel token={token} langCd={langCd} labels={labels} />
+          ) : null}
+          {safeActiveMenu === "AGORA_GUESTBOOK" ? (
+            <AdminAgoraGuestbookPanel token={token} langCd={langCd} labels={labels} />
           ) : null}
           {safeActiveMenu === "MEMBER_MESSAGES" ? (
             <AdminMemberMessagesPanel

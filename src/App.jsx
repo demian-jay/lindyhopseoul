@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AdminApp from "./AdminApp";
+import SwingpopAgora from "./SwingpopAgora";
 import { authApi } from "./api/auth";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
@@ -776,6 +777,8 @@ const MY_PAGE_COPY = {
     back: "메인으로",
     accountLabel: "로그인 계정",
     emailLabel: "이메일",
+    agoraBack: "My Page",
+    agoraLoginRequiredBody: "스윙팝 아고라는 Google 로그인 후 입장할 수 있습니다.",
     logout: "로그아웃",
     loggingOut: "로그아웃 중",
     menu: [
@@ -794,6 +797,11 @@ const MY_PAGE_COPY = {
         title: "내 설정",
         description: "닉네임과 선호 언어를 관리합니다.",
       },
+      {
+        id: "agora",
+        title: "스윙팝 아고라",
+        description: "운영진 공지 홀로 입장합니다.",
+      },
     ],
   },
   en: {
@@ -807,6 +815,8 @@ const MY_PAGE_COPY = {
     back: "Home",
     accountLabel: "Signed in as",
     emailLabel: "Email",
+    agoraBack: "My Page",
+    agoraLoginRequiredBody: "Swingpop Agora is available after Google login.",
     logout: "Logout",
     loggingOut: "Logging out",
     menu: [
@@ -824,6 +834,11 @@ const MY_PAGE_COPY = {
         id: "settings",
         title: "Settings",
         description: "Manage your nickname and preferred language.",
+      },
+      {
+        id: "agora",
+        title: "Swingpop Agora",
+        description: "Enter the staff notice hall.",
       },
     ],
   },
@@ -3146,6 +3161,7 @@ function MyPage({
   onMyClasses,
   onMessages,
   onSettings,
+  onAgora,
   onLogout,
   onPrivacy,
   messageUnreadCount = 0,
@@ -3158,6 +3174,7 @@ function MyPage({
     classes: onMyClasses,
     messages: onMessages,
     settings: onSettings,
+    agora: onAgora,
   };
 
   if (!authState?.authenticated) {
@@ -3219,7 +3236,7 @@ function MyPage({
           ) : null}
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {labels.menu.map((item) => {
             const unreadCount =
               item.id === "messages"
@@ -3268,6 +3285,62 @@ function MyPage({
             {labels.privacyLink}
           </a>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function AgoraPage({ authState, isLoading, language, onLogin, onBack }) {
+  const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
+
+  if (!authState?.authenticated) {
+    return (
+      <main className="min-h-screen px-5 py-24">
+        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.agoraLoginRequiredBody}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={isLoading}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            >
+              {labels.login}
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.agoraBack}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="swingpop-agora-page-shell min-h-screen px-5 py-20 sm:py-24">
+      <section className="swingpop-agora-page mx-auto max-w-5xl">
+        <div className="mb-5 flex justify-start">
+          <button
+            type="button"
+            onClick={onBack}
+            className="swingpop-agora-page__back inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white/85 px-4 text-sm font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {labels.agoraBack}
+          </button>
+        </div>
+        <SwingpopAgora
+          language={language}
+          variant="page"
+          currentMember={{
+            memberId: authState?.memberId || authState?.email || "member-local",
+            nickname: memberApplicationName(authState),
+          }}
+        />
       </section>
     </main>
   );
@@ -3727,6 +3800,10 @@ function PublicApp() {
     navigateToPath("/me");
   };
 
+  const handleAgoraOpen = () => {
+    navigateToPath("/me/agora");
+  };
+
   const handleMainOpen = () => {
     navigateToPath("/");
     if (authState?.authenticated) {
@@ -3770,6 +3847,7 @@ function PublicApp() {
           currentPath === "/messages" ||
           currentPath === "/my-classes" ||
           currentPath === "/me" ||
+          currentPath === "/me/agora" ||
           currentPath === "/oauth/success"
         ) {
           navigateToPath("/");
@@ -3839,6 +3917,7 @@ function PublicApp() {
   const isMessagesPath = currentPath === "/messages";
   const isMyClassesPath = currentPath === "/my-classes";
   const isMyPagePath = currentPath === "/me";
+  const isAgoraPath = currentPath === "/me/agora";
   const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
   const applicationItems = useMemo(
     () =>
@@ -3901,10 +3980,19 @@ function PublicApp() {
             onMyClasses={handleMyClassesOpen}
             onMessages={handleMessagesOpen}
             onSettings={handleSettingsOpen}
+            onAgora={handleAgoraOpen}
             onLogout={handleLogout}
             onPrivacy={handlePrivacyOpen}
             messageUnreadCount={memberMessageUnreadCount}
             classNoticeUnreadCount={lessonNoticeUnreadCount}
+          />
+        ) : isAgoraPath ? (
+          <AgoraPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMyPageOpen}
           />
         ) : isMyClassesPath ? (
           <MyClassesPage
@@ -4100,13 +4188,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isAgoraPath && !isPrivacyPath && !isLoginConsentPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isAgoraPath && !isPrivacyPath && !isLoginConsentPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta

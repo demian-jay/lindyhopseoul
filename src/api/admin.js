@@ -268,6 +268,40 @@ export const adminApi = {
       body: payload,
     });
   },
+  findAgoraNotices(token) {
+    return request("/api/admin/agora/notices", { token });
+  },
+  createAgoraNotice(token, payload) {
+    return request("/api/admin/agora/notices", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateAgoraNotice(token, noticeId, payload) {
+    return request(`/api/admin/agora/notices/${noticeId}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  updateAgoraNoticeVisibility(token, noticeId, payload) {
+    return request(`/api/admin/agora/notices/${noticeId}/visibility`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
+  findAgoraGuestbookMessages(token) {
+    return request("/api/admin/agora/guestbook-messages", { token });
+  },
+  updateAgoraGuestbookMessageHidden(token, messageId, payload) {
+    return request(`/api/admin/agora/guestbook-messages/${messageId}/hidden`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   removeEventApplication(token, applicationId, payload = {}) {
     return request(`/api/admin/event-applications/${applicationId}/remove`, {
       method: "PATCH",
