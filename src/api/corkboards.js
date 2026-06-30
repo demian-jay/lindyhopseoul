@@ -56,4 +56,10 @@ export const corkboardApi = {
       body: payload,
     });
   },
+  updateNotePosition(noteId, payload) {
+    return request(`/api/agora/corkboard-notes/${noteId}/position`, {
+      method: "PATCH",
+      body: payload,
+    });
+  },
 };

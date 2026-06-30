@@ -82,6 +82,10 @@ const COPY = {
     zIndex: "쌓임",
     placementMode: "배치",
     slotFallback: "슬롯 fallback",
+    savePosition: "위치 저장",
+    savingPosition: "위치 저장 중",
+    positionSaved: "메모 위치를 저장했습니다.",
+    positionSaveError: "메모 위치를 저장하지 못했습니다.",
     status: "상태",
     yes: "예",
     no: "아니오",
@@ -164,6 +168,10 @@ const COPY = {
     zIndex: "Stack",
     placementMode: "Placement",
     slotFallback: "Slot fallback",
+    savePosition: "Save Position",
+    savingPosition: "Saving Position",
+    positionSaved: "Note position saved.",
+    positionSaveError: "Could not save the note position.",
     status: "Status",
     yes: "Yes",
     no: "No",
@@ -333,6 +341,46 @@ function hasFreePlacement(note) {
   return Number.isFinite(Number(note?.positionX)) && Number.isFinite(Number(note?.positionY));
 }
 
+function fallbackAdminPlacement(slotIndex) {
+  const safeSlot = Math.max(0, Number(slotIndex) || 0);
+  return {
+    positionX: [13, 38, 63, 87][safeSlot % 4] || 50,
+    positionY: [13, 31, 49, 67, 85][Math.floor(safeSlot / 4)] || 50,
+    rotationDeg: 0,
+  };
+}
+
+function notePositionForm(note) {
+  const fallback = fallbackAdminPlacement(note?.slotIndex);
+  return {
+    positionX: String(Number.isFinite(Number(note?.positionX)) ? note.positionX : fallback.positionX),
+    positionY: String(Number.isFinite(Number(note?.positionY)) ? note.positionY : fallback.positionY),
+    rotationDeg: String(Number.isFinite(Number(note?.rotationDeg)) ? note.rotationDeg : fallback.rotationDeg),
+  };
+}
+
+function updateManagementNote(management, updatedNote) {
+  if (!management || !updatedNote?.id) {
+    return management;
+  }
+  const updateCollection = (collection) => {
+    if (!collection?.pages) {
+      return collection;
+    }
+    return {
+      ...collection,
+      pages: collection.pages.map((page) => ({
+        ...page,
+        notes: (page.notes || []).map((note) => (note.id === updatedNote.id ? { ...note, ...updatedNote } : note)),
+      })),
+    };
+  };
+  return {
+    ...management,
+    selected: updateCollection(management.selected),
+  };
+}
+
 function AdminPeriodMetric({ label, value, tone = "default" }) {
   const toneClass = tone === "positive"
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -356,11 +404,31 @@ function AdminCorkboardNoteCard({
   isExpanded,
   isFresh,
   isToggling,
+  isSavingPosition,
   onToggleExpand,
   onToggleHidden,
+  onUpdatePosition,
 }) {
   const isOfficial = note?.noteType === "OFFICIAL";
   const noteTypeLabel = isOfficial ? labels.official : labels.member;
+  const [positionForm, setPositionForm] = useState(() => notePositionForm(note));
+
+  useEffect(() => {
+    setPositionForm(notePositionForm(note));
+  }, [note?.id, note?.positionX, note?.positionY, note?.rotationDeg, note?.slotIndex]);
+
+  const handlePositionChange = (field, value) => {
+    setPositionForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handlePositionSubmit = (event) => {
+    event.preventDefault();
+    onUpdatePosition?.(note, {
+      positionX: Number(positionForm.positionX),
+      positionY: Number(positionForm.positionY),
+      rotationDeg: Number(positionForm.rotationDeg),
+    });
+  };
 
   return (
     <article
@@ -431,6 +499,45 @@ function AdminCorkboardNoteCard({
         </div>
       </dl>
 
+      <form className="admin-corkboard-position-form" onSubmit={handlePositionSubmit}>
+        <label>
+          <span>{labels.positionX}</span>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            value={positionForm.positionX}
+            onChange={(event) => handlePositionChange("positionX", event.target.value)}
+          />
+        </label>
+        <label>
+          <span>{labels.positionY}</span>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            value={positionForm.positionY}
+            onChange={(event) => handlePositionChange("positionY", event.target.value)}
+          />
+        </label>
+        <label>
+          <span>{labels.rotationDeg}</span>
+          <input
+            type="number"
+            min="-6"
+            max="6"
+            step="0.1"
+            value={positionForm.rotationDeg}
+            onChange={(event) => handlePositionChange("rotationDeg", event.target.value)}
+          />
+        </label>
+        <button type="submit" disabled={isSavingPosition}>
+          {isSavingPosition ? labels.savingPosition : labels.savePosition}
+        </button>
+      </form>
+
       <div className="admin-corkboard-note-actions">
         <button type="button" onClick={() => onToggleExpand(note)}>
           {isExpanded ? labels.collapse : labels.view}
@@ -455,8 +562,10 @@ function AdminCorkboardNoteGrid({
   expandedNoteId,
   freshNoteId,
   togglingNoteId,
+  savingPositionNoteId,
   onToggleExpand,
   onToggleHidden,
+  onUpdatePosition,
 }) {
   const notes = sortedNotes(page);
 
@@ -476,8 +585,10 @@ function AdminCorkboardNoteGrid({
           isExpanded={expandedNoteId === note.id}
           isFresh={freshNoteId === note.id}
           isToggling={togglingNoteId === note.id}
+          isSavingPosition={savingPositionNoteId === note.id}
           onToggleExpand={onToggleExpand}
           onToggleHidden={onToggleHidden}
+          onUpdatePosition={onUpdatePosition}
         />
       ))}
     </div>
@@ -513,6 +624,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [expandedNoteId, setExpandedNoteId] = useState(null);
   const [freshNoteId, setFreshNoteId] = useState(null);
   const [togglingNoteId, setTogglingNoteId] = useState(null);
+  const [savingPositionNoteId, setSavingPositionNoteId] = useState(null);
   const [settingsForm, setSettingsForm] = useState({ title: "", periodStart: "", periodEnd: "" });
   const [createPeriodForm, setCreatePeriodForm] = useState({
     periodKey: "",
@@ -762,6 +874,26 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
   const handleToggleExpanded = (note) => {
     setExpandedNoteId((currentId) => (currentId === note?.id ? null : note?.id));
+  };
+
+  const handleUpdatePosition = async (note, payload) => {
+    if (!note?.id || savingPositionNoteId) {
+      return;
+    }
+    setSavingPositionNoteId(note.id);
+    setError("");
+    setNotice("");
+    try {
+      const updatedNote = await adminApi.updateCorkboardNotePosition(token, note.id, payload);
+      setManagement((current) => updateManagementNote(current, updatedNote));
+      setFreshNoteId(note.id);
+      window.setTimeout(() => setFreshNoteId(null), 1200);
+      setNotice(labels.positionSaved);
+    } catch (nextError) {
+      setError(nextError.message || labels.positionSaveError);
+    } finally {
+      setSavingPositionNoteId(null);
+    }
   };
 
   return (
@@ -1052,8 +1184,10 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               expandedNoteId={expandedNoteId}
               freshNoteId={freshNoteId}
               togglingNoteId={togglingNoteId}
+              savingPositionNoteId={savingPositionNoteId}
               onToggleExpand={handleToggleExpanded}
               onToggleHidden={handleToggleHidden}
+              onUpdatePosition={handleUpdatePosition}
             />
           )}
         </section>

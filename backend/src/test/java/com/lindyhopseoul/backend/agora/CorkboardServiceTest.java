@@ -20,6 +20,7 @@ import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.exception.BadRequestException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
+import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import com.lindyhopseoul.backend.member.Member;
 import com.lindyhopseoul.backend.member.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,6 +143,124 @@ class CorkboardServiceTest {
         assertThat(response.positionX()).isNull();
         assertThat(response.positionY()).isNull();
         assertThat(response.placementMode()).isEqualTo(CorkboardNotePlacementMode.SLOT);
+    }
+
+    @Test
+    void updateMemberNotePositionMovesOwnNoteAndConvertsSlotPlacementToFree() {
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "move me", 3);
+        ReflectionTestUtils.setField(note, "id", 50L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(50L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        CorkboardNoteResponse response = corkboardService.updateMemberNotePosition(
+                1L,
+                50L,
+                new CorkboardNotePositionRequest(62.84, 44.21, -3.44)
+        );
+
+        assertThat(note.getPositionX()).isEqualTo(62.8);
+        assertThat(note.getPositionY()).isEqualTo(44.2);
+        assertThat(note.getRotationDeg()).isEqualTo(-3.4);
+        assertThat(note.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
+        assertThat(note.getSlotIndex()).isEqualTo(3);
+        assertThat(response.positionEditable()).isTrue();
+    }
+
+    @Test
+    void updateMemberNotePositionRejectsOtherMemberNote() {
+        Member otherMember = member(2L, "other@example.com", "Other", "Other");
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, otherMember, "yellow", "not mine", 0);
+        ReflectionTestUtils.setField(note, "id", 51L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(51L)).thenReturn(Optional.of(note));
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                1L,
+                51L,
+                new CorkboardNotePositionRequest(50.0, 50.0, 0.0)
+        )).isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void updateMemberNotePositionRejectsUnauthenticatedMember() {
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                null,
+                50L,
+                new CorkboardNotePositionRequest(50.0, 50.0, 0.0)
+        )).isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void updateMemberNotePositionRejectsArchivedBoard() {
+        Corkboard archivedBoard = currentBoard(52L, 1);
+        archivedBoard.archive();
+        CorkboardNote note = CorkboardNote.createMemberNote(archivedBoard, member, "yellow", "past note", 0);
+        ReflectionTestUtils.setField(note, "id", 52L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(52L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(archivedBoard.getPeriodKey()))
+                .thenReturn(List.of(archivedBoard));
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                1L,
+                52L,
+                new CorkboardNotePositionRequest(50.0, 50.0, 0.0)
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void updateMemberNotePositionRejectsOutOfRangePlacementValues() {
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "move me", 0);
+        ReflectionTestUtils.setField(note, "id", 53L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(53L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                1L,
+                53L,
+                new CorkboardNotePositionRequest(100.1, 50.0, 0.0)
+        )).isInstanceOf(BadRequestException.class);
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                1L,
+                53L,
+                new CorkboardNotePositionRequest(50.0, -0.1, 0.0)
+        )).isInstanceOf(BadRequestException.class);
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNotePosition(
+                1L,
+                53L,
+                new CorkboardNotePositionRequest(50.0, 50.0, -6.1)
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void updateAdminNotePositionMovesAnyCurrentBoardNote() {
+        CorkboardNote note = CorkboardNote.createOfficialNote(currentBoard, "Staff", "official", "notice", 2);
+        ReflectionTestUtils.setField(note, "id", 54L);
+        when(noteRepository.findById(54L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        CorkboardNoteResponse response = corkboardService.updateAdminNotePosition(
+                staffPrincipal(),
+                54L,
+                new CorkboardNotePositionRequest(22.2, 77.7, 5.5)
+        );
+
+        assertThat(note.getPositionX()).isEqualTo(22.2);
+        assertThat(note.getPositionY()).isEqualTo(77.7);
+        assertThat(note.getRotationDeg()).isEqualTo(5.5);
+        assertThat(note.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
+        assertThat(response.positionEditable()).isFalse();
     }
 
     @Test
@@ -468,6 +587,18 @@ class CorkboardServiceTest {
         );
         ReflectionTestUtils.setField(board, "id", id);
         return board;
+    }
+
+    private Member member(Long id, String email, String displayName, String nickname) {
+        Member nextMember = Member.createGoogle(
+                "google-sub-" + id,
+                email,
+                displayName,
+                Instant.parse("2026-06-23T00:00:00Z")
+        );
+        nextMember.updateSettings(nickname, null);
+        ReflectionTestUtils.setField(nextMember, "id", id);
+        return nextMember;
     }
 
     private AdminPrincipal staffPrincipal() {

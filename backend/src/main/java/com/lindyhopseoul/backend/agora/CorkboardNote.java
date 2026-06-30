@@ -207,6 +207,17 @@ public class CorkboardNote {
         this.hidden = hidden;
     }
 
+    public void updatePlacement(Placement placement) {
+        if (placement == null) {
+            return;
+        }
+        positionX = placement.positionX();
+        positionY = placement.positionY();
+        rotationDeg = placement.rotationDeg();
+        zIndex = placement.zIndex();
+        placementMode = placement.placementMode();
+    }
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();

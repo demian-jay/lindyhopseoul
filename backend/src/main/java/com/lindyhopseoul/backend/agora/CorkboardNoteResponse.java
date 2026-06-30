@@ -18,10 +18,15 @@ public record CorkboardNoteResponse(
         String authorNicknameSnapshot,
         String authorNameSnapshot,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean positionEditable
 ) {
 
     public static CorkboardNoteResponse from(CorkboardNote note) {
+        return from(note, false);
+    }
+
+    public static CorkboardNoteResponse from(CorkboardNote note, boolean positionEditable) {
         Corkboard board = note.getBoard();
         return new CorkboardNoteResponse(
                 note.getId(),
@@ -39,7 +44,8 @@ public record CorkboardNoteResponse(
                 note.getAuthorNicknameSnapshot(),
                 note.getAuthorNameSnapshot(),
                 note.getCreatedAt(),
-                note.getUpdatedAt()
+                note.getUpdatedAt(),
+                positionEditable
         );
     }
 }

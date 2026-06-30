@@ -82,6 +82,15 @@ Legacy and fallback behavior:
 
 The frontend clamps rendered note centers away from the board edge so notes do not spill far outside the corkboard on desktop or mobile.
 
+Existing note position edits:
+
+- Logged-in members can move only their own visible `MEMBER` notes on the current writable board.
+- Members cannot move other members' notes, hidden notes, `OFFICIAL` notes, or archived board notes.
+- `STAFF` and `SUPER_ADMIN` can move notes from the admin Corkboard panel for the current writable board.
+- The public member UI starts movement with a long press of about 380ms on the user's own note, then shows a drop confirmation panel before sending the PATCH request.
+- Cancelling the drop confirmation clears the temporary preview and returns the note to its saved position.
+- Editing a legacy slot-only note stores `position_x`, `position_y`, `rotation_deg`, and changes `placement_mode` to `FREE`; `slot_index` stays unchanged for page capacity and fallback compatibility.
+
 ## Validation and Permissions
 
 Public users:
@@ -93,12 +102,14 @@ Public users:
 Logged-in members:
 
 - Can create `MEMBER` notes only on the current active board.
-- Cannot edit or delete notes in this MVP.
+- Can adjust the position of their own visible `MEMBER` notes on the current active board.
+- Cannot edit note content or delete notes in this MVP.
 
 Staff and super admins:
 
 - Can create `OFFICIAL` notes through the admin panel.
 - Can hide or unhide any note.
+- Can adjust note positions from the admin panel on the current writable board.
 - Can view current and past boards, including hidden notes.
 
 Staff:
@@ -122,7 +133,9 @@ Permission matrix:
 | View current board | Yes | Yes | Yes | Yes |
 | View archived boards | Yes | Yes | Yes | Yes |
 | Create member note | No | Current writable board only | No | No |
+| Move own member note | No | Own visible note on current writable board only | No | No |
 | Create official notice | No | No | Yes | Yes |
+| Move note position in admin | No | No | Current writable board | Current writable board |
 | Hide/unhide notes | No | No | Yes | Yes |
 | View hidden notes in admin | No | No | Yes | Yes |
 | Edit period title/start/end | No | No | No | Yes |
@@ -147,6 +160,7 @@ Public:
 - `GET /api/agora/corkboards/archive`
 - `GET /api/agora/corkboards?periodKey=YYYY-MM`
 - `POST /api/agora/corkboard-notes`
+- `PATCH /api/agora/corkboard-notes/{id}/position`
 
 Admin:
 
@@ -159,6 +173,7 @@ Admin:
 - `PATCH /api/admin/agora/corkboard-periods/{periodKey}/archive`
 - `POST /api/admin/agora/corkboard-notes`
 - `PATCH /api/admin/agora/corkboard-notes/{id}/hidden`
+- `PATCH /api/admin/agora/corkboard-notes/{id}/position`
 
 `GET /api/admin/agora/corkboard-periods` returns period-level summaries grouped by `periodKey`, including page count, note count, status, and whether the period is currently writable. Mutating period endpoints require `SUPER_ADMIN`.
 
@@ -178,6 +193,18 @@ Public note creation request body:
 `positionX`, `positionY`, `rotationDeg`, and `pageNo` are optional for backward compatibility. If coordinates are omitted, the server stores a slot-style placement. The current user screen sends coordinates for new member notes.
 
 Admin official note creation accepts the same optional placement fields. The current admin UI keeps a simpler operations-first layout and may use automatic fallback placement for official notices.
+
+Position update request body:
+
+```json
+{
+  "positionX": 62.8,
+  "positionY": 44.2,
+  "rotationDeg": -3.4
+}
+```
+
+The member endpoint requires the server session to match the note owner. The admin endpoint requires a staff/admin bearer token. Both endpoints validate the same coordinate ranges and currently allow edits only on the current writable board.
 
 ## Admin Operations
 
@@ -229,6 +256,8 @@ Design notes:
 - Note templates include yellow, pink, blue, white, lined, tape, pin, and staff notice styles.
 - Notes have slight rotation, shadow, hover lift, selected outline, and attach/land animations.
 - The write flow includes template selection, live preview, character count, board tap/drag placement, and submit feedback.
+- Owner position editing uses long press, drag, and drop confirmation. There is no separate move button on the public board.
+- The admin panel uses compact numeric `positionX`, `positionY`, and `rotationDeg` inputs per note card to keep the management layout operational.
 - Existing slot-only notes use deterministic fallback coordinates from `slotIndex`.
 
 ## QA Status
@@ -252,6 +281,8 @@ Completed checks:
 - The note landing/attach animations, hover lift, selected outline, tape, pin, and official notice emphasis are present.
 - Member note placement supports board tap, pointer drag, and touch drag. Reloaded notes stay in the saved percentage position.
 - Existing slot-only notes and new free-position notes render together on the same board.
+- Owner note position editing saves through `PATCH /api/agora/corkboard-notes/{id}/position` only after the drop confirmation is accepted; after refresh, edited notes stay at the saved percentage coordinates.
+- Admin note position editing is available from each admin note card and preserves the list/card management layout.
 - Archived boards are read-only.
 - Admin Corkboard period settings render on desktop and mobile without horizontal overflow.
 - Admin current period info displays `periodKey`, title, start/end dates, status, page count, note count, and writable state.
@@ -279,8 +310,11 @@ Logged-in member:
 - [x] Cannot submit blank content.
 - [x] Creates `MEMBER` notes using the server-side member session.
 - [x] Sees the newly added note land at the selected board position.
+- [x] Sees no public `위치 수정` button; only own movable notes respond to long press.
+- [x] Can cancel the drop confirmation and return the note to its saved position.
+- [x] Can confirm a dropped position and keep the new position after reload.
 - [x] Cannot write to archived boards.
-- [x] Cannot edit or delete notes in this MVP.
+- [x] Cannot edit note content or delete notes in this MVP.
 
 Staff or admin:
 
@@ -293,7 +327,8 @@ Staff or admin:
 - [x] Hidden notes are excluded from public user responses.
 - [x] Can see current period information in the admin panel.
 - [x] Can see coordinate metadata (`positionX`, `positionY`, `rotationDeg`, `zIndex`, `placementMode`) for note management.
-- [x] `STAFF` is limited to viewing periods, official notes, and note visibility management.
+- [x] Can update note coordinates from the admin note card on the current writable board.
+- [x] `STAFF` is limited to viewing periods, official notes, note visibility management, and current-board position adjustment.
 
 Super admin:
 

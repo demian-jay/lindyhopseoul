@@ -26,6 +26,10 @@ const BOARD_SLOT_CAPACITY = 18;
 const SLOT_FALLBACK_X = [13, 38, 63, 87];
 const SLOT_FALLBACK_Y = [13, 31, 49, 67, 85];
 const NOTE_EDGE_BUFFER = 9;
+const NOTE_LONG_PRESS_MS = 380;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+const NOTE_SETTLE_MS = 260;
+const NOTE_RETURN_MS = 260;
 
 const COPY = {
   ko: {
@@ -56,6 +60,14 @@ const COPY = {
     required: "메모 내용을 입력해주세요.",
     saved: "메모가 코르크보드에 붙었습니다.",
     saveError: "메모를 붙이지 못했습니다.",
+    positionEditHint: "본인 메모는 길게 눌러 떼어낸 뒤 원하는 곳에 놓을 수 있습니다.",
+    moveConfirmTitle: "이 위치로 메모를 옮길까요?",
+    moveConfirmBody: "확인을 누르면 새 위치가 저장되고, 취소하면 원래 자리로 돌아갑니다.",
+    confirmMove: "옮기기",
+    moveSaving: "옮기는 중",
+    cancelPosition: "취소",
+    positionSaved: "메모 위치를 저장했습니다.",
+    positionSaveError: "메모 위치를 저장하지 못했습니다.",
     staff: "운영진",
     friend: "스윙팝 친구",
   },
@@ -87,6 +99,14 @@ const COPY = {
     required: "Please write a note.",
     saved: "Your note landed on the corkboard.",
     saveError: "Could not pin the note.",
+    positionEditHint: "Long-press your own note, lift it, then drop it where it should live.",
+    moveConfirmTitle: "Move the note here?",
+    moveConfirmBody: "Confirm to save the new spot, or cancel to return it.",
+    confirmMove: "Move",
+    moveSaving: "Moving",
+    cancelPosition: "Cancel",
+    positionSaved: "Note position saved.",
+    positionSaveError: "Could not save the note position.",
     staff: "Staff",
     friend: "SwingPop friend",
   },
@@ -243,6 +263,36 @@ function writablePageIndex(boardData) {
   return Math.max(0, pages.length - 1);
 }
 
+function editablePlacementForNote(note) {
+  const placement = notePlacement(note);
+  return {
+    positionX: placement.positionX,
+    positionY: placement.positionY,
+    rotationDeg: noteRotation(note),
+  };
+}
+
+function roundedPlacement(placement) {
+  return {
+    positionX: Math.round((placement?.positionX || 0) * 10) / 10,
+    positionY: Math.round((placement?.positionY || 0) * 10) / 10,
+    rotationDeg: Math.round((placement?.rotationDeg || 0) * 10) / 10,
+  };
+}
+
+function updateNoteInBoard(boardData, updatedNote) {
+  if (!boardData || !updatedNote?.id) {
+    return boardData;
+  }
+  return {
+    ...boardData,
+    pages: (boardData.pages || []).map((page) => ({
+      ...page,
+      notes: (page.notes || []).map((note) => (note.id === updatedNote.id ? { ...note, ...updatedNote } : note)),
+    })),
+  };
+}
+
 export function CorkboardNoteCard({
   note,
   language = "ko",
@@ -251,11 +301,17 @@ export function CorkboardNoteCard({
   adminControls = false,
   isDraft = false,
   isDragging = false,
+  isPositionEditing = false,
+  isMoveArmed = false,
+  movementPhase = "",
+  canEditPosition = false,
+  zIndexOverride,
   onSelect,
   onToggleHidden,
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onPointerCancel,
 }) {
   const labels = COPY[language] || COPY.ko;
   const templateKey = note?.stickerTemplateKey || "yellow";
@@ -269,6 +325,10 @@ export function CorkboardNoteCard({
     isFresh ? "is-fresh" : "",
     isDraft ? "is-draft" : "",
     isDragging ? "is-dragging" : "",
+    isPositionEditing ? "is-position-editing" : "",
+    isMoveArmed ? "is-move-armed" : "",
+    movementPhase ? `is-note-${movementPhase}` : "",
+    canEditPosition ? "is-position-editable" : "",
   ].filter(Boolean).join(" ");
 
   const handleKeyDown = (event) => {
@@ -281,7 +341,7 @@ export function CorkboardNoteCard({
   return (
     <article
       className={className}
-      style={noteStyle(note, isDraft ? 80 : undefined)}
+      style={noteStyle(note, zIndexOverride || (isDraft ? 80 : undefined))}
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
@@ -290,7 +350,7 @@ export function CorkboardNoteCard({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel || onPointerUp}
     >
       <span className={`corkboard-fixture corkboard-fixture-${fixture}`} aria-hidden="true" />
       <div className="corkboard-note-content">{note.content}</div>
@@ -324,15 +384,37 @@ export function CorkboardBoard({
   canPlaceNote = false,
   placementLabel = "",
   isDraftDragging = false,
+  positionEdit = null,
+  isPositionDragging = false,
+  positionHoldNoteId = null,
   onNoteSelect,
   onToggleHidden,
   onDraftPlacementChange,
   onDraftDragChange,
+  onEditPlacementChange,
+  onEditDragChange,
+  onStartPositionEdit,
+  onDropPositionEdit,
+  onCancelPositionEdit,
+  onPositionHoldNoteChange,
   emptyLabel,
 }) {
   const stageRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const longPressPointerRef = useRef(null);
   const notes = page?.notes || [];
   const hasNotes = notes.length > 0;
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressPointerRef.current = null;
+    onPositionHoldNoteChange?.(null);
+  }, [onPositionHoldNoteChange]);
+
+  useEffect(() => () => clearLongPress(), [clearLongPress]);
 
   const placementFromEvent = useCallback((event) => {
     const rect = stageRef.current?.getBoundingClientRect();
@@ -351,6 +433,13 @@ export function CorkboardBoard({
       onDraftPlacementChange?.(nextPlacement);
     }
   }, [onDraftPlacementChange, placementFromEvent]);
+
+  const moveEditToPointer = useCallback((event) => {
+    const nextPlacement = placementFromEvent(event);
+    if (nextPlacement) {
+      onEditPlacementChange?.(nextPlacement);
+    }
+  }, [onEditPlacementChange, placementFromEvent]);
 
   const handleStagePointerDown = (event) => {
     const target = event.target instanceof Element ? event.target : null;
@@ -387,26 +476,137 @@ export function CorkboardBoard({
     onDraftDragChange?.(false);
   };
 
+  const handleEditableNotePointerDown = (note, event) => {
+    if (!note?.positionEditable || positionEdit) {
+      return;
+    }
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("button")) {
+      return;
+    }
+    clearLongPress();
+    const pointerState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      target: event.currentTarget,
+      note,
+      isActive: false,
+    };
+    longPressPointerRef.current = pointerState;
+    onPositionHoldNoteChange?.(note.id);
+    longPressTimerRef.current = window.setTimeout(() => {
+      const currentPointer = longPressPointerRef.current;
+      if (!currentPointer || currentPointer.pointerId !== pointerState.pointerId) {
+        return;
+      }
+      longPressTimerRef.current = null;
+      currentPointer.isActive = true;
+      currentPointer.target?.setPointerCapture?.(currentPointer.pointerId);
+      const originalPlacement = editablePlacementForNote(note);
+      const nextPlacement = placementFromEvent(currentPointer);
+      onStartPositionEdit?.(note, nextPlacement ? { ...originalPlacement, ...nextPlacement } : originalPlacement);
+      onEditDragChange?.(true);
+      onPositionHoldNoteChange?.(null);
+    }, NOTE_LONG_PRESS_MS);
+  };
+
+  const handleEditableNotePointerMove = (note, event) => {
+    const pointerState = longPressPointerRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || pointerState.note?.id !== note.id) {
+      return;
+    }
+    pointerState.clientX = event.clientX;
+    pointerState.clientY = event.clientY;
+    if (pointerState.isActive) {
+      event.preventDefault();
+      event.stopPropagation();
+      moveEditToPointer(event);
+      return;
+    }
+    const distance = Math.hypot(event.clientX - pointerState.startX, event.clientY - pointerState.startY);
+    if (distance > LONG_PRESS_MOVE_TOLERANCE) {
+      clearLongPress();
+    }
+  };
+
+  const handleEditableNotePointerUp = (note, event) => {
+    const pointerState = longPressPointerRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || pointerState.note?.id !== note.id) {
+      return;
+    }
+    if (pointerState.isActive) {
+      event.preventDefault();
+      event.stopPropagation();
+      pointerState.target?.releasePointerCapture?.(event.pointerId);
+      onEditDragChange?.(false);
+      onDropPositionEdit?.();
+      longPressPointerRef.current = null;
+      onPositionHoldNoteChange?.(null);
+      return;
+    }
+    clearLongPress();
+  };
+
+  const handleEditableNotePointerCancel = (note, event) => {
+    const pointerState = longPressPointerRef.current;
+    if (pointerState?.pointerId === event.pointerId && pointerState.note?.id === note.id && pointerState.isActive) {
+      pointerState.target?.releasePointerCapture?.(event.pointerId);
+      onEditDragChange?.(false);
+      onCancelPositionEdit?.();
+    }
+    clearLongPress();
+  };
+
   return (
     <section
       ref={stageRef}
-      className={`corkboard-stage ${canPlaceNote ? "is-placement-enabled" : ""} ${isDraftDragging ? "is-dragging-note" : ""}`}
+      className={`corkboard-stage ${canPlaceNote || positionEdit ? "is-placement-enabled" : ""} ${isDraftDragging || isPositionDragging ? "is-dragging-note" : ""}`}
       aria-label={page?.title || "Agora Corkboard"}
       onPointerDown={handleStagePointerDown}
     >
       <div className="corkboard-slots">
-        {notes.map((note) => (
-          <CorkboardNoteCard
-            key={note.id || `${note.boardId}-${note.slotIndex}`}
-            note={note}
-            language={language}
-            isSelected={activeNoteId === note.id}
-            isFresh={freshNoteId === note.id}
-            adminControls={adminControls}
-            onSelect={onNoteSelect}
-            onToggleHidden={onToggleHidden}
-          />
-        ))}
+        {notes.map((note) => {
+          const isEditingThisNote = positionEdit?.noteId === note.id;
+          const canMoveThisNote = Boolean(note.positionEditable);
+          const shouldWirePositionPointer = canMoveThisNote && (!positionEdit || isEditingThisNote);
+          const movementPhase = isEditingThisNote
+            ? (isPositionDragging ? "dragging" : positionEdit?.phase || "lifted")
+            : "";
+          const renderedNote = isEditingThisNote
+            ? {
+                ...note,
+                positionX: positionEdit.placement.positionX,
+                positionY: positionEdit.placement.positionY,
+                rotationDeg: positionEdit.placement.rotationDeg,
+                placementMode: "FREE",
+              }
+            : note;
+          return (
+            <CorkboardNoteCard
+              key={note.id || `${note.boardId}-${note.slotIndex}`}
+              note={renderedNote}
+              language={language}
+              isSelected={activeNoteId === note.id}
+              isFresh={freshNoteId === note.id}
+              adminControls={adminControls}
+              isPositionEditing={isEditingThisNote}
+              isMoveArmed={positionHoldNoteId === note.id}
+              isDragging={isEditingThisNote && isPositionDragging}
+              movementPhase={movementPhase}
+              canEditPosition={canMoveThisNote && !positionEdit}
+              zIndexOverride={isEditingThisNote ? 95 : undefined}
+              onSelect={onNoteSelect}
+              onToggleHidden={onToggleHidden}
+              onPointerDown={shouldWirePositionPointer ? (event) => handleEditableNotePointerDown(note, event) : undefined}
+              onPointerMove={shouldWirePositionPointer ? (event) => handleEditableNotePointerMove(note, event) : undefined}
+              onPointerUp={shouldWirePositionPointer ? (event) => handleEditableNotePointerUp(note, event) : undefined}
+              onPointerCancel={shouldWirePositionPointer ? (event) => handleEditableNotePointerCancel(note, event) : undefined}
+            />
+          );
+        })}
         {draftNote ? (
           <CorkboardNoteCard
             note={draftNote}
@@ -441,6 +641,25 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const [freshNoteId, setFreshNoteId] = useState(null);
   const [draftPlacement, setDraftPlacement] = useState({ positionX: 50, positionY: 50 });
   const [isDraftDragging, setIsDraftDragging] = useState(false);
+  const [positionEdit, setPositionEdit] = useState(null);
+  const [isPositionDragging, setIsPositionDragging] = useState(false);
+  const [positionHoldNoteId, setPositionHoldNoteId] = useState(null);
+  const [isPositionSaving, setIsPositionSaving] = useState(false);
+  const positionSettleTimerRef = useRef(null);
+  const positionReturnTimerRef = useRef(null);
+
+  const clearPositionAnimationTimers = useCallback(() => {
+    if (positionSettleTimerRef.current) {
+      window.clearTimeout(positionSettleTimerRef.current);
+      positionSettleTimerRef.current = null;
+    }
+    if (positionReturnTimerRef.current) {
+      window.clearTimeout(positionReturnTimerRef.current);
+      positionReturnTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearPositionAnimationTimers(), [clearPositionAnimationTimers]);
 
   const loadArchivePeriods = useCallback(async () => {
     const periods = await corkboardApi.findArchivePeriods();
@@ -455,6 +674,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       setBoardData(current);
       setSelectedPeriodKey("current");
       setActivePageIndex(writablePageIndex(current));
+      clearPositionAnimationTimers();
+      setPositionEdit(null);
+      setPositionHoldNoteId(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -474,6 +696,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       setBoardData(period);
       setSelectedPeriodKey(periodKey);
       setActivePageIndex(0);
+      clearPositionAnimationTimers();
+      setPositionEdit(null);
+      setPositionHoldNoteId(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -489,6 +714,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   useEffect(() => {
     if (!boardData?.pages?.length) {
       setActivePageIndex(0);
+      clearPositionAnimationTimers();
+      setPositionEdit(null);
+      setPositionHoldNoteId(null);
       return;
     }
     if (activePageIndex >= boardData.pages.length) {
@@ -506,6 +734,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
 
   const activePage = boardData?.pages?.[activePageIndex] || boardData?.pages?.[0] || null;
   const canWrite = Boolean(authState?.authenticated) && !boardData?.readOnly;
+  const isEditingPosition = Boolean(positionEdit);
   const remaining = 200 - content.length;
   const currentDraftRotation = useMemo(
     () => draftRotation(selectedTemplate, content),
@@ -577,8 +806,105 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     }
   };
 
+  const handleStartPositionEdit = (note, initialPlacement = null) => {
+    if (!note?.positionEditable) {
+      return;
+    }
+    clearPositionAnimationTimers();
+    const originalPlacement = editablePlacementForNote(note);
+    const placement = initialPlacement || originalPlacement;
+    setError("");
+    setNotice("");
+    setActiveNoteId(note.id);
+    setPositionEdit({
+      noteId: note.id,
+      originalPlacement,
+      placement,
+      phase: "dragging",
+    });
+  };
+
+  const handleCancelPositionEdit = () => {
+    clearPositionAnimationTimers();
+    setIsPositionDragging(false);
+    setPositionHoldNoteId(null);
+    setPositionEdit((current) => {
+      if (!current) {
+        return null;
+      }
+      return {
+        ...current,
+        placement: current.originalPlacement,
+        phase: "returning",
+      };
+    });
+    positionReturnTimerRef.current = window.setTimeout(() => {
+      setPositionEdit(null);
+      positionReturnTimerRef.current = null;
+    }, NOTE_RETURN_MS);
+  };
+
+  const handleDropPositionEdit = () => {
+    clearPositionAnimationTimers();
+    setIsPositionDragging(false);
+    setPositionHoldNoteId(null);
+    setPositionEdit((current) => current
+      ? { ...current, phase: "dropping" }
+      : current);
+    positionSettleTimerRef.current = window.setTimeout(() => {
+      setPositionEdit((current) => current?.phase === "dropping"
+        ? { ...current, phase: "confirming" }
+        : current);
+      positionSettleTimerRef.current = null;
+    }, NOTE_SETTLE_MS);
+  };
+
+  const handleSavePositionEdit = async () => {
+    if (!positionEdit?.noteId || isPositionSaving) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    clearPositionAnimationTimers();
+    setIsPositionSaving(true);
+    try {
+      const updatedNote = await corkboardApi.updateNotePosition(
+        positionEdit.noteId,
+        roundedPlacement(positionEdit.placement)
+      );
+      setBoardData((current) => updateNoteInBoard(current, updatedNote));
+      setActiveNoteId(updatedNote.id);
+      setFreshNoteId(updatedNote.id);
+      window.setTimeout(() => setFreshNoteId(null), 1200);
+      clearPositionAnimationTimers();
+      setPositionEdit(null);
+      setIsPositionDragging(false);
+      setPositionHoldNoteId(null);
+      setNotice(labels.positionSaved);
+    } catch (nextError) {
+      setError(nextError.message || labels.positionSaveError);
+    } finally {
+      setIsPositionSaving(false);
+    }
+  };
+
+  const isMoveConfirmOpen = Boolean(positionEdit && !isPositionDragging && positionEdit.phase !== "returning");
+
+  useEffect(() => {
+    if (!isMoveConfirmOpen) {
+      return undefined;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !isPositionSaving) {
+        handleCancelPositionEdit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMoveConfirmOpen, isPositionSaving, positionEdit]);
+
   return (
-    <main className="corkboard-page">
+    <main className={`corkboard-page ${isMoveConfirmOpen ? "is-move-confirm-open" : ""}`}>
       <header className="corkboard-hero">
         <button type="button" className="corkboard-back-button" onClick={onBack}>
           {labels.back}
@@ -649,16 +975,59 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
               language={language}
               activeNoteId={activeNoteId}
               freshNoteId={freshNoteId}
-              draftNote={canWrite ? previewNote : null}
-              canPlaceNote={canWrite && !isSubmitting}
-              placementLabel={isDraftDragging ? labels.placementReady : labels.placementHint}
+              draftNote={canWrite && !isEditingPosition ? previewNote : null}
+              canPlaceNote={canWrite && !isSubmitting && !isEditingPosition}
+              placementLabel={isEditingPosition ? labels.positionEditHint : (isDraftDragging ? labels.placementReady : labels.placementHint)}
               isDraftDragging={isDraftDragging}
+              positionEdit={positionEdit}
+              isPositionDragging={isPositionDragging}
+              positionHoldNoteId={positionHoldNoteId}
               onNoteSelect={(note) => setActiveNoteId((currentId) => (currentId === note.id ? null : note.id))}
               onDraftPlacementChange={setDraftPlacement}
               onDraftDragChange={setIsDraftDragging}
+              onEditPlacementChange={(nextPlacement) => {
+                setPositionEdit((current) => current
+                  ? { ...current, placement: { ...current.placement, ...nextPlacement } }
+                  : current);
+              }}
+              onEditDragChange={setIsPositionDragging}
+              onStartPositionEdit={handleStartPositionEdit}
+              onDropPositionEdit={handleDropPositionEdit}
+              onCancelPositionEdit={handleCancelPositionEdit}
+              onPositionHoldNoteChange={setPositionHoldNoteId}
               emptyLabel={labels.emptyBoard}
             />
           )}
+
+          {isMoveConfirmOpen ? (
+            <div
+              className="corkboard-move-confirm-overlay"
+              role="presentation"
+              onClick={isPositionSaving ? undefined : handleCancelPositionEdit}
+            >
+              <div
+                className="corkboard-move-confirm"
+                role="dialog"
+                aria-modal="true"
+                aria-live="polite"
+                aria-label={labels.moveConfirmTitle}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="corkboard-move-confirm-copy">
+                  <strong>{labels.moveConfirmTitle}</strong>
+                  <span>{labels.moveConfirmBody}</span>
+                </div>
+                <div className="corkboard-move-confirm-actions">
+                  <button type="button" onClick={handleCancelPositionEdit} disabled={isPositionSaving}>
+                    {labels.cancelPosition}
+                  </button>
+                  <button type="button" onClick={handleSavePositionEdit} disabled={isPositionSaving} autoFocus>
+                    {isPositionSaving ? labels.moveSaving : labels.confirmMove}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <aside className="corkboard-composer">

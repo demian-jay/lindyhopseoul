@@ -119,4 +119,17 @@ public class AdminCorkboardController {
                 request
         );
     }
+
+    @PatchMapping("/corkboard-notes/{id}/position")
+    public CorkboardNoteResponse updatePosition(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long id,
+            @RequestBody(required = false) CorkboardNotePositionRequest request
+    ) {
+        return corkboardService.updateAdminNotePosition(
+                adminSessionService.requirePrincipal(authorization),
+                id,
+                request
+        );
+    }
 }

@@ -70,9 +70,14 @@ public class CorkboardService {
 
     @Transactional
     public CorkboardCollectionResponse findCurrentCorkboards() {
+        return findCurrentCorkboards(null);
+    }
+
+    @Transactional
+    public CorkboardCollectionResponse findCurrentCorkboards(Long currentMemberId) {
         PeriodDescriptor current = currentPeriod();
         ensureCurrentPeriod(current);
-        return findPeriodCollection(current.periodKey(), false);
+        return findPeriodCollection(current.periodKey(), false, currentMemberId);
     }
 
     @Transactional
@@ -96,13 +101,18 @@ public class CorkboardService {
 
     @Transactional
     public CorkboardCollectionResponse findPeriod(String periodKey) {
+        return findPeriod(periodKey, null);
+    }
+
+    @Transactional
+    public CorkboardCollectionResponse findPeriod(String periodKey, Long currentMemberId) {
         archiveExpiredActiveBoards();
         String normalizedPeriodKey = normalizePeriodKey(periodKey);
         PeriodDescriptor current = currentPeriod();
         if (normalizedPeriodKey.equals(current.periodKey())) {
             ensureCurrentPeriod(current);
         }
-        return findPeriodCollection(normalizedPeriodKey, false);
+        return findPeriodCollection(normalizedPeriodKey, false, currentMemberId);
     }
 
     @Transactional
@@ -131,7 +141,7 @@ public class CorkboardService {
                 placement
         ));
 
-        return findPeriodCollection(current.periodKey(), false);
+        return findPeriodCollection(current.periodKey(), false, member.getId());
     }
 
     @Transactional
@@ -264,6 +274,48 @@ public class CorkboardService {
         return CorkboardNoteResponse.from(note);
     }
 
+    @Transactional
+    public CorkboardNoteResponse updateMemberNotePosition(
+            Long memberId,
+            Long noteId,
+            CorkboardNotePositionRequest request
+    ) {
+        Member member = findActiveMember(memberId);
+        CorkboardNote note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (note.isHidden()) {
+            throw new ForbiddenException("Hidden corkboard notes cannot be moved by members.");
+        }
+        if (!canMemberEditPosition(note, member.getId(), true)) {
+            throw new ForbiddenException("Only your own member notes can be moved.");
+        }
+        if (!isWritableNoteBoard(note)) {
+            throw new BadRequestException("Only the current writable corkboard can be edited.");
+        }
+
+        CorkboardNote.Placement placement = normalizeFreePlacement(request, note.getSlotIndex());
+        note.updatePlacement(placement);
+        return CorkboardNoteResponse.from(note, true);
+    }
+
+    @Transactional
+    public CorkboardNoteResponse updateAdminNotePosition(
+            AdminPrincipal actor,
+            Long noteId,
+            CorkboardNotePositionRequest request
+    ) {
+        requireCorkboardAdmin(actor);
+        CorkboardNote note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (!isWritableNoteBoard(note)) {
+            throw new BadRequestException("Only the current writable corkboard can be edited.");
+        }
+
+        CorkboardNote.Placement placement = normalizeFreePlacement(request, note.getSlotIndex());
+        note.updatePlacement(placement);
+        return CorkboardNoteResponse.from(note);
+    }
+
     private AdminCorkboardManagementResponse managementResponse(String selectedPeriodKey) {
         PeriodDescriptor current = currentPeriod();
         ensureCurrentPeriod(current);
@@ -389,6 +441,13 @@ public class CorkboardService {
         );
     }
 
+    private CorkboardNote.Placement normalizeFreePlacement(CorkboardNotePositionRequest request, int slotIndex) {
+        if (request == null || request.positionX() == null || request.positionY() == null) {
+            throw new BadRequestException("Corkboard note positionX and positionY are required.");
+        }
+        return normalizePlacement(request.positionX(), request.positionY(), request.rotationDeg(), slotIndex);
+    }
+
     private double normalizePosition(Double value, String fieldName) {
         if (value == null || !Double.isFinite(value)) {
             throw new BadRequestException("Corkboard note " + fieldName + " is invalid.");
@@ -414,23 +473,31 @@ public class CorkboardService {
     }
 
     private CorkboardCollectionResponse findPeriodCollection(String periodKey, boolean includeHidden) {
+        return findPeriodCollection(periodKey, includeHidden, null);
+    }
+
+    private CorkboardCollectionResponse findPeriodCollection(String periodKey, boolean includeHidden, Long currentMemberId) {
         List<Corkboard> boards = corkboardRepository.findByPeriodKeyOrderByPageNoAsc(periodKey);
         if (boards.isEmpty()) {
             throw new ResourceNotFoundException("Corkboard period not found: " + periodKey);
         }
 
+        CorkboardStatus status = aggregateStatus(boards);
+        boolean readOnly = !isWritablePeriod(boards);
+        boolean periodWritable = !readOnly;
         Map<Long, List<CorkboardNoteResponse>> notesByBoardId = noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(boards)
                 .stream()
                 .filter(note -> includeHidden || !note.isHidden())
-                .map(CorkboardNoteResponse::from)
+                .map(note -> CorkboardNoteResponse.from(
+                        note,
+                        canMemberEditPosition(note, currentMemberId, periodWritable)
+                ))
                 .collect(Collectors.groupingBy(
                         CorkboardNoteResponse::boardId,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ));
 
-        CorkboardStatus status = aggregateStatus(boards);
-        boolean readOnly = !isWritablePeriod(boards);
         List<CorkboardPageResponse> pages = boards.stream()
                 .map(board -> CorkboardPageResponse.from(
                         board,
@@ -516,6 +583,26 @@ public class CorkboardService {
         Corkboard firstBoard = boards.get(0);
         LocalDate today = today();
         return !firstBoard.getPeriodStart().isAfter(today) && !firstBoard.getPeriodEnd().isBefore(today);
+    }
+
+    private boolean isWritableNoteBoard(CorkboardNote note) {
+        archiveExpiredActiveBoards();
+        Corkboard board = note.getBoard();
+        if (board == null) {
+            return false;
+        }
+        return isWritablePeriod(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(board.getPeriodKey()));
+    }
+
+    private boolean canMemberEditPosition(CorkboardNote note, Long memberId, boolean periodWritable) {
+        if (memberId == null || !periodWritable || note == null || note.isHidden()) {
+            return false;
+        }
+        if (note.getNoteType() != CorkboardNoteType.MEMBER || note.getMember() == null) {
+            return false;
+        }
+        Long noteMemberId = note.getMember().getId();
+        return noteMemberId != null && noteMemberId.equals(memberId);
     }
 
     private boolean rangesOverlap(LocalDate leftStart, LocalDate leftEnd, LocalDate rightStart, LocalDate rightEnd) {

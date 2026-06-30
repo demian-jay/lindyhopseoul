@@ -24,7 +24,8 @@
 .corkboard-period-button,
 .corkboard-composer button,
 .corkboard-page-tabs button,
-.corkboard-note-admin-action {
+.corkboard-note-admin-action,
+.corkboard-move-confirm button {
   cursor: pointer;
   border: 0;
   font: inherit;
@@ -266,7 +267,7 @@
   animation: corkboard-note-attach 420ms cubic-bezier(.2, .8, .2, 1) both;
   animation-delay: var(--note-delay);
   outline: none;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
 }
 
@@ -301,6 +302,7 @@
   outline: 3px dashed rgba(20, 184, 166, 0.62);
   outline-offset: 4px;
   cursor: grab;
+  touch-action: none;
   filter: saturate(1.04);
   animation: none;
 }
@@ -314,11 +316,48 @@
   pointer-events: none;
 }
 
-.corkboard-note.is-dragging {
-  opacity: 0.9;
+.corkboard-note.is-position-editable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.corkboard-note.is-move-armed {
+  outline: 2px dashed rgba(15, 118, 110, 0.52);
+  outline-offset: 5px;
+  box-shadow: 0 18px 28px rgba(43, 27, 16, 0.28), 0 0 0 7px rgba(20, 184, 166, 0.1);
+  animation: corkboard-note-ready 420ms ease-out both;
+}
+
+.corkboard-note.is-position-editing {
+  z-index: 180;
+  outline: 3px solid rgba(20, 184, 166, 0.68);
+  outline-offset: 6px;
+  cursor: grab;
+  touch-action: none;
+  filter: saturate(1.06);
+}
+
+.corkboard-note.is-dragging,
+.corkboard-note.is-note-dragging {
+  opacity: 0.98;
   cursor: grabbing;
-  box-shadow: 0 26px 34px rgba(43, 27, 16, 0.32), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
-  transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.06);
+  box-shadow: 0 34px 48px rgba(43, 27, 16, 0.38), 0 0 0 8px rgba(20, 184, 166, 0.13), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
+  transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.07);
+  animation: corkboard-note-lift 260ms cubic-bezier(.18, .9, .24, 1) both;
+}
+
+.corkboard-note.is-note-dropping {
+  animation: corkboard-note-settle 320ms cubic-bezier(.2, .85, .25, 1) both;
+}
+
+.corkboard-note.is-note-dropping .corkboard-fixture {
+  animation: corkboard-fixture-repin 420ms cubic-bezier(.18, .9, .24, 1) both;
+}
+
+.corkboard-note.is-note-returning {
+  pointer-events: none;
+  transition: left 260ms cubic-bezier(.2, .85, .25, 1), top 260ms cubic-bezier(.2, .85, .25, 1), transform 220ms ease, box-shadow 220ms ease, filter 220ms ease;
+  animation: corkboard-note-return 260ms cubic-bezier(.2, .85, .25, 1) both;
 }
 
 .corkboard-note::after {
@@ -413,6 +452,7 @@
 }
 
 .corkboard-fixture-pin {
+  --fixture-transform: translateX(-50%);
   top: 9px;
   left: 50%;
   width: 17px;
@@ -421,10 +461,11 @@
   border-radius: 999px;
   background: #ef4444;
   box-shadow: 0 2px 4px rgba(43, 27, 16, 0.28);
-  transform: translateX(-50%);
+  transform: var(--fixture-transform);
 }
 
 .corkboard-fixture-tape {
+  --fixture-transform: translateX(-50%) rotate(-3deg);
   top: -12px;
   left: 50%;
   width: 74px;
@@ -434,10 +475,11 @@
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.34) 0 5px, transparent 5px 10px),
     rgba(255, 247, 210, 0.82);
   box-shadow: 0 2px 4px rgba(43, 27, 16, 0.16);
-  transform: translateX(-50%) rotate(-3deg);
+  transform: var(--fixture-transform);
 }
 
 .corkboard-fixture-official {
+  --fixture-transform: rotate(-45deg);
   top: 8px;
   right: 10px;
   width: 18px;
@@ -445,7 +487,7 @@
   border-radius: 50% 50% 50% 6px;
   background: #0f766e;
   box-shadow: 0 2px 4px rgba(43, 27, 16, 0.26);
-  transform: rotate(-45deg);
+  transform: var(--fixture-transform);
 }
 
 .corkboard-note-content {
@@ -495,6 +537,82 @@
   font-size: 14px;
   font-weight: 900;
   box-shadow: 0 12px 24px rgba(43, 27, 16, 0.16);
+}
+
+.corkboard-move-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(32, 23, 15, 0.36);
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.corkboard-move-confirm {
+  display: grid;
+  width: min(360px, calc(100vw - 32px));
+  gap: 14px;
+  margin: 0;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(240, 253, 250, 0.94)),
+    repeating-linear-gradient(0deg, rgba(15, 118, 110, 0.045) 0 1px, transparent 1px 18px);
+  padding: 16px;
+  color: #115e59;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 22px 54px rgba(20, 14, 8, 0.28), 0 1px 0 rgba(255, 255, 255, 0.68) inset;
+  animation: corkboard-confirm-pop 180ms cubic-bezier(.18, .9, .24, 1) both;
+}
+
+.corkboard-move-confirm-copy {
+  min-width: 0;
+}
+
+.corkboard-move-confirm-copy strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.corkboard-move-confirm-copy span {
+  display: block;
+  color: rgba(17, 94, 89, 0.78);
+  font-size: 12px;
+}
+
+.corkboard-move-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.corkboard-move-confirm button {
+  min-height: 44px;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 14px;
+  color: #115e59;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 7px 16px rgba(15, 23, 42, 0.08);
+}
+
+.corkboard-move-confirm button:last-child {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.corkboard-move-confirm button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.corkboard-page.is-move-confirm-open .corkboard-stage {
+  pointer-events: none;
 }
 
 .corkboard-placement-tip {
@@ -929,6 +1047,59 @@
   overflow-wrap: anywhere;
 }
 
+.admin-corkboard-position-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+  border-radius: 8px;
+  background: #f0fdfa;
+  padding: 10px;
+}
+
+.admin-corkboard-position-form label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-corkboard-position-form span {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-corkboard-position-form input {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 8px;
+  color: #134e4a;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-corkboard-position-form button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #0f766e;
+  padding: 0 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-corkboard-position-form button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 .admin-corkboard-note-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1054,6 +1225,85 @@
   }
 }
 
+@keyframes corkboard-note-ready {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1);
+  }
+  58% {
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) - .45deg)) translateY(-3px) scale(1.025);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.01);
+  }
+}
+
+@keyframes corkboard-note-lift {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1);
+    box-shadow: 0 16px 24px rgba(43, 27, 16, 0.24), 0 2px 1px rgba(255, 255, 255, 0.45) inset;
+  }
+  58% {
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) - .8deg)) translateY(-8px) scale(1.045);
+    box-shadow: 0 30px 40px rgba(43, 27, 16, 0.34), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.06);
+    box-shadow: 0 28px 38px rgba(43, 27, 16, 0.32), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
+  }
+}
+
+@keyframes corkboard-note-settle {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) translateY(-7px) scale(1.06);
+    box-shadow: 0 30px 42px rgba(43, 27, 16, 0.34), 0 0 0 7px rgba(20, 184, 166, 0.1), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
+  }
+  62% {
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) + .55deg)) translateY(3px) scale(0.99);
+    box-shadow: 0 15px 24px rgba(43, 27, 16, 0.25), 0 0 0 3px rgba(20, 184, 166, 0.08), 0 2px 1px rgba(255, 255, 255, 0.46) inset;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1);
+    box-shadow: 0 18px 26px rgba(43, 27, 16, 0.26), 0 0 0 0 rgba(20, 184, 166, 0), 0 2px 1px rgba(255, 255, 255, 0.46) inset;
+  }
+}
+
+@keyframes corkboard-note-return {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.04);
+    box-shadow: 0 26px 36px rgba(43, 27, 16, 0.3), 0 0 0 6px rgba(20, 184, 166, 0.09), 0 2px 1px rgba(255, 255, 255, 0.5) inset;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1);
+    box-shadow: 0 14px 20px rgba(43, 27, 16, 0.25), 0 2px 1px rgba(255, 255, 255, 0.42) inset;
+  }
+}
+
+@keyframes corkboard-fixture-repin {
+  0% {
+    opacity: 0.84;
+    transform: var(--fixture-transform) translateY(-5px) scale(0.9);
+  }
+  58% {
+    opacity: 1;
+    transform: var(--fixture-transform) translateY(2px) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: var(--fixture-transform) translateY(0) scale(1);
+  }
+}
+
+@keyframes corkboard-confirm-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes corkboard-pin-pop {
   0% {
     opacity: 0;
@@ -1107,6 +1357,26 @@
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corkboard-note,
+  .corkboard-note.is-dragging,
+  .corkboard-note.is-position-editing,
+  .corkboard-note.is-note-dragging,
+  .corkboard-note.is-note-dropping,
+  .corkboard-note.is-note-returning,
+  .corkboard-note.is-move-armed,
+  .corkboard-note .corkboard-fixture,
+  .corkboard-move-confirm {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .corkboard-note.is-dragging,
+  .corkboard-note.is-note-dragging {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.03);
   }
 }
 
@@ -1173,6 +1443,23 @@
     grid-template-columns: 1fr;
   }
 
+  .corkboard-move-confirm-overlay {
+    padding: 16px;
+  }
+
+  .corkboard-move-confirm {
+    width: min(342px, calc(100vw - 32px));
+    padding: 15px;
+  }
+
+  .corkboard-move-confirm-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .corkboard-move-confirm button {
+    width: 100%;
+  }
+
   .admin-corkboard-note-grid {
     grid-template-columns: 1fr;
   }
@@ -1192,6 +1479,10 @@
   }
 
   .admin-corkboard-note-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-corkboard-position-form {
     grid-template-columns: 1fr;
   }
 
