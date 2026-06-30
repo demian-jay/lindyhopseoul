@@ -76,7 +76,15 @@ const COPY = {
     template: "템플릿",
     page: "페이지",
     slot: "슬롯",
+    positionX: "X 좌표",
+    positionY: "Y 좌표",
+    rotationDeg: "회전",
+    zIndex: "쌓임",
+    placementMode: "배치",
+    slotFallback: "슬롯 fallback",
     status: "상태",
+    yes: "예",
+    no: "아니오",
     unknownAuthor: "작성자 없음",
   },
   Eng: {
@@ -150,7 +158,15 @@ const COPY = {
     template: "Template",
     page: "Page",
     slot: "Slot",
+    positionX: "X",
+    positionY: "Y",
+    rotationDeg: "Rotation",
+    zIndex: "Stack",
+    placementMode: "Placement",
+    slotFallback: "Slot fallback",
     status: "Status",
+    yes: "Yes",
+    no: "No",
     unknownAuthor: "Unknown author",
   },
 };
@@ -305,6 +321,18 @@ function sortedNotes(page) {
   return [...(page?.notes || [])].sort((left, right) => (left.slotIndex || 0) - (right.slotIndex || 0));
 }
 
+function formatPlacementNumber(value, suffix = "") {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "-";
+  }
+  return `${Math.round(number * 10) / 10}${suffix}`;
+}
+
+function hasFreePlacement(note) {
+  return Number.isFinite(Number(note?.positionX)) && Number.isFinite(Number(note?.positionY));
+}
+
 function AdminPeriodMetric({ label, value, tone = "default" }) {
   const toneClass = tone === "positive"
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
@@ -376,6 +404,30 @@ function AdminCorkboardNoteCard({
         <div>
           <dt>{labels.template}</dt>
           <dd>{note?.stickerTemplateKey || "-"}</dd>
+        </div>
+        <div>
+          <dt>{labels.positionX}</dt>
+          <dd>{formatPlacementNumber(note?.positionX, "%")}</dd>
+        </div>
+        <div>
+          <dt>{labels.positionY}</dt>
+          <dd>{formatPlacementNumber(note?.positionY, "%")}</dd>
+        </div>
+        <div>
+          <dt>{labels.rotationDeg}</dt>
+          <dd>{formatPlacementNumber(note?.rotationDeg, "deg")}</dd>
+        </div>
+        <div>
+          <dt>{labels.zIndex}</dt>
+          <dd>{Number.isFinite(Number(note?.zIndex)) ? note.zIndex : "-"}</dd>
+        </div>
+        <div>
+          <dt>{labels.placementMode}</dt>
+          <dd>{note?.placementMode || (hasFreePlacement(note) ? "FREE" : "SLOT")}</dd>
+        </div>
+        <div>
+          <dt>{labels.slotFallback}</dt>
+          <dd>{hasFreePlacement(note) ? labels.no : labels.yes}</dd>
         </div>
       </dl>
 

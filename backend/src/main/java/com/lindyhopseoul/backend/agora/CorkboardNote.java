@@ -56,6 +56,22 @@ public class CorkboardNote {
     @Column(name = "slot_index", nullable = false)
     private int slotIndex;
 
+    @Column(name = "position_x")
+    private Double positionX;
+
+    @Column(name = "position_y")
+    private Double positionY;
+
+    @Column(name = "rotation_deg")
+    private Double rotationDeg;
+
+    @Column(name = "z_index")
+    private Integer zIndex;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "placement_mode", length = 20)
+    private CorkboardNotePlacementMode placementMode;
+
     @Column(name = "hidden", nullable = false)
     private boolean hidden;
 
@@ -81,7 +97,37 @@ public class CorkboardNote {
             String content,
             int slotIndex
     ) {
-        CorkboardNote note = create(board, member, CorkboardNoteType.MEMBER, stickerTemplateKey, content, slotIndex);
+        CorkboardNote note = create(
+                board,
+                member,
+                CorkboardNoteType.MEMBER,
+                stickerTemplateKey,
+                content,
+                slotIndex,
+                null
+        );
+        note.authorNicknameSnapshot = trimToLength(member == null ? null : member.getNickname(), 40);
+        note.authorNameSnapshot = trimToLength(member == null ? null : member.getDisplayName(), 100);
+        return note;
+    }
+
+    public static CorkboardNote createMemberNote(
+            Corkboard board,
+            Member member,
+            String stickerTemplateKey,
+            String content,
+            int slotIndex,
+            Placement placement
+    ) {
+        CorkboardNote note = create(
+                board,
+                member,
+                CorkboardNoteType.MEMBER,
+                stickerTemplateKey,
+                content,
+                slotIndex,
+                placement
+        );
         note.authorNicknameSnapshot = trimToLength(member == null ? null : member.getNickname(), 40);
         note.authorNameSnapshot = trimToLength(member == null ? null : member.getDisplayName(), 100);
         return note;
@@ -94,7 +140,36 @@ public class CorkboardNote {
             String content,
             int slotIndex
     ) {
-        CorkboardNote note = create(board, null, CorkboardNoteType.OFFICIAL, stickerTemplateKey, content, slotIndex);
+        CorkboardNote note = create(
+                board,
+                null,
+                CorkboardNoteType.OFFICIAL,
+                stickerTemplateKey,
+                content,
+                slotIndex,
+                null
+        );
+        note.authorNameSnapshot = trimToLength(authorName, 100);
+        return note;
+    }
+
+    public static CorkboardNote createOfficialNote(
+            Corkboard board,
+            String authorName,
+            String stickerTemplateKey,
+            String content,
+            int slotIndex,
+            Placement placement
+    ) {
+        CorkboardNote note = create(
+                board,
+                null,
+                CorkboardNoteType.OFFICIAL,
+                stickerTemplateKey,
+                content,
+                slotIndex,
+                placement
+        );
         note.authorNameSnapshot = trimToLength(authorName, 100);
         return note;
     }
@@ -105,7 +180,8 @@ public class CorkboardNote {
             CorkboardNoteType noteType,
             String stickerTemplateKey,
             String content,
-            int slotIndex
+            int slotIndex,
+            Placement placement
     ) {
         CorkboardNote note = new CorkboardNote();
         note.board = board;
@@ -114,6 +190,15 @@ public class CorkboardNote {
         note.stickerTemplateKey = stickerTemplateKey;
         note.content = content;
         note.slotIndex = slotIndex;
+        if (placement != null) {
+            note.positionX = placement.positionX();
+            note.positionY = placement.positionY();
+            note.rotationDeg = placement.rotationDeg();
+            note.zIndex = placement.zIndex();
+            note.placementMode = placement.placementMode();
+        } else {
+            note.placementMode = CorkboardNotePlacementMode.SLOT;
+        }
         note.hidden = false;
         return note;
     }
@@ -175,6 +260,26 @@ public class CorkboardNote {
         return slotIndex;
     }
 
+    public Double getPositionX() {
+        return positionX;
+    }
+
+    public Double getPositionY() {
+        return positionY;
+    }
+
+    public Double getRotationDeg() {
+        return rotationDeg;
+    }
+
+    public Integer getZIndex() {
+        return zIndex;
+    }
+
+    public CorkboardNotePlacementMode getPlacementMode() {
+        return placementMode == null ? CorkboardNotePlacementMode.SLOT : placementMode;
+    }
+
     public boolean isHidden() {
         return hidden;
     }
@@ -193,5 +298,14 @@ public class CorkboardNote {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public record Placement(
+            Double positionX,
+            Double positionY,
+            Double rotationDeg,
+            Integer zIndex,
+            CorkboardNotePlacementMode placementMode
+    ) {
     }
 }

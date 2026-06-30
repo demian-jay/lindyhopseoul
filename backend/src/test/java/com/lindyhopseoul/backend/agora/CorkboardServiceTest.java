@@ -75,7 +75,73 @@ class CorkboardServiceTest {
         assertThat(savedNote.getStickerTemplateKey()).isEqualTo("pink");
         assertThat(savedNote.getContent()).isEqualTo("hello corkboard");
         assertThat(savedNote.getSlotIndex()).isZero();
+        assertThat(savedNote.getPositionX()).isNull();
+        assertThat(savedNote.getPositionY()).isNull();
+        assertThat(savedNote.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.SLOT);
         assertThat(savedNote.getAuthorNicknameSnapshot()).isEqualTo("Sunny");
+    }
+
+    @Test
+    void createMemberNoteStoresFreePlacement() {
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard), List.of(currentBoard), List.of(currentBoard));
+        when(noteRepository.findByBoardOrderBySlotIndexAscIdAsc(currentBoard)).thenReturn(List.of());
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard)))
+                .thenReturn(List.of());
+
+        corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("blue", "  placed note  ", 25.44, 38.74, 4.24, 1)
+        );
+
+        ArgumentCaptor<CorkboardNote> noteCaptor = ArgumentCaptor.forClass(CorkboardNote.class);
+        verify(noteRepository).save(noteCaptor.capture());
+        CorkboardNote savedNote = noteCaptor.getValue();
+
+        assertThat(savedNote.getContent()).isEqualTo("placed note");
+        assertThat(savedNote.getPositionX()).isEqualTo(25.4);
+        assertThat(savedNote.getPositionY()).isEqualTo(38.7);
+        assertThat(savedNote.getRotationDeg()).isEqualTo(4.2);
+        assertThat(savedNote.getZIndex()).isEqualTo(1);
+        assertThat(savedNote.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
+    }
+
+    @Test
+    void createMemberNoteRejectsOutOfRangePlacementValues() {
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+        when(noteRepository.findByBoardOrderBySlotIndexAscIdAsc(currentBoard)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("yellow", "bad x", -0.1, 50.0, 0.0, 1)
+        )).isInstanceOf(BadRequestException.class);
+
+        assertThatThrownBy(() -> corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("yellow", "bad y", 50.0, 100.1, 0.0, 1)
+        )).isInstanceOf(BadRequestException.class);
+
+        assertThatThrownBy(() -> corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("yellow", "bad rotation", 50.0, 50.0, 6.1, 1)
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void noteResponseTreatsLegacySlotNoteAsSlotPlacement() {
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "legacy note", 3);
+
+        CorkboardNoteResponse response = CorkboardNoteResponse.from(note);
+
+        assertThat(response.slotIndex()).isEqualTo(3);
+        assertThat(response.positionX()).isNull();
+        assertThat(response.positionY()).isNull();
+        assertThat(response.placementMode()).isEqualTo(CorkboardNotePlacementMode.SLOT);
     }
 
     @Test
@@ -173,6 +239,23 @@ class CorkboardServiceTest {
     }
 
     @Test
+    void createPeriodRejectsOverlappingActivePeriod() {
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(currentBoard));
+        when(corkboardRepository.existsByPeriodKey("2030-01")).thenReturn(false);
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc()).thenReturn(List.of(currentBoard));
+
+        assertThatThrownBy(() -> corkboardService.createPeriod(
+                superAdminPrincipal(),
+                new AdminCorkboardPeriodCreateRequest(
+                        "2030-01",
+                        "Overlapping Board",
+                        currentBoard.getPeriodStart().plusDays(1),
+                        currentBoard.getPeriodEnd()
+                )
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
     void createPeriodCreatesFirstPageWhenPeriodDoesNotOverlap() {
         Corkboard futureBoard = periodBoard(
                 20L,
@@ -216,6 +299,80 @@ class CorkboardServiceTest {
     }
 
     @Test
+    void periodEndIsInclusiveForWritableCurrentBoard() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        Corkboard todayEndingBoard = periodBoard(
+                30L,
+                "2099-12",
+                "Today Ending Board",
+                today.minusDays(3),
+                today,
+                1
+        );
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(todayEndingBoard));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc("2099-12"))
+                .thenReturn(List.of(todayEndingBoard), List.of(todayEndingBoard));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(todayEndingBoard)))
+                .thenReturn(List.of());
+
+        CorkboardCollectionResponse response = corkboardService.findCurrentCorkboards();
+
+        assertThat(response.periodKey()).isEqualTo("2099-12");
+        assertThat(response.readOnly()).isFalse();
+        assertThat(todayEndingBoard.getStatus()).isEqualTo(CorkboardStatus.ACTIVE);
+    }
+
+    @Test
+    void futureScheduledBoardIsNotCurrentBeforePeriodStart() {
+        YearMonth nextMonth = YearMonth.from(LocalDate.now(ZoneId.of("Asia/Seoul"))).plusMonths(1);
+        String futurePeriodKey = nextMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        Corkboard futureBoard = periodBoard(
+                31L,
+                futurePeriodKey,
+                "Future Board",
+                nextMonth.atDay(1),
+                nextMonth.atEndOfMonth(),
+                1
+        );
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(futureBoard));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(), List.of(currentBoard));
+        when(corkboardRepository.save(any(Corkboard.class))).thenReturn(currentBoard);
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard)))
+                .thenReturn(List.of());
+
+        CorkboardCollectionResponse response = corkboardService.findCurrentCorkboards();
+
+        assertThat(response.periodKey()).isEqualTo(currentBoard.getPeriodKey());
+        assertThat(response.periodKey()).isNotEqualTo(futurePeriodKey);
+        assertThat(futureBoard.getStatus()).isEqualTo(CorkboardStatus.ACTIVE);
+    }
+
+    @Test
+    void expiredActiveBoardAppearsInArchiveAfterPeriodEnd() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        Corkboard expiredBoard = periodBoard(
+                32L,
+                "2099-01",
+                "Expired Board",
+                today.minusDays(10),
+                today.minusDays(1),
+                1
+        );
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(expiredBoard));
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc()).thenReturn(List.of(expiredBoard));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(expiredBoard)))
+                .thenReturn(List.of());
+
+        List<CorkboardArchivePeriodResponse> response = corkboardService.findArchivePeriods();
+
+        assertThat(expiredBoard.getStatus()).isEqualTo(CorkboardStatus.ARCHIVED);
+        assertThat(response)
+                .extracting(CorkboardArchivePeriodResponse::periodKey)
+                .contains("2099-01");
+    }
+
+    @Test
     void updatePeriodAppliesToEveryBoardPageInSamePeriod() {
         Corkboard secondPage = currentBoard(2L, 2);
         LocalDate nextStart = currentBoard.getPeriodStart().plusDays(1);
@@ -240,6 +397,12 @@ class CorkboardServiceTest {
         assertThat(secondPage.getPeriodStart()).isEqualTo(nextStart);
         assertThat(currentBoard.getPeriodEnd()).isEqualTo(nextEnd);
         assertThat(secondPage.getPeriodEnd()).isEqualTo(nextEnd);
+    }
+
+    @Test
+    void archivePeriodRequiresSuperAdmin() {
+        assertThatThrownBy(() -> corkboardService.archivePeriod(staffPrincipal(), currentBoard.getPeriodKey()))
+                .isInstanceOf(ForbiddenException.class);
     }
 
     @Test

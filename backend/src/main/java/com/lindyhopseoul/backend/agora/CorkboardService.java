@@ -30,6 +30,12 @@ public class CorkboardService {
 
     public static final int BOARD_SLOT_CAPACITY = 18;
 
+    private static final double MIN_POSITION_PERCENT = 0.0;
+    private static final double MAX_POSITION_PERCENT = 100.0;
+    private static final double MIN_ROTATION_DEG = -6.0;
+    private static final double MAX_ROTATION_DEG = 6.0;
+    private static final double[] FALLBACK_ROTATIONS = {-2.5, 1.7, -0.8, 2.4, -1.6, 0.9, 1.2, -2.1, 2.8};
+
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final String DEFAULT_MEMBER_TEMPLATE = "yellow";
@@ -108,14 +114,21 @@ public class CorkboardService {
                 request == null ? null : request.stickerTemplateKey(),
                 CorkboardNoteType.MEMBER
         );
-        CorkboardSlot slot = findWritableSlot(current);
+        CorkboardSlot slot = findWritableSlot(current, request == null ? null : request.pageNo());
+        CorkboardNote.Placement placement = normalizePlacement(
+                request == null ? null : request.positionX(),
+                request == null ? null : request.positionY(),
+                request == null ? null : request.rotationDeg(),
+                slot.slotIndex()
+        );
 
         noteRepository.save(CorkboardNote.createMemberNote(
                 slot.board(),
                 member,
                 templateKey,
                 content,
-                slot.slotIndex()
+                slot.slotIndex(),
+                placement
         ));
 
         return findPeriodCollection(current.periodKey(), false);
@@ -223,13 +236,20 @@ public class CorkboardService {
                 request == null ? null : request.stickerTemplateKey(),
                 CorkboardNoteType.OFFICIAL
         );
-        CorkboardSlot slot = findWritableSlot(current);
+        CorkboardSlot slot = findWritableSlot(current, request == null ? null : request.pageNo());
+        CorkboardNote.Placement placement = normalizePlacement(
+                request == null ? null : request.positionX(),
+                request == null ? null : request.positionY(),
+                request == null ? null : request.rotationDeg(),
+                slot.slotIndex()
+        );
         noteRepository.save(CorkboardNote.createOfficialNote(
                 slot.board(),
                 adminDisplayName(actor),
                 templateKey,
                 content,
-                slot.slotIndex()
+                slot.slotIndex(),
+                placement
         ));
 
         return managementResponse(current.periodKey());
@@ -254,11 +274,23 @@ public class CorkboardService {
         );
     }
 
-    private CorkboardSlot findWritableSlot(PeriodDescriptor current) {
+    private CorkboardSlot findWritableSlot(PeriodDescriptor current, Integer preferredPageNo) {
         ensureCurrentPeriod(current);
         List<Corkboard> boards = corkboardRepository.findByPeriodKeyOrderByPageNoAsc(current.periodKey());
         if (!isWritablePeriod(boards)) {
             throw new BadRequestException("Current corkboard is read-only.");
+        }
+
+        if (preferredPageNo != null) {
+            for (Corkboard board : boards) {
+                if (board.getStatus() != CorkboardStatus.ACTIVE || board.getPageNo() != preferredPageNo) {
+                    continue;
+                }
+                OptionalInt slotIndex = findFreeSlot(board);
+                if (slotIndex.isPresent()) {
+                    return new CorkboardSlot(board, slotIndex.getAsInt());
+                }
+            }
         }
 
         for (Corkboard board : boards) {
@@ -323,6 +355,62 @@ public class CorkboardService {
                 board.archive();
             }
         }
+    }
+
+    private CorkboardNote.Placement normalizePlacement(
+            Double positionX,
+            Double positionY,
+            Double rotationDeg,
+            int slotIndex
+    ) {
+        if (positionX == null && positionY == null && rotationDeg == null) {
+            return new CorkboardNote.Placement(
+                    null,
+                    null,
+                    defaultRotation(slotIndex),
+                    slotIndex + 1,
+                    CorkboardNotePlacementMode.SLOT
+            );
+        }
+
+        if (positionX == null || positionY == null) {
+            throw new BadRequestException("Corkboard note positionX and positionY are required together.");
+        }
+
+        double normalizedX = normalizePosition(positionX, "positionX");
+        double normalizedY = normalizePosition(positionY, "positionY");
+        double normalizedRotation = normalizeRotation(rotationDeg == null ? defaultRotation(slotIndex) : rotationDeg);
+        return new CorkboardNote.Placement(
+                normalizedX,
+                normalizedY,
+                normalizedRotation,
+                slotIndex + 1,
+                CorkboardNotePlacementMode.FREE
+        );
+    }
+
+    private double normalizePosition(Double value, String fieldName) {
+        if (value == null || !Double.isFinite(value)) {
+            throw new BadRequestException("Corkboard note " + fieldName + " is invalid.");
+        }
+        if (value < MIN_POSITION_PERCENT || value > MAX_POSITION_PERCENT) {
+            throw new BadRequestException("Corkboard note " + fieldName + " must be between 0 and 100.");
+        }
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private double normalizeRotation(Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            throw new BadRequestException("Corkboard note rotationDeg is invalid.");
+        }
+        if (value < MIN_ROTATION_DEG || value > MAX_ROTATION_DEG) {
+            throw new BadRequestException("Corkboard note rotationDeg must be between -6 and 6.");
+        }
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private double defaultRotation(int slotIndex) {
+        return FALLBACK_ROTATIONS[Math.floorMod(slotIndex, FALLBACK_ROTATIONS.length)];
     }
 
     private CorkboardCollectionResponse findPeriodCollection(String periodKey, boolean includeHidden) {

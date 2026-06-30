@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { corkboardApi } from "./api/corkboards";
 import "./corkboard.css";
@@ -22,6 +22,10 @@ export const OFFICIAL_CORKBOARD_TEMPLATES = [
 const NOTE_ROTATIONS = [-2.5, 1.7, -0.8, 2.4, -1.6, 0.9, 1.2, -2.1, 2.8, -1.1, 1.9, -2.7];
 const NOTE_X = [-4, 5, -1, 3, -6, 2, 4, -3, 6, -2, 1, -5];
 const NOTE_Y = [3, -4, 1, 5, -2, 2, -5, 4, -1, 3, -3, 0];
+const BOARD_SLOT_CAPACITY = 18;
+const SLOT_FALLBACK_X = [13, 38, 63, 87];
+const SLOT_FALLBACK_Y = [13, 31, 49, 67, 85];
+const NOTE_EDGE_BUFFER = 9;
 
 const COPY = {
   ko: {
@@ -38,7 +42,9 @@ const COPY = {
     readOnlyBody: "그때 붙었던 메모들을 천천히 구경해주세요.",
     board: "Board",
     writeTitle: "메모 붙이기",
-    writeSubtitle: "템플릿을 고르고, 짧게 남기면 보드에 살짝 붙습니다.",
+    writeSubtitle: "템플릿과 내용을 정한 뒤, 보드 위 원하는 곳에 메모를 살짝 놓아주세요.",
+    placementHint: "보드에서 위치를 탭하거나 미리보기 메모를 드래그해 붙일 자리를 정하세요.",
+    placementReady: "선택한 위치에 붙일 준비가 되었습니다.",
     loginTitle: "메모를 붙이려면 로그인이 필요합니다.",
     loginBody: "구경은 누구나 가능하고, 작성은 스윙팝 회원 로그인 후 사용할 수 있습니다.",
     login: "Google로 로그인",
@@ -67,7 +73,9 @@ const COPY = {
     readOnlyBody: "Take your time looking through the notes from that month.",
     board: "Board",
     writeTitle: "Pin a note",
-    writeSubtitle: "Pick a note style, write a short message, and watch it land on the board.",
+    writeSubtitle: "Pick a note style, write a short message, then place it where it belongs on the board.",
+    placementHint: "Tap the board or drag the preview note to choose a spot.",
+    placementReady: "Ready to pin at the selected spot.",
     loginTitle: "Log in to pin a note.",
     loginBody: "Everyone can look around. Writing is available after member login.",
     login: "Sign in with Google",
@@ -156,13 +164,83 @@ function findNewNote(previousIds, boardData) {
   return null;
 }
 
-function noteStyle(slotIndex) {
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function fallbackPlacement(slotIndex) {
+  const safeSlot = Math.max(0, Number(slotIndex) || 0);
+  const column = safeSlot % SLOT_FALLBACK_X.length;
+  const row = Math.floor(safeSlot / SLOT_FALLBACK_X.length);
   return {
-    "--note-rotate": `${NOTE_ROTATIONS[slotIndex % NOTE_ROTATIONS.length]}deg`,
-    "--note-shift-x": `${NOTE_X[slotIndex % NOTE_X.length]}px`,
-    "--note-shift-y": `${NOTE_Y[slotIndex % NOTE_Y.length]}px`,
+    positionX: clampNumber((SLOT_FALLBACK_X[column] || 50) + (NOTE_X[safeSlot % NOTE_X.length] || 0) * 0.4, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+    positionY: clampNumber((SLOT_FALLBACK_Y[row] || 50) + (NOTE_Y[safeSlot % NOTE_Y.length] || 0) * 0.4, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+  };
+}
+
+function notePlacement(note) {
+  const positionX = finiteNumber(note?.positionX);
+  const positionY = finiteNumber(note?.positionY);
+  if (positionX !== null && positionY !== null) {
+    return {
+      positionX: clampNumber(positionX, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+      positionY: clampNumber(positionY, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+    };
+  }
+  return fallbackPlacement(note?.slotIndex || 0);
+}
+
+function noteRotation(note) {
+  const rotation = finiteNumber(note?.rotationDeg);
+  if (rotation !== null) {
+    return clampNumber(rotation, -6, 6);
+  }
+  const slotIndex = Math.max(0, Number(note?.slotIndex) || 0);
+  return NOTE_ROTATIONS[slotIndex % NOTE_ROTATIONS.length];
+}
+
+function noteZIndex(note, fallback = 1) {
+  const zIndex = Number(note?.zIndex);
+  if (Number.isFinite(zIndex)) {
+    return Math.max(1, zIndex);
+  }
+  return Math.max(1, (Number(note?.slotIndex) || 0) + fallback);
+}
+
+function noteStyle(note, zIndexOverride) {
+  const slotIndex = Math.max(0, Number(note?.slotIndex) || 0);
+  const placement = notePlacement(note);
+  return {
+    "--note-rotate": `${noteRotation(note)}deg`,
+    "--note-x": `${placement.positionX}%`,
+    "--note-y": `${placement.positionY}%`,
+    "--note-z": zIndexOverride || noteZIndex(note),
     "--note-delay": `${(slotIndex % 6) * 35}ms`,
   };
+}
+
+function draftRotation(selectedTemplate, content) {
+  const templateIndex = CORKBOARD_NOTE_TEMPLATES.findIndex((template) => template.key === selectedTemplate);
+  const seed = Math.max(0, templateIndex) + (content.trim().length % NOTE_ROTATIONS.length);
+  return NOTE_ROTATIONS[seed % NOTE_ROTATIONS.length];
+}
+
+function writablePageIndex(boardData) {
+  const pages = boardData?.pages || [];
+  if (!pages.length || boardData?.readOnly) {
+    return 0;
+  }
+  for (let index = pages.length - 1; index >= 0; index -= 1) {
+    if ((pages[index]?.notes || []).length < BOARD_SLOT_CAPACITY) {
+      return index;
+    }
+  }
+  return Math.max(0, pages.length - 1);
 }
 
 export function CorkboardNoteCard({
@@ -171,8 +249,13 @@ export function CorkboardNoteCard({
   isSelected = false,
   isFresh = false,
   adminControls = false,
+  isDraft = false,
+  isDragging = false,
   onSelect,
   onToggleHidden,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }) {
   const labels = COPY[language] || COPY.ko;
   const templateKey = note?.stickerTemplateKey || "yellow";
@@ -184,6 +267,8 @@ export function CorkboardNoteCard({
     note?.hidden ? "corkboard-note-hidden" : "",
     isSelected ? "is-selected" : "",
     isFresh ? "is-fresh" : "",
+    isDraft ? "is-draft" : "",
+    isDragging ? "is-dragging" : "",
   ].filter(Boolean).join(" ");
 
   const handleKeyDown = (event) => {
@@ -196,12 +281,16 @@ export function CorkboardNoteCard({
   return (
     <article
       className={className}
-      style={noteStyle(note.slotIndex || 0)}
+      style={noteStyle(note, isDraft ? 80 : undefined)}
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
       onClick={() => onSelect?.(note)}
       onKeyDown={handleKeyDown}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       <span className={`corkboard-fixture corkboard-fixture-${fixture}`} aria-hidden="true" />
       <div className="corkboard-note-content">{note.content}</div>
@@ -231,43 +320,107 @@ export function CorkboardBoard({
   activeNoteId = null,
   freshNoteId = null,
   adminControls = false,
+  draftNote = null,
+  canPlaceNote = false,
+  placementLabel = "",
+  isDraftDragging = false,
   onNoteSelect,
   onToggleHidden,
+  onDraftPlacementChange,
+  onDraftDragChange,
   emptyLabel,
 }) {
-  const notesBySlot = useMemo(() => {
-    const map = new Map();
-    (page?.notes || []).forEach((note) => {
-      map.set(Number(note.slotIndex) || 0, note);
-    });
-    return map;
-  }, [page]);
+  const stageRef = useRef(null);
+  const notes = page?.notes || [];
+  const hasNotes = notes.length > 0;
 
-  const hasNotes = notesBySlot.size > 0;
+  const placementFromEvent = useCallback((event) => {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      return null;
+    }
+    return {
+      positionX: clampNumber(((event.clientX - rect.left) / rect.width) * 100, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+      positionY: clampNumber(((event.clientY - rect.top) / rect.height) * 100, NOTE_EDGE_BUFFER, 100 - NOTE_EDGE_BUFFER),
+    };
+  }, []);
+
+  const moveDraftToPointer = useCallback((event) => {
+    const nextPlacement = placementFromEvent(event);
+    if (nextPlacement) {
+      onDraftPlacementChange?.(nextPlacement);
+    }
+  }, [onDraftPlacementChange, placementFromEvent]);
+
+  const handleStagePointerDown = (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!canPlaceNote || !draftNote || target?.closest(".corkboard-note")) {
+      return;
+    }
+    moveDraftToPointer(event);
+  };
+
+  const handleDraftPointerDown = (event) => {
+    if (!canPlaceNote || !draftNote) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onDraftDragChange?.(true);
+    moveDraftToPointer(event);
+  };
+
+  const handleDraftPointerMove = (event) => {
+    if (!isDraftDragging) {
+      return;
+    }
+    event.preventDefault();
+    moveDraftToPointer(event);
+  };
+
+  const handleDraftPointerUp = (event) => {
+    if (!isDraftDragging) {
+      return;
+    }
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    onDraftDragChange?.(false);
+  };
 
   return (
-    <section className="corkboard-stage" aria-label={page?.title || "Agora Corkboard"}>
+    <section
+      ref={stageRef}
+      className={`corkboard-stage ${canPlaceNote ? "is-placement-enabled" : ""} ${isDraftDragging ? "is-dragging-note" : ""}`}
+      aria-label={page?.title || "Agora Corkboard"}
+      onPointerDown={handleStagePointerDown}
+    >
       <div className="corkboard-slots">
-        {Array.from({ length: 18 }).map((_, slotIndex) => {
-          const note = notesBySlot.get(slotIndex);
-          return (
-            <div key={slotIndex} className="corkboard-slot">
-              {note ? (
-                <CorkboardNoteCard
-                  note={note}
-                  language={language}
-                  isSelected={activeNoteId === note.id}
-                  isFresh={freshNoteId === note.id}
-                  adminControls={adminControls}
-                  onSelect={onNoteSelect}
-                  onToggleHidden={onToggleHidden}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        {notes.map((note) => (
+          <CorkboardNoteCard
+            key={note.id || `${note.boardId}-${note.slotIndex}`}
+            note={note}
+            language={language}
+            isSelected={activeNoteId === note.id}
+            isFresh={freshNoteId === note.id}
+            adminControls={adminControls}
+            onSelect={onNoteSelect}
+            onToggleHidden={onToggleHidden}
+          />
+        ))}
+        {draftNote ? (
+          <CorkboardNoteCard
+            note={draftNote}
+            language={language}
+            isDraft
+            isDragging={isDraftDragging}
+            onPointerDown={handleDraftPointerDown}
+            onPointerMove={handleDraftPointerMove}
+            onPointerUp={handleDraftPointerUp}
+          />
+        ) : null}
       </div>
-      {!hasNotes ? <div className="corkboard-empty">{emptyLabel}</div> : null}
+      {!hasNotes && !draftNote ? <div className="corkboard-empty">{emptyLabel}</div> : null}
+      {canPlaceNote ? <div className="corkboard-placement-tip">{placementLabel}</div> : null}
     </section>
   );
 }
@@ -286,6 +439,8 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [freshNoteId, setFreshNoteId] = useState(null);
+  const [draftPlacement, setDraftPlacement] = useState({ positionX: 50, positionY: 50 });
+  const [isDraftDragging, setIsDraftDragging] = useState(false);
 
   const loadArchivePeriods = useCallback(async () => {
     const periods = await corkboardApi.findArchivePeriods();
@@ -299,7 +454,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       const current = await corkboardApi.findCurrent();
       setBoardData(current);
       setSelectedPeriodKey("current");
-      setActivePageIndex(0);
+      setActivePageIndex(writablePageIndex(current));
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -352,16 +507,35 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const activePage = boardData?.pages?.[activePageIndex] || boardData?.pages?.[0] || null;
   const canWrite = Boolean(authState?.authenticated) && !boardData?.readOnly;
   const remaining = 200 - content.length;
+  const currentDraftRotation = useMemo(
+    () => draftRotation(selectedTemplate, content),
+    [content, selectedTemplate]
+  );
   const previewNote = useMemo(() => ({
     id: "preview",
     noteType: "MEMBER",
     stickerTemplateKey: selectedTemplate,
     content: content.trim() || labels.placeholder,
     slotIndex: 1,
+    positionX: draftPlacement.positionX,
+    positionY: draftPlacement.positionY,
+    rotationDeg: currentDraftRotation,
+    zIndex: 80,
+    placementMode: "FREE",
     authorNicknameSnapshot: authState?.nickname || authState?.displayName || labels.friend,
     authorNameSnapshot: authState?.displayName || labels.friend,
     createdAt: new Date().toISOString(),
-  }), [authState?.displayName, authState?.nickname, content, labels.friend, labels.placeholder, selectedTemplate]);
+  }), [
+    authState?.displayName,
+    authState?.nickname,
+    content,
+    currentDraftRotation,
+    draftPlacement.positionX,
+    draftPlacement.positionY,
+    labels.friend,
+    labels.placeholder,
+    selectedTemplate,
+  ]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -379,6 +553,10 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       const nextBoard = await corkboardApi.createNote({
         stickerTemplateKey: selectedTemplate,
         content: normalizedContent,
+        positionX: Math.round(draftPlacement.positionX * 10) / 10,
+        positionY: Math.round(draftPlacement.positionY * 10) / 10,
+        rotationDeg: currentDraftRotation,
+        pageNo: activePage?.pageNo,
       });
       setBoardData(nextBoard);
       const newNote = findNewNote(previousIds, nextBoard);
@@ -389,6 +567,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
         window.setTimeout(() => setFreshNoteId(null), 1600);
       }
       setContent("");
+      setDraftPlacement({ positionX: 50, positionY: 50 });
       setNotice(labels.saved);
       loadArchivePeriods().catch(() => null);
     } catch (nextError) {
@@ -470,7 +649,13 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
               language={language}
               activeNoteId={activeNoteId}
               freshNoteId={freshNoteId}
+              draftNote={canWrite ? previewNote : null}
+              canPlaceNote={canWrite && !isSubmitting}
+              placementLabel={isDraftDragging ? labels.placementReady : labels.placementHint}
+              isDraftDragging={isDraftDragging}
               onNoteSelect={(note) => setActiveNoteId((currentId) => (currentId === note.id ? null : note.id))}
+              onDraftPlacementChange={setDraftPlacement}
+              onDraftDragChange={setIsDraftDragging}
               emptyLabel={labels.emptyBoard}
             />
           )}

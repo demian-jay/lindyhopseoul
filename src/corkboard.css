@@ -205,6 +205,16 @@
     0 24px 60px rgba(43, 27, 16, 0.22);
 }
 
+.corkboard-stage.is-placement-enabled {
+  cursor: crosshair;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.18),
+    inset 0 0 0 7px rgba(91, 51, 27, 0.16),
+    inset 0 0 58px rgba(77, 43, 24, 0.38),
+    0 0 0 4px rgba(20, 184, 166, 0.12),
+    0 24px 60px rgba(43, 27, 16, 0.22);
+}
+
 .corkboard-stage::before {
   content: "";
   position: absolute;
@@ -223,44 +233,49 @@
 }
 
 .corkboard-slots {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 22px 24px;
-  padding: 34px;
 }
 
 .corkboard-slot {
-  min-height: 166px;
+  display: contents;
 }
 
 .corkboard-note {
-  position: relative;
+  --note-size: min(188px, calc(100% - 28px));
+  --note-half-size: 94px;
+  position: absolute;
+  left: clamp(calc(var(--note-half-size) + 6px), var(--note-x), calc(100% - var(--note-half-size) - 6px));
+  top: clamp(76px, var(--note-y), calc(100% - 76px));
+  z-index: var(--note-z);
   display: flex;
   min-height: 154px;
-  width: 100%;
+  width: var(--note-size);
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid rgba(31, 41, 55, 0.08);
   border-radius: 4px;
   padding: 27px 18px 14px;
   color: #2a241f;
+  cursor: pointer;
   box-shadow: 0 14px 20px rgba(43, 27, 16, 0.25), 0 2px 1px rgba(255, 255, 255, 0.42) inset;
-  transform: rotate(var(--note-rotate)) translate(var(--note-shift-x), var(--note-shift-y));
+  transform: translate(-50%, -50%) rotate(var(--note-rotate));
   transform-origin: 52% 12%;
   transition: transform 170ms ease, box-shadow 170ms ease, filter 170ms ease;
   animation: corkboard-note-attach 420ms cubic-bezier(.2, .8, .2, 1) both;
   animation-delay: var(--note-delay);
   outline: none;
+  touch-action: none;
+  user-select: none;
 }
 
 .corkboard-note:hover,
 .corkboard-note:focus-visible,
 .corkboard-note.is-selected {
-  z-index: 3;
+  z-index: 110;
   box-shadow: 0 20px 28px rgba(43, 27, 16, 0.28), 0 2px 1px rgba(255, 255, 255, 0.5) inset;
-  transform: rotate(var(--note-rotate)) translate(var(--note-shift-x), var(--note-shift-y)) translateY(-7px) scale(1.03);
+  transform: translate(-50%, -50%) rotate(var(--note-rotate)) translateY(-7px) scale(1.03);
 }
 
 .corkboard-note.is-selected {
@@ -278,6 +293,32 @@
 
 .corkboard-note.is-fresh .corkboard-fixture-official {
   animation: corkboard-official-pop 860ms cubic-bezier(.18, .9, .24, 1) both;
+}
+
+.corkboard-note.is-draft {
+  z-index: 120;
+  opacity: 0.78;
+  outline: 3px dashed rgba(20, 184, 166, 0.62);
+  outline-offset: 4px;
+  cursor: grab;
+  filter: saturate(1.04);
+  animation: none;
+}
+
+.corkboard-note.is-draft::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 8px;
+  background: rgba(240, 253, 250, 0.2);
+  pointer-events: none;
+}
+
+.corkboard-note.is-dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: 0 26px 34px rgba(43, 27, 16, 0.32), 0 2px 1px rgba(255, 255, 255, 0.52) inset;
+  transform: translate(-50%, -50%) rotate(var(--note-rotate)) scale(1.06);
 }
 
 .corkboard-note::after {
@@ -456,6 +497,23 @@
   box-shadow: 0 12px 24px rgba(43, 27, 16, 0.16);
 }
 
+.corkboard-placement-tip {
+  position: absolute;
+  z-index: 3;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.92);
+  padding: 9px 12px;
+  color: #5f412a;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 10px 20px rgba(43, 27, 16, 0.16);
+  pointer-events: none;
+}
+
 .corkboard-state {
   position: relative;
   left: auto;
@@ -629,9 +687,21 @@
 }
 
 .corkboard-preview .corkboard-note {
+  position: relative;
+  left: auto;
+  top: auto;
+  z-index: auto;
   min-height: 128px;
+  width: 100%;
   transform: rotate(-1deg);
   animation: none;
+  pointer-events: none;
+}
+
+.corkboard-preview .corkboard-note:hover,
+.corkboard-preview .corkboard-note:focus-visible,
+.corkboard-preview .corkboard-note.is-selected {
+  transform: rotate(-1deg);
 }
 
 .corkboard-composer textarea {
@@ -950,26 +1020,26 @@
 @keyframes corkboard-note-attach {
   from {
     opacity: 0;
-    transform: rotate(calc(var(--note-rotate) - 7deg)) translate(var(--note-shift-x), -18px) scale(0.94);
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) - 7deg)) translateY(-18px) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: rotate(var(--note-rotate)) translate(var(--note-shift-x), var(--note-shift-y));
+    transform: translate(-50%, -50%) rotate(var(--note-rotate));
   }
 }
 
 @keyframes corkboard-note-land {
   0% {
     opacity: 0;
-    transform: rotate(calc(var(--note-rotate) - 10deg)) translate(var(--note-shift-x), -42px) scale(0.9);
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) - 10deg)) translateY(-42px) scale(0.9);
   }
   62% {
     opacity: 1;
-    transform: rotate(calc(var(--note-rotate) + 2deg)) translate(var(--note-shift-x), 7px) scale(1.04);
+    transform: translate(-50%, -50%) rotate(calc(var(--note-rotate) + 2deg)) translateY(7px) scale(1.04);
   }
   100% {
     opacity: 1;
-    transform: rotate(var(--note-rotate)) translate(var(--note-shift-x), var(--note-shift-y));
+    transform: translate(-50%, -50%) rotate(var(--note-rotate));
   }
 }
 
@@ -1065,47 +1135,38 @@
   }
 
   .corkboard-stage {
-    min-height: 0;
+    min-height: 520px;
     border-width: 10px;
   }
 
   .corkboard-slots {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 14px;
+    inset: 0;
   }
 
   .corkboard-slot {
-    min-height: 0;
-  }
-
-  .corkboard-slot:empty {
-    display: none;
+    display: contents;
   }
 
   .corkboard-note,
   .corkboard-note:hover,
   .corkboard-note:focus-visible,
   .corkboard-note.is-selected {
+    --note-size: min(154px, calc(100% - 20px));
+    --note-half-size: 77px;
     min-height: 132px;
-    transform: none;
+    top: clamp(70px, var(--note-y), calc(100% - 70px));
+    padding: 25px 13px 12px;
+    transform: translate(-50%, -50%) rotate(var(--note-rotate));
   }
 
-  .corkboard-note {
-    animation-name: corkboard-note-mobile-attach;
-  }
-
-  .corkboard-note.is-fresh {
-    animation-name: corkboard-note-mobile-land;
+  .corkboard-note:hover,
+  .corkboard-note:focus-visible,
+  .corkboard-note.is-selected {
+    transform: translate(-50%, -50%) rotate(var(--note-rotate)) translateY(-5px) scale(1.02);
   }
 
   .corkboard-empty {
-    position: relative;
-    left: auto;
-    top: auto;
-    width: auto;
-    margin: 14px;
-    transform: none;
+    width: min(260px, calc(100% - 28px));
   }
 
   .corkboard-template-grid {

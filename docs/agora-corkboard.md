@@ -28,6 +28,11 @@ Tables created by JPA:
   - `sticker_template_key`
   - `content`
   - `slot_index`
+  - `position_x`, nullable percentage coordinate from 0.0 to 100.0
+  - `position_y`, nullable percentage coordinate from 0.0 to 100.0
+  - `rotation_deg`, nullable display rotation, currently limited to -6.0 through 6.0
+  - `z_index`, nullable stacking order for overlap handling
+  - `placement_mode`: `SLOT` or `FREE`
   - `hidden`
   - `author_nickname_snapshot`
   - `author_name_snapshot`
@@ -45,7 +50,7 @@ There is no scheduler. On current-board reads and note creation, the service:
 
 1. Archives expired active boards whose `period_end` is before today.
 2. Creates the default current month board if no board row exists for that fallback period.
-3. Adds new notes to the first active, writable board page with a free slot.
+3. Adds new notes to the requested writable board page when that page still has a free slot, otherwise falls back to the next writable page with capacity.
 4. Creates the next page automatically when all 18 slots are occupied.
 
 Past boards are read-only.
@@ -53,6 +58,29 @@ Past boards are read-only.
 Admin period management is implemented without a separate `corkboard_period` table. The backend groups `corkboard` rows by `period_key`; Board 1, Board 2, and later pages for the same `period_key` share the same title and date range. When a super admin edits period settings, all rows with that `period_key` are updated together.
 
 Scheduled boards are normal `ACTIVE` rows with a future date range. They become the current writable board automatically when the current date enters their configured period. New period creation rejects duplicate `periodKey` values and overlapping active date ranges.
+
+`period_end` is inclusive. A board whose `period_end` is `2026-07-31` remains the current writable board through July 31, 2026 in `Asia/Seoul`. On August 1, 2026 or later, the board is archived on the next current-board read, archive read, admin period read, or note creation attempt. Archived boards remain readable, but public/member write UI is read-only.
+
+Future scheduled boards are not returned as the current board before `period_start`. If no active board covers today, the service falls back to the default monthly period for today; if an archived row already exists for that fallback period, it is returned as read-only instead of creating a duplicate active board.
+
+## Note Placement
+
+New public member notes use free placement on the corkboard:
+
+- The client sends `positionX` and `positionY` as board-relative percentages, not pixels.
+- The client sends `rotationDeg` within the small corkboard rotation range.
+- The server validates `positionX` and `positionY` from `0` to `100` and `rotationDeg` from `-6` to `6`.
+- The server still assigns `slotIndex` so the existing 18-note page capacity and next-page creation rules remain stable.
+- New coordinate-based notes are stored with `placementMode=FREE`.
+
+Legacy and fallback behavior:
+
+- Existing notes that only have `slotIndex` continue to render.
+- If `positionX` or `positionY` is missing, the frontend computes a stable fallback position from `slotIndex`.
+- Such notes are treated as `placementMode=SLOT` even if older rows have `placement_mode` unset.
+- The public board can show old slot-based notes and new free-position notes together.
+
+The frontend clamps rendered note centers away from the board edge so notes do not spill far outside the corkboard on desktop or mobile.
 
 ## Validation and Permissions
 
@@ -87,6 +115,20 @@ Super admins:
 - Can manually archive a period.
 - Period edits apply to every board page with the same `periodKey`.
 
+Permission matrix:
+
+| Capability | Public | Logged-in member | STAFF | SUPER_ADMIN |
+| --- | --- | --- | --- | --- |
+| View current board | Yes | Yes | Yes | Yes |
+| View archived boards | Yes | Yes | Yes | Yes |
+| Create member note | No | Current writable board only | No | No |
+| Create official notice | No | No | Yes | Yes |
+| Hide/unhide notes | No | No | Yes | Yes |
+| View hidden notes in admin | No | No | Yes | Yes |
+| Edit period title/start/end | No | No | No | Yes |
+| Create or reserve period | No | No | No | Yes |
+| Manually archive period | No | No | No | Yes |
+
 Content rules:
 
 - Server trims `content`.
@@ -95,6 +137,7 @@ Content rules:
 - Author snapshots are taken from the server-side member/admin session, never from the client.
 - Public responses exclude `hidden=true` notes.
 - React renders note content as text, so HTML/script input is not executed.
+- Coordinate input is accepted only for the current writable board. Archived boards remain read-only.
 
 ## APIs
 
@@ -118,6 +161,43 @@ Admin:
 - `PATCH /api/admin/agora/corkboard-notes/{id}/hidden`
 
 `GET /api/admin/agora/corkboard-periods` returns period-level summaries grouped by `periodKey`, including page count, note count, status, and whether the period is currently writable. Mutating period endpoints require `SUPER_ADMIN`.
+
+Public note creation request body:
+
+```json
+{
+  "stickerTemplateKey": "yellow",
+  "content": "See you at practice!",
+  "positionX": 25.4,
+  "positionY": 38.7,
+  "rotationDeg": -2.5,
+  "pageNo": 1
+}
+```
+
+`positionX`, `positionY`, `rotationDeg`, and `pageNo` are optional for backward compatibility. If coordinates are omitted, the server stores a slot-style placement. The current user screen sends coordinates for new member notes.
+
+Admin official note creation accepts the same optional placement fields. The current admin UI keeps a simpler operations-first layout and may use automatic fallback placement for official notices.
+
+## Admin Operations
+
+Creating or reserving a new month:
+
+1. Open the admin menu `CORKBOARD`.
+2. In `새 보드 생성 / 예약`, enter `periodKey` as six digits in `YYYYMM` format, for example `202607`.
+3. Confirm that the title is generated automatically as `Swingpop 2026년 07월 보드`.
+4. Select `periodStart` and `periodEnd`. `periodStart` must be before `periodEnd`.
+5. Save with `새 보드 생성`.
+
+The client sends the server `periodKey` in the existing storage/API format, for example `2026-07`. The server creates Board 1 for the new period and keeps the existing 18-note page rollover behavior for later pages. Free-position notes still count toward the same 18-note page limit.
+
+Operational rules:
+
+- Do not create overlapping active/reserved periods. The server rejects overlaps on create and update.
+- Use future `periodStart` and `periodEnd` to reserve a board before the month begins.
+- Use manual archive only when the current board should close early. This changes all board pages for that `periodKey` to `ARCHIVED`.
+- After manual archive, public/member users can still read the board, but cannot write to it.
+- Hidden notes remain visible in admin and remain excluded from public responses.
 
 ## Frontend
 
@@ -143,12 +223,13 @@ Main files:
 
 Design notes:
 
-- The board uses CSS cork texture, wood frame, shadows, and fixed slots.
-- Desktop uses an 18-slot corkboard grid.
-- Mobile collapses to a stable single-column board/list hybrid.
+- The board uses CSS cork texture, wood frame, shadows, and free-position note placement.
+- Desktop renders notes at board-relative percentage coordinates.
+- Mobile keeps the corkboard surface and supports touch drag or tap-to-place without horizontal overflow.
 - Note templates include yellow, pink, blue, white, lined, tape, pin, and staff notice styles.
 - Notes have slight rotation, shadow, hover lift, selected outline, and attach/land animations.
-- The write flow includes template selection, live preview, character count, and submit feedback.
+- The write flow includes template selection, live preview, character count, board tap/drag placement, and submit feedback.
+- Existing slot-only notes use deterministic fallback coordinates from `slotIndex`.
 
 ## QA Status
 
@@ -169,6 +250,8 @@ Completed checks:
 - Mobile rendering keeps a stable single-column board layout without horizontal overflow.
 - Note templates remain visually distinct across yellow, pink, blue, white, lined, tape, pin, and official styles.
 - The note landing/attach animations, hover lift, selected outline, tape, pin, and official notice emphasis are present.
+- Member note placement supports board tap, pointer drag, and touch drag. Reloaded notes stay in the saved percentage position.
+- Existing slot-only notes and new free-position notes render together on the same board.
 - Archived boards are read-only.
 - Admin Corkboard period settings render on desktop and mobile without horizontal overflow.
 - Admin current period info displays `periodKey`, title, start/end dates, status, page count, note count, and writable state.
@@ -191,10 +274,11 @@ Logged-in member:
 
 - [x] Can select a sticker template.
 - [x] Can see a live note preview.
+- [x] Can tap the board or drag the preview note to choose where it will be pinned.
 - [x] Can enter up to 200 characters and see the remaining count.
 - [x] Cannot submit blank content.
 - [x] Creates `MEMBER` notes using the server-side member session.
-- [x] Sees the newly added note land on the active board.
+- [x] Sees the newly added note land at the selected board position.
 - [x] Cannot write to archived boards.
 - [x] Cannot edit or delete notes in this MVP.
 
@@ -208,6 +292,7 @@ Staff or admin:
 - [x] Hidden notes are still available in the admin view.
 - [x] Hidden notes are excluded from public user responses.
 - [x] Can see current period information in the admin panel.
+- [x] Can see coordinate metadata (`positionX`, `positionY`, `rotationDeg`, `zIndex`, `placementMode`) for note management.
 - [x] `STAFF` is limited to viewing periods, official notes, and note visibility management.
 
 Super admin:
@@ -221,7 +306,6 @@ Super admin:
 
 The MVP intentionally excludes:
 
-- Drag and drop positioning.
 - Resizing notes.
 - Image uploads.
 - Rich text.
