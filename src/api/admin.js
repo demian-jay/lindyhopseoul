@@ -334,6 +334,23 @@ export const adminApi = {
       body: payload,
     });
   },
+  findCorkboards(token, params = {}) {
+    return request(`/api/admin/agora/corkboards${buildQuery(params)}`, { token });
+  },
+  createOfficialCorkboardNote(token, payload) {
+    return request("/api/admin/agora/corkboard-notes", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateCorkboardNoteHidden(token, noteId, payload) {
+    return request(`/api/admin/agora/corkboard-notes/${noteId}/hidden`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   findTeacherDashboard(token) {
     return request("/api/teacher/dashboard", { token });
   },

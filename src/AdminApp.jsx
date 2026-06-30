@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
+import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
 import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
@@ -20,6 +21,7 @@ const I18N = {
       DASHBOARD: "관리자 홈",
       OPERATION_CHECK: "운영 체크",
       EVENT_MANAGEMENT: "이벤트/강습 관리",
+      CORKBOARD: "Agora Corkboard",
       MEMBER_MESSAGES: "회원 메시지",
       MEMBER_ACTION_LOGS: "수강생 처리 로그",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
@@ -272,6 +274,7 @@ const I18N = {
       DASHBOARD: "Dashboard",
       OPERATION_CHECK: "Operation Check",
       EVENT_MANAGEMENT: "Events & Lessons",
+      CORKBOARD: "Agora Corkboard",
       MEMBER_MESSAGES: "Member Messages",
       MEMBER_ACTION_LOGS: "Student Action Logs",
       KNOWLEDGE_BASE: "Manual Repository",
@@ -2671,6 +2674,9 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "EVENT_MANAGEMENT" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
+          {safeActiveMenu === "CORKBOARD" ? (
+            <AdminCorkboardPanel token={token} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "MEMBER_MESSAGES" ? (
             <AdminMemberMessagesPanel

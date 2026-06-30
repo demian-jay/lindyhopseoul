@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AdminApp from "./AdminApp";
+import CorkboardPage from "./CorkboardPage";
 import { authApi } from "./api/auth";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
@@ -635,7 +636,7 @@ const SETTINGS_COPY = {
     withdrawError: "탈퇴 처리에 실패했습니다.",
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 설정은 Google 로그인 후 사용할 수 있습니다.",
-    login: "Sign in with Google",
+    login: "Google로 로그인",
     back: "뒤로가기",
     privacyLink: "개인정보처리방침",
     korean: "한국어",
@@ -678,7 +679,7 @@ const MEMBER_MESSAGES_COPY = {
     description: "운영진과 주고받은 메시지를 확인합니다.",
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 메시지는 Google 로그인 후 사용할 수 있습니다.",
-    login: "Sign in with Google",
+    login: "Google로 로그인",
     back: "뒤로가기",
     loading: "메시지를 불러오는 중입니다.",
     empty: "아직 주고받은 메시지가 없습니다.",
@@ -719,7 +720,7 @@ const MY_CLASSES_COPY = {
     description: "Google 계정으로 신청한 수업과 이벤트를 확인합니다.",
     loginRequiredTitle: "로그인이 필요합니다",
     loginRequiredBody: "내 신청 내역은 Google 로그인 후 사용할 수 있습니다.",
-    login: "Sign in with Google",
+    login: "Google로 로그인",
     back: "뒤로가기",
     loading: "신청 내역을 불러오는 중입니다.",
     empty: "아직 신청한 수업이 없습니다.",
@@ -767,7 +768,7 @@ const MY_CLASSES_COPY = {
 const MY_PAGE_COPY = {
   ko: {
     topButton: "내 페이지",
-    login: "Sign in with Google",
+    login: "Google로 로그인",
     privacyLink: "개인정보처리방침",
     title: "내 페이지",
     description: "신청 내역, 메시지, 계정 설정을 한곳에서 확인합니다.",
@@ -3719,6 +3720,10 @@ function PublicApp() {
     navigateToPath("/messages");
   };
 
+  const handleCorkboardOpen = () => {
+    navigateToPath("/corkboard");
+  };
+
   const handleMyClassesOpen = () => {
     navigateToPath("/my-classes");
   };
@@ -3837,6 +3842,7 @@ function PublicApp() {
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
+  const isCorkboardPath = currentPath === "/corkboard";
   const isMyClassesPath = currentPath === "/my-classes";
   const isMyPagePath = currentPath === "/me";
   const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
@@ -3879,7 +3885,15 @@ function PublicApp() {
             {accountNotice}
           </div>
         ) : null}
-        {isSettingsPath ? (
+        {isCorkboardPath ? (
+          <CorkboardPage
+            authState={authState}
+            isLoading={isAuthLoading}
+            language={activeLanguage}
+            onLogin={handleLogin}
+            onBack={handleMainOpen}
+          />
+        ) : isSettingsPath ? (
           <MemberSettingsPage
             authState={authState}
             isLoading={isAuthLoading}
@@ -3958,6 +3972,13 @@ function PublicApp() {
                   >
                     {t.heroSecondary}
                   </a>
+                  <button
+                    type="button"
+                    onClick={handleCorkboardOpen}
+                    className="inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-6 py-3 text-sm font-medium text-teal-900 shadow-sm transition hover:translate-y-[-1px] hover:bg-teal-100"
+                  >
+                    Agora Corkboard
+                  </button>
                 </div>
               </div>
               <div>
@@ -4100,13 +4121,13 @@ function PublicApp() {
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
         <footer className="border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta
