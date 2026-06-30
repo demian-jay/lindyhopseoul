@@ -1,5 +1,7 @@
 package com.lindyhopseoul.backend.agora;
 
+import java.util.List;
+
 import com.lindyhopseoul.backend.admin.AdminSessionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +36,60 @@ public class AdminCorkboardController {
             @RequestParam(required = false) String periodKey
     ) {
         return corkboardService.findAdminCorkboards(
+                adminSessionService.requirePrincipal(authorization),
+                periodKey
+        );
+    }
+
+    @GetMapping("/corkboard-periods")
+    public List<AdminCorkboardPeriodResponse> findPeriods(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        return corkboardService.findAdminPeriods(
+                adminSessionService.requirePrincipal(authorization)
+        );
+    }
+
+    @GetMapping("/corkboard-periods/current")
+    public AdminCorkboardPeriodResponse findCurrentPeriod(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        return corkboardService.findCurrentAdminPeriod(
+                adminSessionService.requirePrincipal(authorization)
+        );
+    }
+
+    @PostMapping("/corkboard-periods")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdminCorkboardManagementResponse createPeriod(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody(required = false) AdminCorkboardPeriodCreateRequest request
+    ) {
+        return corkboardService.createPeriod(
+                adminSessionService.requirePrincipal(authorization),
+                request
+        );
+    }
+
+    @PatchMapping("/corkboard-periods/{periodKey}")
+    public AdminCorkboardManagementResponse updatePeriod(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable String periodKey,
+            @RequestBody(required = false) AdminCorkboardPeriodUpdateRequest request
+    ) {
+        return corkboardService.updatePeriod(
+                adminSessionService.requirePrincipal(authorization),
+                periodKey,
+                request
+        );
+    }
+
+    @PatchMapping("/corkboard-periods/{periodKey}/archive")
+    public AdminCorkboardManagementResponse archivePeriod(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable String periodKey
+    ) {
+        return corkboardService.archivePeriod(
                 adminSessionService.requirePrincipal(authorization),
                 periodKey
         );

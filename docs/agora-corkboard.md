@@ -38,16 +38,21 @@ Tables created by JPA:
 
 ## Periods and Pages
 
-The service uses the current date in `Asia/Seoul` to derive the active monthly `periodKey`.
+The service uses the current date in `Asia/Seoul` to find an `ACTIVE` corkboard period whose `period_start <= today <= period_end`.
+If no matching active period exists, it falls back to the default monthly `periodKey`.
 
 There is no scheduler. On current-board reads and note creation, the service:
 
-1. Archives older active boards.
-2. Creates the current month board if it does not exist.
-3. Adds new notes to the first active board page with a free slot.
+1. Archives expired active boards whose `period_end` is before today.
+2. Creates the default current month board if no board row exists for that fallback period.
+3. Adds new notes to the first active, writable board page with a free slot.
 4. Creates the next page automatically when all 18 slots are occupied.
 
 Past boards are read-only.
+
+Admin period management is implemented without a separate `corkboard_period` table. The backend groups `corkboard` rows by `period_key`; Board 1, Board 2, and later pages for the same `period_key` share the same title and date range. When a super admin edits period settings, all rows with that `period_key` are updated together.
+
+Scheduled boards are normal `ACTIVE` rows with a future date range. They become the current writable board automatically when the current date enters their configured period. New period creation rejects duplicate `periodKey` values and overlapping active date ranges.
 
 ## Validation and Permissions
 
@@ -67,6 +72,20 @@ Staff and super admins:
 - Can create `OFFICIAL` notes through the admin panel.
 - Can hide or unhide any note.
 - Can view current and past boards, including hidden notes.
+
+Staff:
+
+- Can view board periods.
+- Can create `OFFICIAL` notes.
+- Can hide or unhide notes.
+- Cannot edit board periods, create new periods, or manually archive a period.
+
+Super admins:
+
+- Can edit the current period title, `periodStart`, and `periodEnd`.
+- Can create or reserve a new period.
+- Can manually archive a period.
+- Period edits apply to every board page with the same `periodKey`.
 
 Content rules:
 
@@ -90,8 +109,15 @@ Admin:
 
 - `GET /api/admin/agora/corkboards`
 - `GET /api/admin/agora/corkboards?periodKey=YYYY-MM`
+- `GET /api/admin/agora/corkboard-periods`
+- `GET /api/admin/agora/corkboard-periods/current`
+- `POST /api/admin/agora/corkboard-periods`
+- `PATCH /api/admin/agora/corkboard-periods/{periodKey}`
+- `PATCH /api/admin/agora/corkboard-periods/{periodKey}/archive`
 - `POST /api/admin/agora/corkboard-notes`
 - `PATCH /api/admin/agora/corkboard-notes/{id}/hidden`
+
+`GET /api/admin/agora/corkboard-periods` returns period-level summaries grouped by `periodKey`, including page count, note count, status, and whether the period is currently writable. Mutating period endpoints require `SUPER_ADMIN`.
 
 ## Frontend
 
@@ -104,6 +130,8 @@ Admin entry point:
 
 - Admin menu `CORKBOARD`
 - Available to `SUPER_ADMIN` and `STAFF`.
+- The top of the panel shows current period settings, page count, note count, writable state, a super-admin settings form, a super-admin new-board form, and past board navigation.
+- In the super-admin new-board form, `periodKey` is entered as six digits (`YYYYMM`) and the title is generated automatically as `Swingpop YYYY년 MM월 보드`; the client converts the key to the existing API/storage format (`YYYY-MM`) before sending.
 
 Main files:
 
@@ -124,7 +152,7 @@ Design notes:
 
 ## QA Status
 
-Last verified: 2026-06-29, local dev environment.
+Last verified: 2026-06-30, local dev environment.
 
 Runtime used for verification:
 
@@ -142,6 +170,10 @@ Completed checks:
 - Note templates remain visually distinct across yellow, pink, blue, white, lined, tape, pin, and official styles.
 - The note landing/attach animations, hover lift, selected outline, tape, pin, and official notice emphasis are present.
 - Archived boards are read-only.
+- Admin Corkboard period settings render on desktop and mobile without horizontal overflow.
+- Admin current period info displays `periodKey`, title, start/end dates, status, page count, note count, and writable state.
+- Super-admin period controls are visible for the local super admin account.
+- Period creation, duplicate rejection, same-period page updates, manual archive, and staff rejection are covered by `CorkboardServiceTest`.
 
 ## QA Checklist
 
@@ -175,6 +207,15 @@ Staff or admin:
 - [x] Can hide and unhide notes.
 - [x] Hidden notes are still available in the admin view.
 - [x] Hidden notes are excluded from public user responses.
+- [x] Can see current period information in the admin panel.
+- [x] `STAFF` is limited to viewing periods, official notes, and note visibility management.
+
+Super admin:
+
+- [x] Can see period edit controls.
+- [x] Can see the new period creation form.
+- [x] Can see the current period archive action.
+- [x] Period mutation endpoints are restricted to `SUPER_ADMIN`.
 
 ## Deferred
 

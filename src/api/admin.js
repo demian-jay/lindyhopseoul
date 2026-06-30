@@ -337,6 +337,32 @@ export const adminApi = {
   findCorkboards(token, params = {}) {
     return request(`/api/admin/agora/corkboards${buildQuery(params)}`, { token });
   },
+  findCorkboardPeriods(token) {
+    return request("/api/admin/agora/corkboard-periods", { token });
+  },
+  findCurrentCorkboardPeriod(token) {
+    return request("/api/admin/agora/corkboard-periods/current", { token });
+  },
+  createCorkboardPeriod(token, payload) {
+    return request("/api/admin/agora/corkboard-periods", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  updateCorkboardPeriod(token, periodKey, payload) {
+    return request(`/api/admin/agora/corkboard-periods/${periodKey}`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
+  archiveCorkboardPeriod(token, periodKey) {
+    return request(`/api/admin/agora/corkboard-periods/${periodKey}/archive`, {
+      method: "PATCH",
+      token,
+    });
+  },
   createOfficialCorkboardNote(token, payload) {
     return request("/api/admin/agora/corkboard-notes", {
       method: "POST",

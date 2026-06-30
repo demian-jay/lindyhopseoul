@@ -9,6 +9,8 @@ public interface CorkboardRepository extends JpaRepository<Corkboard, Long> {
 
     List<Corkboard> findByPeriodKeyOrderByPageNoAsc(String periodKey);
 
+    boolean existsByPeriodKey(String periodKey);
+
     Optional<Corkboard> findTopByPeriodKeyOrderByPageNoDesc(String periodKey);
 
     List<Corkboard> findByStatus(CorkboardStatus status);

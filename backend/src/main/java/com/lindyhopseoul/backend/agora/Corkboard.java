@@ -73,6 +73,12 @@ public class Corkboard {
         this.status = CorkboardStatus.ARCHIVED;
     }
 
+    public void updatePeriodSettings(String title, LocalDate periodStart, LocalDate periodEnd) {
+        this.title = title;
+        this.periodStart = periodStart;
+        this.periodEnd = periodEnd;
+    }
+
     @PrePersist
     void prePersist() {
         Instant now = Instant.now();

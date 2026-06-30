@@ -6,15 +6,16 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
+import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.exception.BadRequestException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
@@ -70,22 +71,30 @@ public class CorkboardService {
 
     @Transactional
     public List<CorkboardArchivePeriodResponse> findArchivePeriods() {
-        PeriodDescriptor current = currentPeriod();
-        archiveExpiredActiveBoards(current);
-        return toPeriodSummaries(false)
+        archiveExpiredActiveBoards();
+        LocalDate today = today();
+        return toAdminPeriodSummaries(false)
                 .stream()
-                .filter(summary -> !summary.periodKey().equals(current.periodKey()))
+                .filter(summary -> summary.status() == CorkboardStatus.ARCHIVED || summary.periodEnd().isBefore(today))
+                .map(summary -> new CorkboardArchivePeriodResponse(
+                        summary.periodKey(),
+                        summary.title(),
+                        summary.periodStart(),
+                        summary.periodEnd(),
+                        summary.status(),
+                        summary.pageCount(),
+                        summary.noteCount()
+                ))
                 .toList();
     }
 
     @Transactional
     public CorkboardCollectionResponse findPeriod(String periodKey) {
-        PeriodDescriptor current = currentPeriod();
+        archiveExpiredActiveBoards();
         String normalizedPeriodKey = normalizePeriodKey(periodKey);
+        PeriodDescriptor current = currentPeriod();
         if (normalizedPeriodKey.equals(current.periodKey())) {
             ensureCurrentPeriod(current);
-        } else {
-            archiveExpiredActiveBoards(current);
         }
         return findPeriodCollection(normalizedPeriodKey, false);
     }
@@ -121,8 +130,79 @@ public class CorkboardService {
         String selectedPeriodKey = periodKey == null || periodKey.isBlank()
                 ? current.periodKey()
                 : normalizePeriodKey(periodKey);
-        CorkboardCollectionResponse selected = findPeriodCollection(selectedPeriodKey, true);
-        return new AdminCorkboardManagementResponse(toPeriodSummaries(true), selected);
+        return managementResponse(selectedPeriodKey);
+    }
+
+    @Transactional
+    public List<AdminCorkboardPeriodResponse> findAdminPeriods(AdminPrincipal actor) {
+        requireCorkboardAdmin(actor);
+        PeriodDescriptor current = currentPeriod();
+        ensureCurrentPeriod(current);
+        return toAdminPeriodSummaries(true);
+    }
+
+    @Transactional
+    public AdminCorkboardPeriodResponse findCurrentAdminPeriod(AdminPrincipal actor) {
+        requireCorkboardAdmin(actor);
+        PeriodDescriptor current = currentPeriod();
+        ensureCurrentPeriod(current);
+        return findAdminPeriodSummary(current.periodKey())
+                .orElseThrow(() -> new ResourceNotFoundException("Current corkboard period not found."));
+    }
+
+    @Transactional
+    public AdminCorkboardManagementResponse createPeriod(
+            AdminPrincipal actor,
+            AdminCorkboardPeriodCreateRequest request
+    ) {
+        requireSuperAdmin(actor);
+        String periodKey = normalizePeriodKey(request == null ? null : request.periodKey());
+        String title = normalizeTitle(request == null ? null : request.title());
+        LocalDate periodStart = request == null ? null : request.periodStart();
+        LocalDate periodEnd = request == null ? null : request.periodEnd();
+        validatePeriodRange(periodStart, periodEnd);
+        archiveExpiredActiveBoards();
+
+        if (corkboardRepository.existsByPeriodKey(periodKey)) {
+            throw new BadRequestException("Corkboard period already exists.");
+        }
+        validateNoActivePeriodOverlap(periodKey, periodStart, periodEnd);
+
+        corkboardRepository.save(Corkboard.create(periodKey, title, periodStart, periodEnd, 1));
+        return managementResponse(periodKey);
+    }
+
+    @Transactional
+    public AdminCorkboardManagementResponse updatePeriod(
+            AdminPrincipal actor,
+            String periodKey,
+            AdminCorkboardPeriodUpdateRequest request
+    ) {
+        requireSuperAdmin(actor);
+        archiveExpiredActiveBoards();
+        String normalizedPeriodKey = normalizePeriodKey(periodKey);
+        String title = normalizeTitle(request == null ? null : request.title());
+        LocalDate periodStart = request == null ? null : request.periodStart();
+        LocalDate periodEnd = request == null ? null : request.periodEnd();
+        validatePeriodRange(periodStart, periodEnd);
+
+        List<Corkboard> boards = findBoardsByPeriodOrThrow(normalizedPeriodKey);
+        if (aggregateStatus(boards) == CorkboardStatus.ARCHIVED) {
+            throw new BadRequestException("Archived corkboard periods cannot be edited.");
+        }
+        validateNoActivePeriodOverlap(normalizedPeriodKey, periodStart, periodEnd);
+
+        boards.forEach(board -> board.updatePeriodSettings(title, periodStart, periodEnd));
+        return managementResponse(normalizedPeriodKey);
+    }
+
+    @Transactional
+    public AdminCorkboardManagementResponse archivePeriod(AdminPrincipal actor, String periodKey) {
+        requireSuperAdmin(actor);
+        String normalizedPeriodKey = normalizePeriodKey(periodKey);
+        List<Corkboard> boards = findBoardsByPeriodOrThrow(normalizedPeriodKey);
+        boards.forEach(Corkboard::archive);
+        return managementResponse(normalizedPeriodKey);
     }
 
     @Transactional
@@ -135,7 +215,7 @@ public class CorkboardService {
         String requestedPeriodKey = request == null ? null : request.periodKey();
         if (requestedPeriodKey != null && !requestedPeriodKey.isBlank()
                 && !normalizePeriodKey(requestedPeriodKey).equals(current.periodKey())) {
-            throw new BadRequestException("Past corkboards are read-only.");
+            throw new BadRequestException("Only the current active corkboard is writable.");
         }
 
         String content = normalizeContent(request == null ? null : request.content());
@@ -152,7 +232,7 @@ public class CorkboardService {
                 slot.slotIndex()
         ));
 
-        return new AdminCorkboardManagementResponse(toPeriodSummaries(true), findPeriodCollection(current.periodKey(), true));
+        return managementResponse(current.periodKey());
     }
 
     @Transactional
@@ -164,9 +244,23 @@ public class CorkboardService {
         return CorkboardNoteResponse.from(note);
     }
 
+    private AdminCorkboardManagementResponse managementResponse(String selectedPeriodKey) {
+        PeriodDescriptor current = currentPeriod();
+        ensureCurrentPeriod(current);
+        return new AdminCorkboardManagementResponse(
+                toAdminPeriodSummaries(true),
+                findPeriodCollection(selectedPeriodKey, true),
+                findAdminPeriodSummary(current.periodKey()).orElse(null)
+        );
+    }
+
     private CorkboardSlot findWritableSlot(PeriodDescriptor current) {
         ensureCurrentPeriod(current);
         List<Corkboard> boards = corkboardRepository.findByPeriodKeyOrderByPageNoAsc(current.periodKey());
+        if (!isWritablePeriod(boards)) {
+            throw new BadRequestException("Current corkboard is read-only.");
+        }
+
         for (Corkboard board : boards) {
             if (board.getStatus() != CorkboardStatus.ACTIVE) {
                 continue;
@@ -177,14 +271,15 @@ public class CorkboardService {
             }
         }
 
+        Corkboard firstBoard = boards.get(0);
         int nextPageNo = corkboardRepository.findTopByPeriodKeyOrderByPageNoDesc(current.periodKey())
                 .map(lastBoard -> lastBoard.getPageNo() + 1)
                 .orElse(1);
         Corkboard board = corkboardRepository.save(Corkboard.create(
-                current.periodKey(),
-                current.title(),
-                current.periodStart(),
-                current.periodEnd(),
+                firstBoard.getPeriodKey(),
+                firstBoard.getTitle(),
+                firstBoard.getPeriodStart(),
+                firstBoard.getPeriodEnd(),
                 nextPageNo
         ));
         return new CorkboardSlot(board, 0);
@@ -208,7 +303,7 @@ public class CorkboardService {
     }
 
     private void ensureCurrentPeriod(PeriodDescriptor current) {
-        archiveExpiredActiveBoards(current);
+        archiveExpiredActiveBoards();
         if (!corkboardRepository.findByPeriodKeyOrderByPageNoAsc(current.periodKey()).isEmpty()) {
             return;
         }
@@ -221,10 +316,10 @@ public class CorkboardService {
         ));
     }
 
-    private void archiveExpiredActiveBoards(PeriodDescriptor current) {
-        LocalDate today = LocalDate.now(SEOUL_ZONE);
+    private void archiveExpiredActiveBoards() {
+        LocalDate today = today();
         for (Corkboard board : corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)) {
-            if (!board.getPeriodKey().equals(current.periodKey()) || board.getPeriodEnd().isBefore(today)) {
+            if (board.getPeriodEnd().isBefore(today)) {
                 board.archive();
             }
         }
@@ -246,10 +341,8 @@ public class CorkboardService {
                         Collectors.toList()
                 ));
 
-        CorkboardStatus status = boards.stream().anyMatch(board -> board.getStatus() == CorkboardStatus.ACTIVE)
-                ? CorkboardStatus.ACTIVE
-                : CorkboardStatus.ARCHIVED;
-        boolean readOnly = status != CorkboardStatus.ACTIVE || !periodKey.equals(currentPeriod().periodKey());
+        CorkboardStatus status = aggregateStatus(boards);
+        boolean readOnly = !isWritablePeriod(boards);
         List<CorkboardPageResponse> pages = boards.stream()
                 .map(board -> CorkboardPageResponse.from(
                         board,
@@ -269,14 +362,12 @@ public class CorkboardService {
         );
     }
 
-    private List<CorkboardArchivePeriodResponse> toPeriodSummaries(boolean includeHidden) {
+    private List<AdminCorkboardPeriodResponse> toAdminPeriodSummaries(boolean includeHidden) {
         List<Corkboard> boards = corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc();
         if (boards.isEmpty()) {
             return List.of();
         }
 
-        Map<Long, Corkboard> boardsById = boards.stream()
-                .collect(Collectors.toMap(Corkboard::getId, Function.identity()));
         Map<String, List<Corkboard>> boardsByPeriod = boards.stream()
                 .collect(Collectors.groupingBy(
                         Corkboard::getPeriodKey,
@@ -287,28 +378,79 @@ public class CorkboardService {
                 .stream()
                 .filter(note -> includeHidden || !note.isHidden())
                 .collect(Collectors.groupingBy(
-                        note -> boardsById.get(note.getBoard().getId()).getPeriodKey(),
+                        note -> note.getBoard().getPeriodKey(),
                         Collectors.counting()
                 ));
 
-        List<CorkboardArchivePeriodResponse> summaries = new ArrayList<>();
+        List<AdminCorkboardPeriodResponse> summaries = new ArrayList<>();
         for (Map.Entry<String, List<Corkboard>> entry : boardsByPeriod.entrySet()) {
             List<Corkboard> periodBoards = entry.getValue();
             Corkboard firstBoard = periodBoards.get(0);
-            CorkboardStatus status = periodBoards.stream().anyMatch(board -> board.getStatus() == CorkboardStatus.ACTIVE)
-                    ? CorkboardStatus.ACTIVE
-                    : CorkboardStatus.ARCHIVED;
-            summaries.add(new CorkboardArchivePeriodResponse(
+            summaries.add(new AdminCorkboardPeriodResponse(
                     firstBoard.getPeriodKey(),
                     firstBoard.getTitle(),
                     firstBoard.getPeriodStart(),
                     firstBoard.getPeriodEnd(),
-                    status,
+                    aggregateStatus(periodBoards),
                     periodBoards.size(),
-                    noteCountsByPeriod.getOrDefault(firstBoard.getPeriodKey(), 0L)
+                    noteCountsByPeriod.getOrDefault(firstBoard.getPeriodKey(), 0L),
+                    isWritablePeriod(periodBoards)
             ));
         }
         return summaries;
+    }
+
+    private java.util.Optional<AdminCorkboardPeriodResponse> findAdminPeriodSummary(String periodKey) {
+        return toAdminPeriodSummaries(true)
+                .stream()
+                .filter(summary -> summary.periodKey().equals(periodKey))
+                .findFirst();
+    }
+
+    private List<Corkboard> findBoardsByPeriodOrThrow(String periodKey) {
+        List<Corkboard> boards = corkboardRepository.findByPeriodKeyOrderByPageNoAsc(periodKey);
+        if (boards.isEmpty()) {
+            throw new ResourceNotFoundException("Corkboard period not found: " + periodKey);
+        }
+        return boards;
+    }
+
+    private CorkboardStatus aggregateStatus(List<Corkboard> boards) {
+        return boards.stream().anyMatch(board -> board.getStatus() == CorkboardStatus.ACTIVE)
+                ? CorkboardStatus.ACTIVE
+                : CorkboardStatus.ARCHIVED;
+    }
+
+    private boolean isWritablePeriod(List<Corkboard> boards) {
+        if (boards == null || boards.isEmpty() || aggregateStatus(boards) != CorkboardStatus.ACTIVE) {
+            return false;
+        }
+        Corkboard firstBoard = boards.get(0);
+        LocalDate today = today();
+        return !firstBoard.getPeriodStart().isAfter(today) && !firstBoard.getPeriodEnd().isBefore(today);
+    }
+
+    private boolean rangesOverlap(LocalDate leftStart, LocalDate leftEnd, LocalDate rightStart, LocalDate rightEnd) {
+        return !leftEnd.isBefore(rightStart) && !rightEnd.isBefore(leftStart);
+    }
+
+    private void validateNoActivePeriodOverlap(String periodKey, LocalDate periodStart, LocalDate periodEnd) {
+        Map<String, List<Corkboard>> activeBoardsByPeriod = corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc()
+                .stream()
+                .filter(board -> board.getStatus() == CorkboardStatus.ACTIVE)
+                .filter(board -> !board.getPeriodKey().equals(periodKey))
+                .collect(Collectors.groupingBy(
+                        Corkboard::getPeriodKey,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        for (List<Corkboard> boards : activeBoardsByPeriod.values()) {
+            Corkboard firstBoard = boards.get(0);
+            if (rangesOverlap(periodStart, periodEnd, firstBoard.getPeriodStart(), firstBoard.getPeriodEnd())) {
+                throw new BadRequestException("Corkboard period overlaps an active period.");
+            }
+        }
     }
 
     private Member findActiveMember(Long memberId) {
@@ -323,6 +465,12 @@ public class CorkboardService {
     private void requireCorkboardAdmin(AdminPrincipal actor) {
         if (actor == null || !actor.canManageEvents()) {
             throw new ForbiddenException("Only administrators can manage corkboards.");
+        }
+    }
+
+    private void requireSuperAdmin(AdminPrincipal actor) {
+        if (actor == null || !actor.hasRole(AdminRole.SUPER_ADMIN)) {
+            throw new ForbiddenException("Only super administrators can manage corkboard periods.");
         }
     }
 
@@ -364,6 +512,29 @@ public class CorkboardService {
         return normalized;
     }
 
+    private String normalizeTitle(String title) {
+        if (title == null) {
+            throw new BadRequestException("Corkboard title is required.");
+        }
+        String normalized = title.strip();
+        if (normalized.isBlank()) {
+            throw new BadRequestException("Corkboard title is required.");
+        }
+        if (normalized.length() > 120) {
+            throw new BadRequestException("Corkboard title must be 120 characters or fewer.");
+        }
+        return normalized;
+    }
+
+    private void validatePeriodRange(LocalDate periodStart, LocalDate periodEnd) {
+        if (periodStart == null || periodEnd == null) {
+            throw new BadRequestException("Corkboard periodStart and periodEnd are required.");
+        }
+        if (!periodStart.isBefore(periodEnd)) {
+            throw new BadRequestException("Corkboard periodStart must be before periodEnd.");
+        }
+    }
+
     private String adminDisplayName(AdminPrincipal actor) {
         if (actor == null || actor.userNm() == null || actor.userNm().isBlank()) {
             return "SwingPop";
@@ -376,7 +547,27 @@ public class CorkboardService {
     }
 
     private PeriodDescriptor currentPeriod() {
-        YearMonth month = YearMonth.from(LocalDate.now(SEOUL_ZONE));
+        archiveExpiredActiveBoards();
+        LocalDate today = today();
+        return corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)
+                .stream()
+                .filter(board -> !board.getPeriodStart().isAfter(today) && !board.getPeriodEnd().isBefore(today))
+                .sorted(Comparator
+                        .comparing(Corkboard::getPeriodStart)
+                        .thenComparing(Corkboard::getPeriodKey)
+                        .thenComparingInt(Corkboard::getPageNo))
+                .findFirst()
+                .map(board -> new PeriodDescriptor(
+                        board.getPeriodKey(),
+                        board.getTitle(),
+                        board.getPeriodStart(),
+                        board.getPeriodEnd()
+                ))
+                .orElseGet(this::defaultMonthlyPeriod);
+    }
+
+    private PeriodDescriptor defaultMonthlyPeriod() {
+        YearMonth month = YearMonth.from(today());
         String periodKey = month.format(PERIOD_FORMATTER);
         return new PeriodDescriptor(
                 periodKey,
@@ -384,6 +575,10 @@ public class CorkboardService {
                 month.atDay(1),
                 month.atEndOfMonth()
         );
+    }
+
+    private LocalDate today() {
+        return LocalDate.now(SEOUL_ZONE);
     }
 
     private Set<String> union(Set<String> left, Set<String> right) {

@@ -144,6 +144,122 @@ class CorkboardServiceTest {
     }
 
     @Test
+    void createPeriodRequiresSuperAdmin() {
+        assertThatThrownBy(() -> corkboardService.createPeriod(
+                staffPrincipal(),
+                new AdminCorkboardPeriodCreateRequest(
+                        "2030-01",
+                        "January Board",
+                        LocalDate.of(2030, 1, 1),
+                        LocalDate.of(2030, 1, 31)
+                )
+        )).isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void createPeriodRejectsDuplicatePeriodKey() {
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.existsByPeriodKey("2030-01")).thenReturn(true);
+
+        assertThatThrownBy(() -> corkboardService.createPeriod(
+                superAdminPrincipal(),
+                new AdminCorkboardPeriodCreateRequest(
+                        "2030-01",
+                        "January Board",
+                        LocalDate.of(2030, 1, 1),
+                        LocalDate.of(2030, 1, 31)
+                )
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createPeriodCreatesFirstPageWhenPeriodDoesNotOverlap() {
+        Corkboard futureBoard = periodBoard(
+                20L,
+                "2030-01",
+                "January Board",
+                LocalDate.of(2030, 1, 1),
+                LocalDate.of(2030, 1, 31),
+                1
+        );
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(currentBoard));
+        when(corkboardRepository.existsByPeriodKey("2030-01")).thenReturn(false);
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc())
+                .thenReturn(List.of(futureBoard, currentBoard));
+        when(corkboardRepository.save(any(Corkboard.class))).thenReturn(futureBoard);
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc("2030-01"))
+                .thenReturn(List.of(futureBoard));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(any()))
+                .thenReturn(List.of());
+
+        corkboardService.createPeriod(
+                superAdminPrincipal(),
+                new AdminCorkboardPeriodCreateRequest(
+                        "2030-01",
+                        "January Board",
+                        LocalDate.of(2030, 1, 1),
+                        LocalDate.of(2030, 1, 31)
+                )
+        );
+
+        ArgumentCaptor<Corkboard> boardCaptor = ArgumentCaptor.forClass(Corkboard.class);
+        verify(corkboardRepository).save(boardCaptor.capture());
+        Corkboard savedBoard = boardCaptor.getValue();
+
+        assertThat(savedBoard.getPeriodKey()).isEqualTo("2030-01");
+        assertThat(savedBoard.getTitle()).isEqualTo("January Board");
+        assertThat(savedBoard.getPeriodStart()).isEqualTo(LocalDate.of(2030, 1, 1));
+        assertThat(savedBoard.getPeriodEnd()).isEqualTo(LocalDate.of(2030, 1, 31));
+        assertThat(savedBoard.getPageNo()).isEqualTo(1);
+    }
+
+    @Test
+    void updatePeriodAppliesToEveryBoardPageInSamePeriod() {
+        Corkboard secondPage = currentBoard(2L, 2);
+        LocalDate nextStart = currentBoard.getPeriodStart().plusDays(1);
+        LocalDate nextEnd = currentBoard.getPeriodEnd();
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(currentBoard, secondPage));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard, secondPage));
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc())
+                .thenReturn(List.of(currentBoard, secondPage));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(any()))
+                .thenReturn(List.of());
+
+        corkboardService.updatePeriod(
+                superAdminPrincipal(),
+                currentBoard.getPeriodKey(),
+                new AdminCorkboardPeriodUpdateRequest("Updated Board", nextStart, nextEnd)
+        );
+
+        assertThat(currentBoard.getTitle()).isEqualTo("Updated Board");
+        assertThat(secondPage.getTitle()).isEqualTo("Updated Board");
+        assertThat(currentBoard.getPeriodStart()).isEqualTo(nextStart);
+        assertThat(secondPage.getPeriodStart()).isEqualTo(nextStart);
+        assertThat(currentBoard.getPeriodEnd()).isEqualTo(nextEnd);
+        assertThat(secondPage.getPeriodEnd()).isEqualTo(nextEnd);
+    }
+
+    @Test
+    void archivePeriodArchivesEveryBoardPageInSamePeriod() {
+        Corkboard secondPage = currentBoard(2L, 2);
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(currentBoard, secondPage));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard, secondPage));
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc())
+                .thenReturn(List.of(currentBoard, secondPage));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(any()))
+                .thenReturn(List.of());
+
+        corkboardService.archivePeriod(superAdminPrincipal(), currentBoard.getPeriodKey());
+
+        assertThat(currentBoard.getStatus()).isEqualTo(CorkboardStatus.ARCHIVED);
+        assertThat(secondPage.getStatus()).isEqualTo(CorkboardStatus.ARCHIVED);
+    }
+
+    @Test
     void updateHiddenTogglesNoteVisibility() {
         CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "hide me", 0);
         ReflectionTestUtils.setField(note, "id", 10L);
@@ -179,6 +295,18 @@ class CorkboardServiceTest {
         return board;
     }
 
+    private Corkboard periodBoard(Long id, String periodKey, String title, LocalDate start, LocalDate end, int pageNo) {
+        Corkboard board = Corkboard.create(
+                periodKey,
+                title,
+                start,
+                end,
+                pageNo
+        );
+        ReflectionTestUtils.setField(board, "id", id);
+        return board;
+    }
+
     private AdminPrincipal staffPrincipal() {
         return new AdminPrincipal(
                 "staff-1",
@@ -186,6 +314,17 @@ class CorkboardServiceTest {
                 "staff",
                 AdminRole.STAFF,
                 List.of(AdminRole.STAFF),
+                AdminLanguage.Kor
+        );
+    }
+
+    private AdminPrincipal superAdminPrincipal() {
+        return new AdminPrincipal(
+                "super-1",
+                "Super One",
+                "super",
+                AdminRole.SUPER_ADMIN,
+                List.of(AdminRole.SUPER_ADMIN),
                 AdminLanguage.Kor
         );
     }

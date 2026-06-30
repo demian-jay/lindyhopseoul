@@ -2676,7 +2676,7 @@ export default function AdminApp() {
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "CORKBOARD" ? (
-            <AdminCorkboardPanel token={token} langCd={langCd} />
+            <AdminCorkboardPanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "MEMBER_MESSAGES" ? (
             <AdminMemberMessagesPanel
