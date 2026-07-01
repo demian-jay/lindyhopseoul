@@ -1,4 +1,4 @@
-# lindyhopseoul
+# lindyhop community
 
 A mobile-first React page for introducing Lindy Hop and the swing dance community in Seoul. The repository now also includes a Spring Boot + MariaDB backend for memo examples, admin login, SwingPop operations manual management, and event/lesson operations.
 
