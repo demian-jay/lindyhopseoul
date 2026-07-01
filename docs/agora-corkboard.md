@@ -34,6 +34,10 @@ Tables created by JPA:
   - `z_index`, nullable stacking order for overlap handling
   - `placement_mode`: `SLOT` or `FREE`
   - `hidden`
+  - `deleted`
+  - `deleted_at`
+  - `deleted_by_member_id`
+  - `content_edited_at`
   - `author_nickname_snapshot`
   - `author_name_snapshot`
   - `created_at`
@@ -103,14 +107,18 @@ Logged-in members:
 
 - Can create `MEMBER` notes only on the current active board.
 - Can adjust the position of their own visible `MEMBER` notes on the current active board.
-- Cannot edit note content or delete notes in this MVP.
+- Can edit the content of their own visible `MEMBER` notes on the current active board.
+- Can soft-delete their own visible `MEMBER` notes on the current active board.
+- Cannot edit or delete other members' notes, hidden notes, `OFFICIAL` notes, or archived-board notes.
 
 Staff and super admins:
 
 - Can create `OFFICIAL` notes through the admin panel.
+- Can edit `OFFICIAL` note content through the admin panel.
 - Can hide or unhide any note.
 - Can adjust note positions from the admin panel on the current writable board.
 - Can view current and past boards, including hidden notes.
+- Do not directly edit member note content; use hidden/unhidden moderation for inappropriate member notes.
 
 Staff:
 
@@ -134,7 +142,11 @@ Permission matrix:
 | View archived boards | Yes | Yes | Yes | Yes |
 | Create member note | No | Current writable board only | No | No |
 | Move own member note | No | Own visible note on current writable board only | No | No |
+| Edit own member note content | No | Own visible note on current writable board only | No | No |
+| Delete own member note | No | Own visible note on current writable board only | No | No |
 | Create official notice | No | No | Yes | Yes |
+| Edit official notice content | No | No | Yes | Yes |
+| Edit member note content in admin | No | No | No | No |
 | Move note position in admin | No | No | Current writable board | Current writable board |
 | Hide/unhide notes | No | No | Yes | Yes |
 | View hidden notes in admin | No | No | Yes | Yes |
@@ -149,8 +161,17 @@ Content rules:
 - Max content length is 200 characters.
 - Author snapshots are taken from the server-side member/admin session, never from the client.
 - Public responses exclude `hidden=true` notes.
+- Public and archive responses exclude `deleted=true` notes.
 - React renders note content as text, so HTML/script input is not executed.
 - Coordinate input is accepted only for the current writable board. Archived boards remain read-only.
+
+Moderation and deletion:
+
+- `hidden` is an admin moderation flag. It hides a note from public responses while keeping it manageable in the admin Corkboard view.
+- `deleted` is the member soft-delete flag. When a member deletes their own note, the row remains in `corkboard_note` with `deleted=true`, `deleted_at`, and `deleted_by_member_id`.
+- Deleted notes are excluded from public board responses, archive responses, admin note lists, and period note counts.
+- Deleted notes cannot be edited, moved, hidden/unhidden, or deleted again through the Corkboard APIs.
+- `content_edited_at` records content edits separately from `updated_at`, because position edits also update the note row.
 
 ## APIs
 
@@ -161,6 +182,8 @@ Public:
 - `GET /api/agora/corkboards?periodKey=YYYY-MM`
 - `POST /api/agora/corkboard-notes`
 - `PATCH /api/agora/corkboard-notes/{id}/position`
+- `PATCH /api/agora/corkboard-notes/{id}/content`
+- `DELETE /api/agora/corkboard-notes/{id}`
 
 Admin:
 
@@ -174,6 +197,7 @@ Admin:
 - `POST /api/admin/agora/corkboard-notes`
 - `PATCH /api/admin/agora/corkboard-notes/{id}/hidden`
 - `PATCH /api/admin/agora/corkboard-notes/{id}/position`
+- `PATCH /api/admin/agora/corkboard-notes/{id}/content`
 
 `GET /api/admin/agora/corkboard-periods` returns period-level summaries grouped by `periodKey`, including page count, note count, status, and whether the period is currently writable. Mutating period endpoints require `SUPER_ADMIN`.
 
@@ -205,6 +229,28 @@ Position update request body:
 ```
 
 The member endpoint requires the server session to match the note owner. The admin endpoint requires a staff/admin bearer token. Both endpoints validate the same coordinate ranges and currently allow edits only on the current writable board.
+
+Member content update request body:
+
+```json
+{
+  "content": "Updated note text"
+}
+```
+
+`PATCH /api/agora/corkboard-notes/{id}/content` requires the current server session to own a visible `MEMBER` note on the current writable board. Content is trimmed and limited to 200 characters.
+
+`DELETE /api/agora/corkboard-notes/{id}` performs a soft delete for the current member's own visible `MEMBER` note on the current writable board. The row remains in the database and no longer appears on user-facing boards.
+
+Admin official content update request body:
+
+```json
+{
+  "content": "Updated staff notice"
+}
+```
+
+`PATCH /api/admin/agora/corkboard-notes/{id}/content` is limited to `OFFICIAL` notes. Member notes are moderated with hidden/unhidden status instead of direct admin content edits.
 
 ## Admin Operations
 
@@ -257,7 +303,9 @@ Design notes:
 - Notes have slight rotation, shadow, hover lift, selected outline, and attach/land animations.
 - The write flow includes template selection, live preview, character count, board tap/drag placement, and submit feedback.
 - Owner position editing uses long press, drag, and drop confirmation. There is no separate move button on the public board.
+- Owner content editing and soft deletion are available from a small `...` action menu on the user's own visible current-board `MEMBER` notes.
 - The admin panel uses compact numeric `positionX`, `positionY`, and `rotationDeg` inputs per note card to keep the management layout operational.
+- The admin panel allows inline content editing only for `OFFICIAL` note cards.
 - Existing slot-only notes use deterministic fallback coordinates from `slotIndex`.
 
 ## QA Status
@@ -282,7 +330,10 @@ Completed checks:
 - Member note placement supports board tap, pointer drag, and touch drag. Reloaded notes stay in the saved percentage position.
 - Existing slot-only notes and new free-position notes render together on the same board.
 - Owner note position editing saves through `PATCH /api/agora/corkboard-notes/{id}/position` only after the drop confirmation is accepted; after refresh, edited notes stay at the saved percentage coordinates.
+- Owner note content editing saves through `PATCH /api/agora/corkboard-notes/{id}/content` and updates the board immediately.
+- Owner note deletion uses `DELETE /api/agora/corkboard-notes/{id}` and removes the note from public/admin note responses via soft delete.
 - Admin note position editing is available from each admin note card and preserves the list/card management layout.
+- Admin `OFFICIAL` note content editing is available from the admin note card. `MEMBER` notes remain moderation-only through hidden/unhidden status.
 - Archived boards are read-only.
 - Admin Corkboard period settings render on desktop and mobile without horizontal overflow.
 - Admin current period info displays `periodKey`, title, start/end dates, status, page count, note count, and writable state.
@@ -313,14 +364,19 @@ Logged-in member:
 - [x] Sees no public `위치 수정` button; only own movable notes respond to long press.
 - [x] Can cancel the drop confirmation and return the note to its saved position.
 - [x] Can confirm a dropped position and keep the new position after reload.
+- [x] Can open the `...` menu on own visible current-board member notes.
+- [x] Can edit own note content and see it update immediately.
+- [x] Can delete own note with confirmation; the note disappears and stays hidden after reload.
+- [x] Cannot edit or delete other members' notes, official notes, hidden notes, or archived notes.
 - [x] Cannot write to archived boards.
-- [x] Cannot edit note content or delete notes in this MVP.
 
 Staff or admin:
 
 - [x] Can access the admin Corkboard menu.
 - [x] Can view current and archived corkboards.
 - [x] Can create `OFFICIAL` notes from the admin panel.
+- [x] Can edit `OFFICIAL` note content from the admin panel.
+- [x] Cannot directly edit `MEMBER` note content in admin; uses hidden/unhidden moderation.
 - [x] Official notes are visually emphasized without looking like a rigid notice board.
 - [x] Can hide and unhide notes.
 - [x] Hidden notes are still available in the admin view.

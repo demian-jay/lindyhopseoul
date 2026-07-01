@@ -75,6 +75,18 @@ public class CorkboardNote {
     @Column(name = "hidden", nullable = false)
     private boolean hidden;
 
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(name = "deleted_by_member_id")
+    private Long deletedByMemberId;
+
+    @Column(name = "content_edited_at")
+    private Instant contentEditedAt;
+
     @Column(name = "author_nickname_snapshot", length = 40)
     private String authorNicknameSnapshot;
 
@@ -207,6 +219,17 @@ public class CorkboardNote {
         this.hidden = hidden;
     }
 
+    public void updateContent(String content) {
+        this.content = content;
+        this.contentEditedAt = Instant.now();
+    }
+
+    public void softDelete(Long memberId) {
+        this.deleted = true;
+        this.deletedAt = Instant.now();
+        this.deletedByMemberId = memberId;
+    }
+
     public void updatePlacement(Placement placement) {
         if (placement == null) {
             return;
@@ -293,6 +316,22 @@ public class CorkboardNote {
 
     public boolean isHidden() {
         return hidden;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public Long getDeletedByMemberId() {
+        return deletedByMemberId;
+    }
+
+    public Instant getContentEditedAt() {
+        return contentEditedAt;
     }
 
     public String getAuthorNicknameSnapshot() {

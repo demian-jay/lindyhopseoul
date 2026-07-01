@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminApi } from "./api/admin";
-import { OFFICIAL_CORKBOARD_TEMPLATES } from "./CorkboardPage";
+import { CorkboardBoard, OFFICIAL_CORKBOARD_TEMPLATES } from "./CorkboardPage";
 import "./corkboard.css";
 
 const COPY = {
@@ -63,6 +63,8 @@ const COPY = {
     board: "Board",
     preview: "미리보기",
     view: "보기",
+    manageView: "관리용 보기",
+    boardPreviewView: "보드 미리보기",
     collapse: "접기",
     hide: "숨기기",
     unhide: "숨김 해제",
@@ -86,6 +88,16 @@ const COPY = {
     savingPosition: "위치 저장 중",
     positionSaved: "메모 위치를 저장했습니다.",
     positionSaveError: "메모 위치를 저장하지 못했습니다.",
+    editContent: "공지 수정",
+    saveContent: "내용 저장",
+    savingContent: "내용 저장 중",
+    cancel: "취소",
+    contentSaved: "운영진 공지 내용을 수정했습니다.",
+    contentSaveError: "운영진 공지 내용을 수정하지 못했습니다.",
+    previewPlacementHint: "보드에서 공지 위치를 탭하거나 미리보기 공지를 드래그해 붙일 자리를 정하세요.",
+    previewPlacementReady: "선택한 위치로 운영진 공지가 등록됩니다.",
+    previewPlacement: "공지 위치",
+    resetPlacement: "추천 위치",
     status: "상태",
     yes: "예",
     no: "아니오",
@@ -149,6 +161,8 @@ const COPY = {
     board: "Board",
     preview: "Preview",
     view: "View",
+    manageView: "Management View",
+    boardPreviewView: "Board Preview",
     collapse: "Collapse",
     hide: "Hide",
     unhide: "Unhide",
@@ -172,6 +186,16 @@ const COPY = {
     savingPosition: "Saving Position",
     positionSaved: "Note position saved.",
     positionSaveError: "Could not save the note position.",
+    editContent: "Edit Notice",
+    saveContent: "Save Content",
+    savingContent: "Saving Content",
+    cancel: "Cancel",
+    contentSaved: "Staff notice updated.",
+    contentSaveError: "Could not update the staff notice.",
+    previewPlacementHint: "Tap the board or drag the preview notice to choose where it will be pinned.",
+    previewPlacementReady: "The staff notice will be pinned at the selected spot.",
+    previewPlacement: "Notice position",
+    resetPlacement: "Suggested Spot",
     status: "Status",
     yes: "Yes",
     no: "No",
@@ -359,6 +383,29 @@ function notePositionForm(note) {
   };
 }
 
+const ADMIN_NOTICE_PLACEMENTS = [
+  { positionX: 72, positionY: 24, rotationDeg: 2.4 },
+  { positionX: 29, positionY: 34, rotationDeg: -2.8 },
+  { positionX: 58, positionY: 52, rotationDeg: 1.7 },
+  { positionX: 81, positionY: 64, rotationDeg: -1.6 },
+  { positionX: 37, positionY: 73, rotationDeg: 2.1 },
+  { positionX: 62, positionY: 18, rotationDeg: -2.2 },
+];
+
+function suggestedNoticePlacement(page) {
+  const noteCount = (page?.notes || []).length;
+  const placement = ADMIN_NOTICE_PLACEMENTS[noteCount % ADMIN_NOTICE_PLACEMENTS.length];
+  return { ...placement };
+}
+
+function roundPlacement(placement) {
+  return {
+    positionX: Math.round((Number(placement?.positionX) || 0) * 10) / 10,
+    positionY: Math.round((Number(placement?.positionY) || 0) * 10) / 10,
+    rotationDeg: Math.round((Number(placement?.rotationDeg) || 0) * 10) / 10,
+  };
+}
+
 function updateManagementNote(management, updatedNote) {
   if (!management || !updatedNote?.id) {
     return management;
@@ -405,17 +452,27 @@ function AdminCorkboardNoteCard({
   isFresh,
   isToggling,
   isSavingPosition,
+  isEditingContent,
+  isSavingContent,
   onToggleExpand,
   onToggleHidden,
   onUpdatePosition,
+  onStartEditContent,
+  onCancelEditContent,
+  onUpdateContent,
 }) {
   const isOfficial = note?.noteType === "OFFICIAL";
   const noteTypeLabel = isOfficial ? labels.official : labels.member;
   const [positionForm, setPositionForm] = useState(() => notePositionForm(note));
+  const [contentForm, setContentForm] = useState(note?.content || "");
 
   useEffect(() => {
     setPositionForm(notePositionForm(note));
   }, [note?.id, note?.positionX, note?.positionY, note?.rotationDeg, note?.slotIndex]);
+
+  useEffect(() => {
+    setContentForm(note?.content || "");
+  }, [isEditingContent, note?.content, note?.id]);
 
   const handlePositionChange = (field, value) => {
     setPositionForm((current) => ({ ...current, [field]: value }));
@@ -428,6 +485,11 @@ function AdminCorkboardNoteCard({
       positionY: Number(positionForm.positionY),
       rotationDeg: Number(positionForm.rotationDeg),
     });
+  };
+
+  const handleContentSubmit = (event) => {
+    event.preventDefault();
+    onUpdateContent?.(note, contentForm);
   };
 
   return (
@@ -455,6 +517,27 @@ function AdminCorkboardNoteCard({
       <p className={`admin-corkboard-note-content ${isExpanded ? "is-expanded" : ""}`}>
         {note?.content}
       </p>
+
+      {isOfficial && isEditingContent ? (
+        <form className="admin-corkboard-content-form" onSubmit={handleContentSubmit}>
+          <textarea
+            value={contentForm}
+            maxLength={200}
+            onChange={(event) => setContentForm(event.target.value.slice(0, 200))}
+          />
+          <div className="admin-corkboard-content-form-footer">
+            <span>{labels.remaining(Math.max(200 - contentForm.length, 0))}</span>
+            <div>
+              <button type="button" onClick={onCancelEditContent} disabled={isSavingContent}>
+                {labels.cancel}
+              </button>
+              <button type="submit" disabled={isSavingContent}>
+                {isSavingContent ? labels.savingContent : labels.saveContent}
+              </button>
+            </div>
+          </div>
+        </form>
+      ) : null}
 
       <dl className="admin-corkboard-note-meta">
         <div>
@@ -542,6 +625,11 @@ function AdminCorkboardNoteCard({
         <button type="button" onClick={() => onToggleExpand(note)}>
           {isExpanded ? labels.collapse : labels.view}
         </button>
+        {isOfficial && !isEditingContent ? (
+          <button type="button" onClick={() => onStartEditContent(note)}>
+            {labels.editContent}
+          </button>
+        ) : null}
         <button
           type="button"
           className={note?.hidden ? "is-unhide" : "is-hide"}
@@ -563,9 +651,14 @@ function AdminCorkboardNoteGrid({
   freshNoteId,
   togglingNoteId,
   savingPositionNoteId,
+  editingContentNoteId,
+  savingContentNoteId,
   onToggleExpand,
   onToggleHidden,
   onUpdatePosition,
+  onStartEditContent,
+  onCancelEditContent,
+  onUpdateContent,
 }) {
   const notes = sortedNotes(page);
 
@@ -586,9 +679,14 @@ function AdminCorkboardNoteGrid({
           isFresh={freshNoteId === note.id}
           isToggling={togglingNoteId === note.id}
           isSavingPosition={savingPositionNoteId === note.id}
+          isEditingContent={editingContentNoteId === note.id}
+          isSavingContent={savingContentNoteId === note.id}
           onToggleExpand={onToggleExpand}
           onToggleHidden={onToggleHidden}
           onUpdatePosition={onUpdatePosition}
+          onStartEditContent={onStartEditContent}
+          onCancelEditContent={onCancelEditContent}
+          onUpdateContent={onUpdateContent}
         />
       ))}
     </div>
@@ -615,8 +713,11 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [management, setManagement] = useState(null);
   const [selectedPeriodKey, setSelectedPeriodKey] = useState("");
   const [activePageIndex, setActivePageIndex] = useState(0);
+  const [boardViewMode, setBoardViewMode] = useState("manage");
   const [selectedTemplate, setSelectedTemplate] = useState("official");
   const [content, setContent] = useState("");
+  const [noticePlacement, setNoticePlacement] = useState(() => suggestedNoticePlacement(null));
+  const [isNoticeDraftDragging, setIsNoticeDraftDragging] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -625,6 +726,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [freshNoteId, setFreshNoteId] = useState(null);
   const [togglingNoteId, setTogglingNoteId] = useState(null);
   const [savingPositionNoteId, setSavingPositionNoteId] = useState(null);
+  const [editingContentNoteId, setEditingContentNoteId] = useState(null);
+  const [savingContentNoteId, setSavingContentNoteId] = useState(null);
   const [settingsForm, setSettingsForm] = useState({ title: "", periodStart: "", periodEnd: "" });
   const [createPeriodForm, setCreatePeriodForm] = useState({
     periodKey: "",
@@ -657,6 +760,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       setManagement(nextManagement);
       setSelectedPeriodKey(nextManagement?.selected?.periodKey || "");
       setActivePageIndex(0);
+      setEditingContentNoteId(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -698,15 +802,32 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
     }
   }, [activePageIndex, selected?.pages?.length]);
 
+  useEffect(() => {
+    setNoticePlacement(suggestedNoticePlacement(activePage));
+    setIsNoticeDraftDragging(false);
+  }, [activePage?.id, activePage?.pageNo, selected?.periodKey]);
+
   const previewNote = useMemo(() => ({
     id: "admin-preview",
     noteType: "OFFICIAL",
     stickerTemplateKey: selectedTemplate,
     content: content.trim() || labels.contentPlaceholder,
     slotIndex: 2,
+    positionX: noticePlacement.positionX,
+    positionY: noticePlacement.positionY,
+    rotationDeg: noticePlacement.rotationDeg,
+    zIndex: 90,
+    placementMode: "FREE",
     authorNameSnapshot: "SwingPop",
     createdAt: new Date().toISOString(),
-  }), [content, labels.contentPlaceholder, selectedTemplate]);
+  }), [
+    content,
+    labels.contentPlaceholder,
+    noticePlacement.positionX,
+    noticePlacement.positionY,
+    noticePlacement.rotationDeg,
+    selectedTemplate,
+  ]);
 
   const acceptManagementResponse = (nextManagement, preferredPeriodKey) => {
     setManagement(nextManagement);
@@ -829,12 +950,17 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
     }
 
     const previousIds = flatNoteIds(selected);
+    const placement = roundPlacement(noticePlacement);
     setIsSubmitting(true);
     try {
       const nextManagement = await adminApi.createOfficialCorkboardNote(token, {
         periodKey: selected?.periodKey,
         stickerTemplateKey: selectedTemplate,
         content: normalizedContent,
+        positionX: placement.positionX,
+        positionY: placement.positionY,
+        rotationDeg: placement.rotationDeg,
+        pageNo: activePage?.pageNo,
       });
       setManagement(nextManagement);
       setSelectedPeriodKey(nextManagement?.selected?.periodKey || "");
@@ -846,6 +972,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
         window.setTimeout(() => setFreshNoteId(null), 1600);
       }
       setContent("");
+      setNoticePlacement(suggestedNoticePlacement(nextManagement?.selected?.pages?.[activePageIndex] || activePage));
       setNotice(labels.saved);
     } catch (nextError) {
       setError(nextError.message || labels.saveError);
@@ -893,6 +1020,54 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       setError(nextError.message || labels.positionSaveError);
     } finally {
       setSavingPositionNoteId(null);
+    }
+  };
+
+  const handleStartEditContent = (note) => {
+    if (note?.noteType !== "OFFICIAL") {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setExpandedNoteId(note.id);
+    setEditingContentNoteId(note.id);
+  };
+
+  const handleCancelEditContent = () => {
+    if (savingContentNoteId) {
+      return;
+    }
+    setEditingContentNoteId(null);
+  };
+
+  const handleUpdateContent = async (note, nextContent) => {
+    if (!note?.id || note?.noteType !== "OFFICIAL" || savingContentNoteId) {
+      return;
+    }
+    const normalizedContent = nextContent.trim();
+    setError("");
+    setNotice("");
+    if (!normalizedContent) {
+      setError(labels.required);
+      return;
+    }
+    if (normalizedContent.length > 200) {
+      setError(labels.contentSaveError);
+      return;
+    }
+    setSavingContentNoteId(note.id);
+    try {
+      const updatedNote = await adminApi.updateCorkboardNoteContent(token, note.id, { content: normalizedContent });
+      setManagement((current) => updateManagementNote(current, updatedNote));
+      setExpandedNoteId(note.id);
+      setFreshNoteId(note.id);
+      setEditingContentNoteId(null);
+      window.setTimeout(() => setFreshNoteId(null), 1200);
+      setNotice(labels.contentSaved);
+    } catch (nextError) {
+      setError(nextError.message || labels.contentSaveError);
+    } finally {
+      setSavingContentNoteId(null);
     }
   };
 
@@ -1148,11 +1323,29 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               <h3 className="text-lg font-bold text-zinc-950">{selected?.title || labels.title}</h3>
               <p className="mt-1 text-sm font-semibold text-zinc-500">{selected?.periodKey}</p>
             </div>
-            {selected?.readOnly ? (
-              <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold text-white">
-                {labels.readOnly}
-              </span>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="admin-corkboard-view-toggle" role="tablist" aria-label="Corkboard view mode">
+                <button
+                  type="button"
+                  className={boardViewMode === "manage" ? "is-active" : ""}
+                  onClick={() => setBoardViewMode("manage")}
+                >
+                  {labels.manageView}
+                </button>
+                <button
+                  type="button"
+                  className={boardViewMode === "preview" ? "is-active" : ""}
+                  onClick={() => setBoardViewMode("preview")}
+                >
+                  {labels.boardPreviewView}
+                </button>
+              </div>
+              {selected?.readOnly ? (
+                <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold text-white">
+                  {labels.readOnly}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {selected?.pages?.length > 1 ? (
@@ -1176,6 +1369,26 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
           {isLoading && !selected ? (
             <div className="grid min-h-80 place-items-center text-sm font-bold text-zinc-500">{labels.loading}</div>
+          ) : boardViewMode === "preview" ? (
+            <div className="admin-corkboard-preview-board">
+              <CorkboardBoard
+                page={activePage}
+                language={language}
+                activeNoteId={expandedNoteId}
+                freshNoteId={freshNoteId}
+                draftNote={!selected?.readOnly ? previewNote : null}
+                canPlaceNote={!selected?.readOnly && !isSubmitting}
+                placementLabel={isNoticeDraftDragging ? labels.previewPlacementReady : labels.previewPlacementHint}
+                isDraftDragging={isNoticeDraftDragging}
+                onNoteSelect={(note) => setExpandedNoteId((currentId) => (currentId === note.id ? null : note.id))}
+                onDraftPlacementChange={(placement) => setNoticePlacement((current) => ({
+                  ...current,
+                  ...roundPlacement({ ...current, ...placement }),
+                }))}
+                onDraftDragChange={setIsNoticeDraftDragging}
+                emptyLabel={labels.empty}
+              />
+            </div>
           ) : (
             <AdminCorkboardNoteGrid
               page={activePage}
@@ -1185,9 +1398,14 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               freshNoteId={freshNoteId}
               togglingNoteId={togglingNoteId}
               savingPositionNoteId={savingPositionNoteId}
+              editingContentNoteId={editingContentNoteId}
+              savingContentNoteId={savingContentNoteId}
               onToggleExpand={handleToggleExpanded}
               onToggleHidden={handleToggleHidden}
               onUpdatePosition={handleUpdatePosition}
+              onStartEditContent={handleStartEditContent}
+              onCancelEditContent={handleCancelEditContent}
+              onUpdateContent={handleUpdateContent}
             />
           )}
         </section>
@@ -1220,6 +1438,24 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               <div>
                 <div className="mb-2 text-xs font-bold text-zinc-500">{labels.preview}</div>
                 <AdminCorkboardNoticePreview note={previewNote} labels={labels} />
+              </div>
+
+              <div className="admin-corkboard-placement-summary">
+                <div>
+                  <span>{labels.previewPlacement}</span>
+                  <strong>
+                    X {formatPlacementNumber(noticePlacement.positionX, "%")} · Y {formatPlacementNumber(noticePlacement.positionY, "%")} · {formatPlacementNumber(noticePlacement.rotationDeg, "deg")}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNoticePlacement(suggestedNoticePlacement(activePage));
+                    setBoardViewMode("preview");
+                  }}
+                >
+                  {labels.resetPlacement}
+                </button>
               </div>
 
               <textarea

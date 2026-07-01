@@ -270,6 +270,9 @@ public class CorkboardService {
         requireCorkboardAdmin(actor);
         CorkboardNote note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (note.isDeleted()) {
+            throw new BadRequestException("Deleted corkboard notes cannot be moderated.");
+        }
         note.setHidden(request != null && request.hidden());
         return CorkboardNoteResponse.from(note);
     }
@@ -283,6 +286,9 @@ public class CorkboardService {
         Member member = findActiveMember(memberId);
         CorkboardNote note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (note.isDeleted()) {
+            throw new BadRequestException("Deleted corkboard notes cannot be moved.");
+        }
         if (note.isHidden()) {
             throw new ForbiddenException("Hidden corkboard notes cannot be moved by members.");
         }
@@ -307,12 +313,63 @@ public class CorkboardService {
         requireCorkboardAdmin(actor);
         CorkboardNote note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (note.isDeleted()) {
+            throw new BadRequestException("Deleted corkboard notes cannot be moved.");
+        }
         if (!isWritableNoteBoard(note)) {
             throw new BadRequestException("Only the current writable corkboard can be edited.");
         }
 
         CorkboardNote.Placement placement = normalizeFreePlacement(request, note.getSlotIndex());
         note.updatePlacement(placement);
+        return CorkboardNoteResponse.from(note);
+    }
+
+    @Transactional
+    public CorkboardNoteResponse updateMemberNoteContent(
+            Long memberId,
+            Long noteId,
+            CorkboardNoteContentRequest request
+    ) {
+        Member member = findActiveMember(memberId);
+        CorkboardNote note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        validateMemberOwnedVisibleWritableNote(note, member.getId(), "edited");
+
+        note.updateContent(normalizeContent(request == null ? null : request.content()));
+        return CorkboardNoteResponse.from(note, true);
+    }
+
+    @Transactional
+    public void deleteMemberNote(Long memberId, Long noteId) {
+        Member member = findActiveMember(memberId);
+        CorkboardNote note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        validateMemberOwnedVisibleWritableNote(note, member.getId(), "deleted");
+
+        note.softDelete(member.getId());
+    }
+
+    @Transactional
+    public CorkboardNoteResponse updateAdminOfficialNoteContent(
+            AdminPrincipal actor,
+            Long noteId,
+            CorkboardNoteContentRequest request
+    ) {
+        requireCorkboardAdmin(actor);
+        CorkboardNote note = noteRepository.findById(noteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Corkboard note not found."));
+        if (note.isDeleted()) {
+            throw new BadRequestException("Deleted corkboard notes cannot be edited.");
+        }
+        if (note.getNoteType() != CorkboardNoteType.OFFICIAL) {
+            throw new ForbiddenException("Member corkboard notes should be moderated with hidden status.");
+        }
+        if (!isWritableNoteBoard(note)) {
+            throw new BadRequestException("Only the current writable corkboard can be edited.");
+        }
+
+        note.updateContent(normalizeContent(request == null ? null : request.content()));
         return CorkboardNoteResponse.from(note);
     }
 
@@ -487,6 +544,7 @@ public class CorkboardService {
         boolean periodWritable = !readOnly;
         Map<Long, List<CorkboardNoteResponse>> notesByBoardId = noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(boards)
                 .stream()
+                .filter(note -> !note.isDeleted())
                 .filter(note -> includeHidden || !note.isHidden())
                 .map(note -> CorkboardNoteResponse.from(
                         note,
@@ -531,6 +589,7 @@ public class CorkboardService {
                 ));
         Map<String, Long> noteCountsByPeriod = noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(boards)
                 .stream()
+                .filter(note -> !note.isDeleted())
                 .filter(note -> includeHidden || !note.isHidden())
                 .collect(Collectors.groupingBy(
                         note -> note.getBoard().getPeriodKey(),
@@ -595,7 +654,7 @@ public class CorkboardService {
     }
 
     private boolean canMemberEditPosition(CorkboardNote note, Long memberId, boolean periodWritable) {
-        if (memberId == null || !periodWritable || note == null || note.isHidden()) {
+        if (memberId == null || !periodWritable || note == null || note.isHidden() || note.isDeleted()) {
             return false;
         }
         if (note.getNoteType() != CorkboardNoteType.MEMBER || note.getMember() == null) {
@@ -603,6 +662,25 @@ public class CorkboardService {
         }
         Long noteMemberId = note.getMember().getId();
         return noteMemberId != null && noteMemberId.equals(memberId);
+    }
+
+    private void validateMemberOwnedVisibleWritableNote(CorkboardNote note, Long memberId, String action) {
+        if (note.isDeleted()) {
+            throw new BadRequestException("Deleted corkboard notes cannot be " + action + ".");
+        }
+        if (note.isHidden()) {
+            throw new ForbiddenException("Hidden corkboard notes cannot be " + action + " by members.");
+        }
+        if (note.getNoteType() != CorkboardNoteType.MEMBER || note.getMember() == null) {
+            throw new ForbiddenException("Only your own member notes can be " + action + ".");
+        }
+        Long noteMemberId = note.getMember().getId();
+        if (noteMemberId == null || !noteMemberId.equals(memberId)) {
+            throw new ForbiddenException("Only your own member notes can be " + action + ".");
+        }
+        if (!isWritableNoteBoard(note)) {
+            throw new BadRequestException("Only the current writable corkboard can be edited.");
+        }
     }
 
     private boolean rangesOverlap(LocalDate leftStart, LocalDate leftEnd, LocalDate rightStart, LocalDate rightEnd) {

@@ -264,8 +264,7 @@
   transform: translate(-50%, -50%) rotate(var(--note-rotate));
   transform-origin: 52% 12%;
   transition: transform 170ms ease, box-shadow 170ms ease, filter 170ms ease;
-  animation: corkboard-note-attach 420ms cubic-bezier(.2, .8, .2, 1) both;
-  animation-delay: var(--note-delay);
+  animation: none;
   outline: none;
   touch-action: manipulation;
   user-select: none;
@@ -286,6 +285,7 @@
 
 .corkboard-note.is-fresh {
   animation: corkboard-note-land 860ms cubic-bezier(.18, .9, .24, 1) both;
+  animation-delay: 0s;
 }
 
 .corkboard-note.is-fresh .corkboard-fixture-pin {
@@ -509,6 +509,77 @@
   font-weight: 900;
 }
 
+.corkboard-note-footer-meta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.corkboard-note-actions {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 5;
+}
+
+.corkboard-note-action-trigger {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0 0 5px;
+  color: #3f2d20;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(43, 27, 16, 0.18);
+}
+
+.corkboard-note-action-trigger:hover,
+.corkboard-note-action-trigger:focus-visible {
+  background: #ffffff;
+  outline: 3px solid rgba(20, 184, 166, 0.28);
+}
+
+.corkboard-note-action-menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  display: grid;
+  min-width: 112px;
+  overflow: hidden;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 28px rgba(43, 27, 16, 0.2);
+}
+
+.corkboard-note-action-menu button {
+  min-height: 38px;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 12px;
+  color: #334155;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.corkboard-note-action-menu button:hover,
+.corkboard-note-action-menu button:focus-visible {
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+.corkboard-note-action-menu button.is-delete:hover,
+.corkboard-note-action-menu button.is-delete:focus-visible {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .corkboard-note-admin-action {
   position: absolute;
   right: 9px;
@@ -606,6 +677,11 @@
   color: #ffffff;
 }
 
+.corkboard-move-confirm button.is-danger {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
 .corkboard-move-confirm button:disabled {
   cursor: wait;
   opacity: 0.58;
@@ -613,6 +689,38 @@
 
 .corkboard-page.is-move-confirm-open .corkboard-stage {
   pointer-events: none;
+}
+
+.corkboard-note-edit-modal {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.corkboard-note-edit-modal textarea {
+  min-height: 124px;
+  resize: vertical;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px;
+  color: #1f2937;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  outline: none;
+}
+
+.corkboard-note-edit-modal textarea:focus {
+  border-color: rgba(15, 118, 110, 0.58);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+}
+
+.corkboard-note-edit-count {
+  margin-top: -6px;
+  color: rgba(17, 94, 89, 0.72);
+  text-align: right;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .corkboard-placement-tip {
@@ -906,6 +1014,104 @@
   align-items: start;
 }
 
+.admin-corkboard-view-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #d4d4d8;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 3px;
+}
+
+.admin-corkboard-view-toggle button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 12px;
+  color: #52525b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-corkboard-view-toggle button.is-active {
+  background: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(15, 118, 110, 0.18);
+}
+
+.admin-corkboard-preview-board {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.admin-corkboard-preview-board .corkboard-stage {
+  min-height: 620px;
+}
+
+.admin-corkboard-preview-board .corkboard-note-hidden::before {
+  content: "hidden";
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 4;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 3px 7px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.admin-corkboard-placement-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #ccfbf1;
+  border-radius: 8px;
+  background: #f0fdfa;
+  padding: 10px;
+}
+
+.admin-corkboard-placement-summary div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-corkboard-placement-summary span {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-corkboard-placement-summary strong {
+  color: #134e4a;
+  font-size: 12px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.admin-corkboard-placement-summary button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #0f766e;
+  padding: 0 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .admin-corkboard-note-card {
   min-width: 0;
   display: grid;
@@ -1096,6 +1302,78 @@
 }
 
 .admin-corkboard-position-form button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.admin-corkboard-content-form {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.admin-corkboard-content-form textarea {
+  min-height: 108px;
+  resize: vertical;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+  color: #18181b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  outline: none;
+}
+
+.admin-corkboard-content-form textarea:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+}
+
+.admin-corkboard-content-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-corkboard-content-form-footer > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-corkboard-content-form-footer > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-corkboard-content-form-footer button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #f4f4f5;
+  padding: 0 12px;
+  color: #3f3f46;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-corkboard-content-form-footer button:last-child {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.admin-corkboard-content-form-footer button:disabled {
   cursor: wait;
   opacity: 0.58;
 }
@@ -1407,6 +1685,14 @@
   .corkboard-stage {
     min-height: 520px;
     border-width: 10px;
+  }
+
+  .admin-corkboard-preview-board .corkboard-stage {
+    min-height: 500px;
+  }
+
+  .admin-corkboard-view-toggle {
+    width: 100%;
   }
 
   .corkboard-slots {

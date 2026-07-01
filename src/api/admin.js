@@ -384,6 +384,13 @@ export const adminApi = {
       body: payload,
     });
   },
+  updateCorkboardNoteContent(token, noteId, payload) {
+    return request(`/api/admin/agora/corkboard-notes/${noteId}/content`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   findTeacherDashboard(token) {
     return request("/api/teacher/dashboard", { token });
   },

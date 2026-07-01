@@ -68,6 +68,22 @@ const COPY = {
     cancelPosition: "취소",
     positionSaved: "메모 위치를 저장했습니다.",
     positionSaveError: "메모 위치를 저장하지 못했습니다.",
+    noteActions: "메모 메뉴",
+    editNote: "내용 수정",
+    deleteNote: "삭제",
+    editedMark: "수정됨",
+    editNoteTitle: "메모 내용 수정",
+    editNoteBody: "보드에 붙어 있는 느낌은 그대로 두고, 내용만 살짝 고쳐요.",
+    saveEdit: "저장",
+    savingEdit: "저장 중",
+    editSaved: "메모 내용을 수정했습니다.",
+    editSaveError: "메모 내용을 수정하지 못했습니다.",
+    deleteNoteTitle: "이 메모를 삭제할까요?",
+    deleteNoteBody: "삭제한 메모는 보드에서 보이지 않습니다.",
+    confirmDelete: "삭제",
+    deletingNote: "삭제 중",
+    deleteSaved: "메모를 삭제했습니다.",
+    deleteError: "메모를 삭제하지 못했습니다.",
     staff: "운영진",
     friend: "스윙팝 친구",
   },
@@ -107,6 +123,22 @@ const COPY = {
     cancelPosition: "Cancel",
     positionSaved: "Note position saved.",
     positionSaveError: "Could not save the note position.",
+    noteActions: "Note actions",
+    editNote: "Edit text",
+    deleteNote: "Delete",
+    editedMark: "Edited",
+    editNoteTitle: "Edit note text",
+    editNoteBody: "Keep the note where it is and gently update the words.",
+    saveEdit: "Save",
+    savingEdit: "Saving",
+    editSaved: "Note updated.",
+    editSaveError: "Could not update the note.",
+    deleteNoteTitle: "Delete this note?",
+    deleteNoteBody: "Deleted notes will no longer appear on the board.",
+    confirmDelete: "Delete",
+    deletingNote: "Deleting",
+    deleteSaved: "Note deleted.",
+    deleteError: "Could not delete the note.",
     staff: "Staff",
     friend: "SwingPop friend",
   },
@@ -293,6 +325,19 @@ function updateNoteInBoard(boardData, updatedNote) {
   };
 }
 
+function removeNoteFromBoard(boardData, noteId) {
+  if (!boardData || !noteId) {
+    return boardData;
+  }
+  return {
+    ...boardData,
+    pages: (boardData.pages || []).map((page) => ({
+      ...page,
+      notes: (page.notes || []).filter((note) => note.id !== noteId),
+    })),
+  };
+}
+
 export function CorkboardNoteCard({
   note,
   language = "ko",
@@ -305,9 +350,14 @@ export function CorkboardNoteCard({
   isMoveArmed = false,
   movementPhase = "",
   canEditPosition = false,
+  canOpenActions = false,
+  isActionMenuOpen = false,
   zIndexOverride,
   onSelect,
   onToggleHidden,
+  onToggleActions,
+  onEditContent,
+  onDeleteNote,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -356,7 +406,10 @@ export function CorkboardNoteCard({
       <div className="corkboard-note-content">{note.content}</div>
       <div className="corkboard-note-footer">
         <span>{noteAuthor(note, labels)}</span>
-        <span>{formatDate(note.createdAt, language)}</span>
+        <span className="corkboard-note-footer-meta">
+          <span>{formatDate(note.createdAt, language)}</span>
+          {note?.contentEditedAt ? <span>{labels.editedMark}</span> : null}
+        </span>
       </div>
       {adminControls ? (
         <button
@@ -369,6 +422,41 @@ export function CorkboardNoteCard({
         >
           {note.hidden ? "보이기" : "숨기기"}
         </button>
+      ) : null}
+      {canOpenActions ? (
+        <div
+          className="corkboard-note-actions"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="corkboard-note-action-trigger"
+            aria-label={labels.noteActions}
+            aria-haspopup="menu"
+            aria-expanded={isActionMenuOpen}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleActions?.(note);
+            }}
+          >
+            ...
+          </button>
+          {isActionMenuOpen ? (
+            <div className="corkboard-note-action-menu" role="menu">
+              {note?.contentEditable ? (
+                <button type="button" role="menuitem" onClick={() => onEditContent?.(note)}>
+                  {labels.editNote}
+                </button>
+              ) : null}
+              {note?.deletable ? (
+                <button type="button" role="menuitem" className="is-delete" onClick={() => onDeleteNote?.(note)}>
+                  {labels.deleteNote}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </article>
   );
@@ -397,6 +485,10 @@ export function CorkboardBoard({
   onDropPositionEdit,
   onCancelPositionEdit,
   onPositionHoldNoteChange,
+  actionMenuNoteId = null,
+  onToggleNoteActions,
+  onEditNoteContent,
+  onDeleteNote,
   emptyLabel,
 }) {
   const stageRef = useRef(null);
@@ -600,6 +692,11 @@ export function CorkboardBoard({
               zIndexOverride={isEditingThisNote ? 95 : undefined}
               onSelect={onNoteSelect}
               onToggleHidden={onToggleHidden}
+              canOpenActions={Boolean((note.contentEditable || note.deletable) && !positionEdit && !adminControls)}
+              isActionMenuOpen={actionMenuNoteId === note.id}
+              onToggleActions={onToggleNoteActions}
+              onEditContent={onEditNoteContent}
+              onDeleteNote={onDeleteNote}
               onPointerDown={shouldWirePositionPointer ? (event) => handleEditableNotePointerDown(note, event) : undefined}
               onPointerMove={shouldWirePositionPointer ? (event) => handleEditableNotePointerMove(note, event) : undefined}
               onPointerUp={shouldWirePositionPointer ? (event) => handleEditableNotePointerUp(note, event) : undefined}
@@ -645,6 +742,11 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const [isPositionDragging, setIsPositionDragging] = useState(false);
   const [positionHoldNoteId, setPositionHoldNoteId] = useState(null);
   const [isPositionSaving, setIsPositionSaving] = useState(false);
+  const [actionMenuNoteId, setActionMenuNoteId] = useState(null);
+  const [contentEdit, setContentEdit] = useState(null);
+  const [isContentSaving, setIsContentSaving] = useState(false);
+  const [deleteConfirmNote, setDeleteConfirmNote] = useState(null);
+  const [isNoteDeleting, setIsNoteDeleting] = useState(false);
   const positionSettleTimerRef = useRef(null);
   const positionReturnTimerRef = useRef(null);
 
@@ -677,6 +779,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       clearPositionAnimationTimers();
       setPositionEdit(null);
       setPositionHoldNoteId(null);
+      setActionMenuNoteId(null);
+      setContentEdit(null);
+      setDeleteConfirmNote(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -699,6 +804,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       clearPositionAnimationTimers();
       setPositionEdit(null);
       setPositionHoldNoteId(null);
+      setActionMenuNoteId(null);
+      setContentEdit(null);
+      setDeleteConfirmNote(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -717,6 +825,9 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       clearPositionAnimationTimers();
       setPositionEdit(null);
       setPositionHoldNoteId(null);
+      setActionMenuNoteId(null);
+      setContentEdit(null);
+      setDeleteConfirmNote(null);
       return;
     }
     if (activePageIndex >= boardData.pages.length) {
@@ -770,6 +881,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     event.preventDefault();
     setError("");
     setNotice("");
+    setActionMenuNoteId(null);
     const normalizedContent = content.trim();
     if (!normalizedContent) {
       setError(labels.required);
@@ -815,6 +927,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     const placement = initialPlacement || originalPlacement;
     setError("");
     setNotice("");
+    setActionMenuNoteId(null);
     setActiveNoteId(note.id);
     setPositionEdit({
       noteId: note.id,
@@ -874,8 +987,6 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       );
       setBoardData((current) => updateNoteInBoard(current, updatedNote));
       setActiveNoteId(updatedNote.id);
-      setFreshNoteId(updatedNote.id);
-      window.setTimeout(() => setFreshNoteId(null), 1200);
       clearPositionAnimationTimers();
       setPositionEdit(null);
       setIsPositionDragging(false);
@@ -888,7 +999,102 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     }
   };
 
+  const handleToggleNoteActions = (note) => {
+    if (!note?.id || positionEdit) {
+      return;
+    }
+    setActionMenuNoteId((currentId) => (currentId === note.id ? null : note.id));
+  };
+
+  const handleOpenContentEdit = (note) => {
+    if (!note?.contentEditable) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setActionMenuNoteId(null);
+    setContentEdit({ noteId: note.id, content: note.content || "" });
+  };
+
+  const handleCloseContentEdit = () => {
+    if (isContentSaving) {
+      return;
+    }
+    setContentEdit(null);
+  };
+
+  const handleSaveContentEdit = async () => {
+    if (!contentEdit?.noteId || isContentSaving) {
+      return;
+    }
+    const normalizedContent = contentEdit.content.trim();
+    setError("");
+    setNotice("");
+    if (!normalizedContent) {
+      setError(labels.required);
+      return;
+    }
+    if (normalizedContent.length > 200) {
+      setError(labels.editSaveError);
+      return;
+    }
+    setIsContentSaving(true);
+    try {
+      const updatedNote = await corkboardApi.updateNoteContent(contentEdit.noteId, { content: normalizedContent });
+      setBoardData((current) => updateNoteInBoard(current, updatedNote));
+      setActiveNoteId(updatedNote.id);
+      setContentEdit(null);
+      setNotice(labels.editSaved);
+    } catch (nextError) {
+      setError(nextError.message || labels.editSaveError);
+    } finally {
+      setIsContentSaving(false);
+    }
+  };
+
+  const handleOpenDeleteConfirm = (note) => {
+    if (!note?.deletable) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setActionMenuNoteId(null);
+    setDeleteConfirmNote(note);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    if (isNoteDeleting) {
+      return;
+    }
+    setDeleteConfirmNote(null);
+  };
+
+  const handleDeleteNote = async () => {
+    if (!deleteConfirmNote?.id || isNoteDeleting) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setIsNoteDeleting(true);
+    try {
+      await corkboardApi.deleteNote(deleteConfirmNote.id);
+      setBoardData((current) => removeNoteFromBoard(current, deleteConfirmNote.id));
+      setActiveNoteId((currentId) => (currentId === deleteConfirmNote.id ? null : currentId));
+      setFreshNoteId((currentId) => (currentId === deleteConfirmNote.id ? null : currentId));
+      setDeleteConfirmNote(null);
+      setNotice(labels.deleteSaved);
+      loadArchivePeriods().catch(() => null);
+    } catch (nextError) {
+      setError(nextError.message || labels.deleteError);
+    } finally {
+      setIsNoteDeleting(false);
+    }
+  };
+
   const isMoveConfirmOpen = Boolean(positionEdit && !isPositionDragging && positionEdit.phase !== "returning");
+  const isContentEditOpen = Boolean(contentEdit);
+  const isDeleteConfirmOpen = Boolean(deleteConfirmNote);
+  const isModalOpen = isMoveConfirmOpen || isContentEditOpen || isDeleteConfirmOpen;
 
   useEffect(() => {
     if (!isMoveConfirmOpen) {
@@ -903,8 +1109,27 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMoveConfirmOpen, isPositionSaving, positionEdit]);
 
+  useEffect(() => {
+    if (!isContentEditOpen && !isDeleteConfirmOpen) {
+      return undefined;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (isContentEditOpen && !isContentSaving) {
+        handleCloseContentEdit();
+      }
+      if (isDeleteConfirmOpen && !isNoteDeleting) {
+        handleCloseDeleteConfirm();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isContentEditOpen, isDeleteConfirmOpen, isContentSaving, isNoteDeleting]);
+
   return (
-    <main className={`corkboard-page ${isMoveConfirmOpen ? "is-move-confirm-open" : ""}`}>
+    <main className={`corkboard-page ${isModalOpen ? "is-move-confirm-open" : ""}`}>
       <header className="corkboard-hero">
         <button type="button" className="corkboard-back-button" onClick={onBack}>
           {labels.back}
@@ -995,6 +1220,10 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
               onDropPositionEdit={handleDropPositionEdit}
               onCancelPositionEdit={handleCancelPositionEdit}
               onPositionHoldNoteChange={setPositionHoldNoteId}
+              actionMenuNoteId={actionMenuNoteId}
+              onToggleNoteActions={handleToggleNoteActions}
+              onEditNoteContent={handleOpenContentEdit}
+              onDeleteNote={handleOpenDeleteConfirm}
               emptyLabel={labels.emptyBoard}
             />
           )}
@@ -1023,6 +1252,75 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
                   </button>
                   <button type="button" onClick={handleSavePositionEdit} disabled={isPositionSaving} autoFocus>
                     {isPositionSaving ? labels.moveSaving : labels.confirmMove}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isContentEditOpen ? (
+            <div
+              className="corkboard-move-confirm-overlay"
+              role="presentation"
+              onClick={isContentSaving ? undefined : handleCloseContentEdit}
+            >
+              <div
+                className="corkboard-move-confirm corkboard-note-edit-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={labels.editNoteTitle}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="corkboard-move-confirm-copy">
+                  <strong>{labels.editNoteTitle}</strong>
+                  <span>{labels.editNoteBody}</span>
+                </div>
+                <textarea
+                  value={contentEdit?.content || ""}
+                  maxLength={200}
+                  autoFocus
+                  onChange={(event) => setContentEdit((current) => current
+                    ? { ...current, content: event.target.value.slice(0, 200) }
+                    : current)}
+                />
+                <div className="corkboard-note-edit-count">
+                  {labels.remaining(Math.max(200 - (contentEdit?.content?.length || 0), 0))}
+                </div>
+                <div className="corkboard-move-confirm-actions">
+                  <button type="button" onClick={handleCloseContentEdit} disabled={isContentSaving}>
+                    {labels.cancelPosition}
+                  </button>
+                  <button type="button" onClick={handleSaveContentEdit} disabled={isContentSaving}>
+                    {isContentSaving ? labels.savingEdit : labels.saveEdit}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isDeleteConfirmOpen ? (
+            <div
+              className="corkboard-move-confirm-overlay"
+              role="presentation"
+              onClick={isNoteDeleting ? undefined : handleCloseDeleteConfirm}
+            >
+              <div
+                className="corkboard-move-confirm corkboard-note-delete-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={labels.deleteNoteTitle}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="corkboard-move-confirm-copy">
+                  <strong>{labels.deleteNoteTitle}</strong>
+                  <span>{labels.deleteNoteBody}</span>
+                </div>
+                <div className="corkboard-move-confirm-actions">
+                  <button type="button" onClick={handleCloseDeleteConfirm} disabled={isNoteDeleting}>
+                    {labels.cancelPosition}
+                  </button>
+                  <button type="button" className="is-danger" onClick={handleDeleteNote} disabled={isNoteDeleting}>
+                    {isNoteDeleting ? labels.deletingNote : labels.confirmDelete}
                   </button>
                 </div>
               </div>

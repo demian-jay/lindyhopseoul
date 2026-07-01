@@ -5,6 +5,7 @@ import java.util.List;
 import com.lindyhopseoul.backend.auth.CurrentMemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -73,6 +74,31 @@ public class CorkboardController {
                 currentMemberService.requireCurrentMemberId(request),
                 id,
                 positionRequest
+        );
+    }
+
+    @PatchMapping("/corkboard-notes/{id}/content")
+    public CorkboardNoteResponse updateMemberNoteContent(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody(required = false) CorkboardNoteContentRequest contentRequest
+    ) {
+        return corkboardService.updateMemberNoteContent(
+                currentMemberService.requireCurrentMemberId(request),
+                id,
+                contentRequest
+        );
+    }
+
+    @DeleteMapping("/corkboard-notes/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMemberNote(
+            HttpServletRequest request,
+            @PathVariable Long id
+    ) {
+        corkboardService.deleteMemberNote(
+                currentMemberService.requireCurrentMemberId(request),
+                id
         );
     }
 }

@@ -62,4 +62,15 @@ export const corkboardApi = {
       body: payload,
     });
   },
+  updateNoteContent(noteId, payload) {
+    return request(`/api/agora/corkboard-notes/${noteId}/content`, {
+      method: "PATCH",
+      body: payload,
+    });
+  },
+  deleteNote(noteId) {
+    return request(`/api/agora/corkboard-notes/${noteId}`, {
+      method: "DELETE",
+    });
+  },
 };

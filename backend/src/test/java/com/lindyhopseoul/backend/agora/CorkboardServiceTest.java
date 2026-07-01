@@ -242,6 +242,169 @@ class CorkboardServiceTest {
     }
 
     @Test
+    void updateMemberNoteContentUpdatesOwnVisibleMemberNote() {
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "old content", 0);
+        ReflectionTestUtils.setField(note, "id", 60L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(60L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        CorkboardNoteResponse response = corkboardService.updateMemberNoteContent(
+                1L,
+                60L,
+                new CorkboardNoteContentRequest("  updated content  ")
+        );
+
+        assertThat(note.getContent()).isEqualTo("updated content");
+        assertThat(note.getContentEditedAt()).isNotNull();
+        assertThat(response.content()).isEqualTo("updated content");
+        assertThat(response.contentEditable()).isTrue();
+        assertThat(response.deletable()).isTrue();
+    }
+
+    @Test
+    void updateMemberNoteContentRejectsOtherMemberOfficialHiddenArchivedAndInvalidContent() {
+        Member otherMember = member(2L, "other@example.com", "Other", "Other");
+        CorkboardNote otherNote = CorkboardNote.createMemberNote(currentBoard, otherMember, "yellow", "not mine", 0);
+        CorkboardNote officialNote = CorkboardNote.createOfficialNote(currentBoard, "Staff", "official", "notice", 1);
+        CorkboardNote hiddenNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "hidden", 2);
+        hiddenNote.setHidden(true);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        Corkboard archivedBoard = periodBoard(
+                61L,
+                "2000-01",
+                "Archived Board",
+                today.minusDays(60),
+                today.minusDays(30),
+                1
+        );
+        archivedBoard.archive();
+        CorkboardNote archivedNote = CorkboardNote.createMemberNote(archivedBoard, member, "yellow", "past", 0);
+        CorkboardNote ownNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "mine", 3);
+        ReflectionTestUtils.setField(otherNote, "id", 61L);
+        ReflectionTestUtils.setField(officialNote, "id", 62L);
+        ReflectionTestUtils.setField(hiddenNote, "id", 63L);
+        ReflectionTestUtils.setField(archivedNote, "id", 64L);
+        ReflectionTestUtils.setField(ownNote, "id", 65L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(61L)).thenReturn(Optional.of(otherNote));
+        when(noteRepository.findById(62L)).thenReturn(Optional.of(officialNote));
+        when(noteRepository.findById(63L)).thenReturn(Optional.of(hiddenNote));
+        when(noteRepository.findById(64L)).thenReturn(Optional.of(archivedNote));
+        when(noteRepository.findById(65L)).thenReturn(Optional.of(ownNote));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(archivedBoard.getPeriodKey()))
+                .thenReturn(List.of(archivedBoard));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                61L,
+                new CorkboardNoteContentRequest("edit")
+        )).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                62L,
+                new CorkboardNoteContentRequest("edit")
+        )).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                63L,
+                new CorkboardNoteContentRequest("edit")
+        )).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                64L,
+                new CorkboardNoteContentRequest("edit")
+        )).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                65L,
+                new CorkboardNoteContentRequest("   ")
+        )).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                65L,
+                new CorkboardNoteContentRequest("a".repeat(201))
+        )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void deleteMemberNoteSoftDeletesOwnVisibleMemberNote() {
+        CorkboardNote note = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "delete me", 0);
+        ReflectionTestUtils.setField(note, "id", 66L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(66L)).thenReturn(Optional.of(note));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        corkboardService.deleteMemberNote(1L, 66L);
+
+        assertThat(note.isDeleted()).isTrue();
+        assertThat(note.getDeletedAt()).isNotNull();
+        assertThat(note.getDeletedByMemberId()).isEqualTo(1L);
+    }
+
+    @Test
+    void deletedNoteIsExcludedFromPublicPeriodAndCannotBeEditedAgain() {
+        CorkboardNote deletedNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "deleted", 0);
+        CorkboardNote visibleNote = CorkboardNote.createMemberNote(currentBoard, member, "blue", "visible", 1);
+        ReflectionTestUtils.setField(deletedNote, "id", 67L);
+        deletedNote.softDelete(1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(noteRepository.findById(67L)).thenReturn(Optional.of(deletedNote));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard), List.of(currentBoard));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard)))
+                .thenReturn(List.of(deletedNote, visibleNote));
+
+        CorkboardCollectionResponse response = corkboardService.findPeriod(currentBoard.getPeriodKey(), 1L);
+
+        assertThat(response.pages().get(0).notes())
+                .extracting(CorkboardNoteResponse::content)
+                .containsExactly("visible");
+        assertThatThrownBy(() -> corkboardService.updateMemberNoteContent(
+                1L,
+                67L,
+                new CorkboardNoteContentRequest("again")
+        )).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> corkboardService.deleteMemberNote(1L, 67L))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void adminCanEditOfficialContentButNotMemberContent() {
+        CorkboardNote officialNote = CorkboardNote.createOfficialNote(currentBoard, "Staff", "official", "old", 0);
+        CorkboardNote memberNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "member", 1);
+        ReflectionTestUtils.setField(officialNote, "id", 68L);
+        ReflectionTestUtils.setField(memberNote, "id", 69L);
+        when(noteRepository.findById(68L)).thenReturn(Optional.of(officialNote));
+        when(noteRepository.findById(69L)).thenReturn(Optional.of(memberNote));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard));
+
+        CorkboardNoteResponse response = corkboardService.updateAdminOfficialNoteContent(
+                staffPrincipal(),
+                68L,
+                new CorkboardNoteContentRequest("  new official  ")
+        );
+
+        assertThat(response.content()).isEqualTo("new official");
+        assertThat(officialNote.getContentEditedAt()).isNotNull();
+        assertThatThrownBy(() -> corkboardService.updateAdminOfficialNoteContent(
+                staffPrincipal(),
+                69L,
+                new CorkboardNoteContentRequest("admin edit member")
+        )).isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
     void updateAdminNotePositionMovesAnyCurrentBoardNote() {
         CorkboardNote note = CorkboardNote.createOfficialNote(currentBoard, "Staff", "official", "notice", 2);
         ReflectionTestUtils.setField(note, "id", 54L);
@@ -303,6 +466,39 @@ class CorkboardServiceTest {
                 1L,
                 new CorkboardNoteCreateRequest("yellow", "a".repeat(201))
         )).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createOfficialNoteStoresRequestedFreePlacement() {
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard), List.of(currentBoard), List.of(currentBoard));
+        when(corkboardRepository.findAllByOrderByPeriodStartDescPageNoAsc()).thenReturn(List.of(currentBoard));
+        when(noteRepository.findByBoardOrderBySlotIndexAscIdAsc(currentBoard)).thenReturn(List.of());
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard)))
+                .thenReturn(List.of());
+
+        corkboardService.createOfficialNote(
+                staffPrincipal(),
+                new AdminCorkboardNoteCreateRequest(
+                        currentBoard.getPeriodKey(),
+                        "official",
+                        "placed official",
+                        66.67,
+                        42.24,
+                        -4.26,
+                        1
+                )
+        );
+
+        ArgumentCaptor<CorkboardNote> noteCaptor = ArgumentCaptor.forClass(CorkboardNote.class);
+        verify(noteRepository).save(noteCaptor.capture());
+        CorkboardNote savedNote = noteCaptor.getValue();
+        assertThat(savedNote.getNoteType()).isEqualTo(CorkboardNoteType.OFFICIAL);
+        assertThat(savedNote.getPositionX()).isEqualTo(66.7);
+        assertThat(savedNote.getPositionY()).isEqualTo(42.2);
+        assertThat(savedNote.getRotationDeg()).isEqualTo(-4.3);
+        assertThat(savedNote.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
     }
 
     @Test
