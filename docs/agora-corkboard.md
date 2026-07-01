@@ -106,6 +106,9 @@ Public users:
 Logged-in members:
 
 - Can create `MEMBER` notes only on the current active board.
+- Can keep only one active, non-deleted `MEMBER` sticker per `periodKey`, even when the period has Board 1, Board 2, and later pages.
+- If they pin a new sticker while an active visible `MEMBER` sticker already exists for the same period, the UI asks for confirmation; confirming sends `replaceExisting=true`, soft-deletes the old sticker, and creates the new one.
+- Cannot bypass moderation by replacing a hidden note. If their existing `MEMBER` note for the current period is `hidden=true` and `deleted=false`, new note creation is blocked until staff resolves it.
 - Can adjust the position of their own visible `MEMBER` notes on the current active board.
 - Can edit the content of their own visible `MEMBER` notes on the current active board.
 - Can soft-delete their own visible `MEMBER` notes on the current active board.
@@ -140,7 +143,8 @@ Permission matrix:
 | --- | --- | --- | --- | --- |
 | View current board | Yes | Yes | Yes | Yes |
 | View archived boards | Yes | Yes | Yes | Yes |
-| Create member note | No | Current writable board only | No | No |
+| Create member note | No | Current writable board only; one active sticker per period | No | No |
+| Replace own active member note | No | Current writable board only; old note is soft-deleted | No | No |
 | Move own member note | No | Own visible note on current writable board only | No | No |
 | Edit own member note content | No | Own visible note on current writable board only | No | No |
 | Delete own member note | No | Own visible note on current writable board only | No | No |
@@ -168,7 +172,8 @@ Content rules:
 Moderation and deletion:
 
 - `hidden` is an admin moderation flag. It hides a note from public responses while keeping it manageable in the admin Corkboard view.
-- `deleted` is the member soft-delete flag. When a member deletes their own note, the row remains in `corkboard_note` with `deleted=true`, `deleted_at`, and `deleted_by_member_id`.
+- `deleted` is the member soft-delete flag. When a member deletes their own note, or replaces their monthly sticker with a new one, the old row remains in `corkboard_note` with `deleted=true`, `deleted_at`, and `deleted_by_member_id`.
+- Member replacement never changes `hidden`; hidden notes remain moderation records and cannot be replaced by the public member flow.
 - Deleted notes are excluded from public board responses, archive responses, admin note lists, and period note counts.
 - Deleted notes cannot be edited, moved, hidden/unhidden, or deleted again through the Corkboard APIs.
 - `content_edited_at` records content edits separately from `updated_at`, because position edits also update the note row.
@@ -210,11 +215,22 @@ Public note creation request body:
   "positionX": 25.4,
   "positionY": 38.7,
   "rotationDeg": -2.5,
-  "pageNo": 1
+  "pageNo": 1,
+  "replaceExisting": false
 }
 ```
 
-`positionX`, `positionY`, `rotationDeg`, and `pageNo` are optional for backward compatibility. If coordinates are omitted, the server stores a slot-style placement. The current user screen sends coordinates for new member notes.
+`positionX`, `positionY`, `rotationDeg`, `pageNo`, and `replaceExisting` are optional for backward compatibility. If coordinates are omitted, the server stores a slot-style placement. The current user screen sends coordinates for new member notes.
+
+Member creation policy:
+
+- The server enforces one active, non-deleted `MEMBER` note per `memberId + periodKey`.
+- When an existing visible member note exists and `replaceExisting` is missing or `false`, the endpoint returns `409 Conflict` with `CORKBOARD_MEMBER_NOTE_REPLACEMENT_REQUIRED`.
+- The public UI maps that conflict to a confirmation modal. Choosing `다시 붙이기` resubmits the same payload with `replaceExisting=true`.
+- With `replaceExisting=true`, the old visible member note is soft-deleted and the new note is created in the same transaction. The collection response includes `replacedExisting=true` and `replacedNoteId`.
+- Deleted notes are ignored by the creation limit. Other members' notes are ignored.
+- If an existing same-period member note is `hidden=true` and `deleted=false`, the endpoint returns `409 Conflict` with `CORKBOARD_MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED`; the public UI tells the member to contact staff instead of creating a replacement.
+- `OFFICIAL` notes are not subject to this limit.
 
 Admin official note creation accepts the same optional placement fields. The current admin UI keeps a simpler operations-first layout and may use automatic fallback placement for official notices.
 
@@ -304,6 +320,8 @@ Design notes:
 - The write flow includes template selection, live preview, character count, board tap/drag placement, and submit feedback.
 - Owner position editing uses long press, drag, and drop confirmation. There is no separate move button on the public board.
 - Owner content editing and soft deletion are available from a small `...` action menu on the user's own visible current-board `MEMBER` notes.
+- If a member already has an active sticker for the selected period, the write flow shows a centered replacement confirmation modal before sending `replaceExisting=true`.
+- If a member's current-period note is hidden for moderation, the write flow shows a staff-review message and does not allow replacement.
 - The admin panel uses compact numeric `positionX`, `positionY`, and `rotationDeg` inputs per note card to keep the management layout operational.
 - The admin panel allows inline content editing only for `OFFICIAL` note cards.
 - Existing slot-only notes use deterministic fallback coordinates from `slotIndex`.

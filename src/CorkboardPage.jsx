@@ -30,6 +30,8 @@ const NOTE_LONG_PRESS_MS = 380;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
 const NOTE_SETTLE_MS = 260;
 const NOTE_RETURN_MS = 260;
+const MEMBER_NOTE_REPLACEMENT_REQUIRED = "CORKBOARD_MEMBER_NOTE_REPLACEMENT_REQUIRED";
+const MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED = "CORKBOARD_MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED";
 
 const COPY = {
   ko: {
@@ -60,6 +62,13 @@ const COPY = {
     required: "메모 내용을 입력해주세요.",
     saved: "메모가 코르크보드에 붙었습니다.",
     saveError: "메모를 붙이지 못했습니다.",
+    replacedSaved: "이전 스티커를 떼고 새 스티커를 붙였습니다.",
+    replaceNoteTitle: "이번 달 스티커는 이미 보드에 붙어 있어요.",
+    replaceNoteBody: "새 스티커를 붙이면 이전 스티커를 떼고,\n새로운 스티커로 다시 붙입니다.",
+    keepExistingNote: "그대로 둘게요",
+    replaceNote: "다시 붙이기",
+    replacingNote: "다시 붙이는 중",
+    hiddenReviewMessage: "현재 운영진 확인이 필요한 스티커가 있어요. 새 스티커를 붙이려면 운영진에게 문의해주세요.",
     positionEditHint: "본인 메모는 길게 눌러 떼어낸 뒤 원하는 곳에 놓을 수 있습니다.",
     moveConfirmTitle: "이 위치로 메모를 옮길까요?",
     moveConfirmBody: "확인을 누르면 새 위치가 저장되고, 취소하면 원래 자리로 돌아갑니다.",
@@ -115,6 +124,13 @@ const COPY = {
     required: "Please write a note.",
     saved: "Your note landed on the corkboard.",
     saveError: "Could not pin the note.",
+    replacedSaved: "Your old sticker was removed and the new one was pinned.",
+    replaceNoteTitle: "You already have a sticker on this month's board.",
+    replaceNoteBody: "Pinning a new sticker will remove the old one\nand place this new sticker instead.",
+    keepExistingNote: "Keep the old one",
+    replaceNote: "Replace it",
+    replacingNote: "Replacing",
+    hiddenReviewMessage: "You have a sticker that needs staff review. Please contact staff before pinning a new one.",
     positionEditHint: "Long-press your own note, lift it, then drop it where it should live.",
     moveConfirmTitle: "Move the note here?",
     moveConfirmBody: "Confirm to save the new spot, or cancel to return it.",
@@ -310,6 +326,10 @@ function roundedPlacement(placement) {
     positionY: Math.round((placement?.positionY || 0) * 10) / 10,
     rotationDeg: Math.round((placement?.rotationDeg || 0) * 10) / 10,
   };
+}
+
+function isApiCode(error, code) {
+  return error?.code === code || error?.message === code;
 }
 
 function updateNoteInBoard(boardData, updatedNote) {
@@ -747,6 +767,8 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const [isContentSaving, setIsContentSaving] = useState(false);
   const [deleteConfirmNote, setDeleteConfirmNote] = useState(null);
   const [isNoteDeleting, setIsNoteDeleting] = useState(false);
+  const [replacementConfirm, setReplacementConfirm] = useState(null);
+  const [isReplacingNote, setIsReplacingNote] = useState(false);
   const positionSettleTimerRef = useRef(null);
   const positionReturnTimerRef = useRef(null);
 
@@ -782,6 +804,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       setActionMenuNoteId(null);
       setContentEdit(null);
       setDeleteConfirmNote(null);
+      setReplacementConfirm(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -807,6 +830,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       setActionMenuNoteId(null);
       setContentEdit(null);
       setDeleteConfirmNote(null);
+      setReplacementConfirm(null);
     } catch (nextError) {
       setError(nextError.message || labels.loadError);
     } finally {
@@ -828,6 +852,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       setActionMenuNoteId(null);
       setContentEdit(null);
       setDeleteConfirmNote(null);
+      setReplacementConfirm(null);
       return;
     }
     if (activePageIndex >= boardData.pages.length) {
@@ -877,44 +902,92 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
     selectedTemplate,
   ]);
 
+  const handleNoteCreated = useCallback((previousIds, nextBoard, successMessage) => {
+    setBoardData(nextBoard);
+    const newNote = findNewNote(previousIds, nextBoard);
+    if (newNote) {
+      setActivePageIndex(newNote.pageIndex);
+      setActiveNoteId(newNote.id);
+      setFreshNoteId(newNote.id);
+      window.setTimeout(() => setFreshNoteId(null), 1600);
+    }
+    setContent("");
+    setDraftPlacement({ positionX: 50, positionY: 50 });
+    setReplacementConfirm(null);
+    setNotice(successMessage);
+    loadArchivePeriods().catch(() => null);
+  }, [loadArchivePeriods]);
+
+  const createCurrentDraftPayload = (normalizedContent, replaceExisting = false) => ({
+    stickerTemplateKey: selectedTemplate,
+    content: normalizedContent,
+    positionX: Math.round(draftPlacement.positionX * 10) / 10,
+    positionY: Math.round(draftPlacement.positionY * 10) / 10,
+    rotationDeg: currentDraftRotation,
+    pageNo: activePage?.pageNo,
+    replaceExisting,
+  });
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
     setNotice("");
     setActionMenuNoteId(null);
+    setReplacementConfirm(null);
     const normalizedContent = content.trim();
     if (!normalizedContent) {
       setError(labels.required);
       return;
     }
 
+    const payload = createCurrentDraftPayload(normalizedContent);
     const previousIds = flatNoteIds(boardData);
     setIsSubmitting(true);
     try {
-      const nextBoard = await corkboardApi.createNote({
-        stickerTemplateKey: selectedTemplate,
-        content: normalizedContent,
-        positionX: Math.round(draftPlacement.positionX * 10) / 10,
-        positionY: Math.round(draftPlacement.positionY * 10) / 10,
-        rotationDeg: currentDraftRotation,
-        pageNo: activePage?.pageNo,
-      });
-      setBoardData(nextBoard);
-      const newNote = findNewNote(previousIds, nextBoard);
-      if (newNote) {
-        setActivePageIndex(newNote.pageIndex);
-        setActiveNoteId(newNote.id);
-        setFreshNoteId(newNote.id);
-        window.setTimeout(() => setFreshNoteId(null), 1600);
-      }
-      setContent("");
-      setDraftPlacement({ positionX: 50, positionY: 50 });
-      setNotice(labels.saved);
-      loadArchivePeriods().catch(() => null);
+      const nextBoard = await corkboardApi.createNote(payload);
+      handleNoteCreated(previousIds, nextBoard, labels.saved);
     } catch (nextError) {
-      setError(nextError.message || labels.saveError);
+      if (nextError?.status === 409 && isApiCode(nextError, MEMBER_NOTE_REPLACEMENT_REQUIRED)) {
+        setReplacementConfirm({ payload, previousIds });
+      } else if (nextError?.status === 409 && isApiCode(nextError, MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED)) {
+        setError(labels.hiddenReviewMessage);
+      } else {
+        setError(nextError.message || labels.saveError);
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseReplacementConfirm = () => {
+    if (isReplacingNote) {
+      return;
+    }
+    setReplacementConfirm(null);
+  };
+
+  const handleReplaceExistingNote = async () => {
+    if (!replacementConfirm || isReplacingNote) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setIsReplacingNote(true);
+    try {
+      const nextBoard = await corkboardApi.createNote({
+        ...replacementConfirm.payload,
+        replaceExisting: true,
+      });
+      handleNoteCreated(replacementConfirm.previousIds, nextBoard, labels.replacedSaved);
+    } catch (nextError) {
+      if (nextError?.status === 409 && isApiCode(nextError, MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED)) {
+        setError(labels.hiddenReviewMessage);
+      } else {
+        setError(nextError.message || labels.saveError);
+      }
+      setReplacementConfirm(null);
+    } finally {
+      setIsReplacingNote(false);
     }
   };
 
@@ -1094,7 +1167,8 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   const isMoveConfirmOpen = Boolean(positionEdit && !isPositionDragging && positionEdit.phase !== "returning");
   const isContentEditOpen = Boolean(contentEdit);
   const isDeleteConfirmOpen = Boolean(deleteConfirmNote);
-  const isModalOpen = isMoveConfirmOpen || isContentEditOpen || isDeleteConfirmOpen;
+  const isReplacementConfirmOpen = Boolean(replacementConfirm);
+  const isModalOpen = isMoveConfirmOpen || isContentEditOpen || isDeleteConfirmOpen || isReplacementConfirmOpen;
 
   useEffect(() => {
     if (!isMoveConfirmOpen) {
@@ -1110,7 +1184,7 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
   }, [isMoveConfirmOpen, isPositionSaving, positionEdit]);
 
   useEffect(() => {
-    if (!isContentEditOpen && !isDeleteConfirmOpen) {
+    if (!isContentEditOpen && !isDeleteConfirmOpen && !isReplacementConfirmOpen) {
       return undefined;
     }
     const handleKeyDown = (event) => {
@@ -1123,10 +1197,20 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
       if (isDeleteConfirmOpen && !isNoteDeleting) {
         handleCloseDeleteConfirm();
       }
+      if (isReplacementConfirmOpen && !isReplacingNote) {
+        handleCloseReplacementConfirm();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isContentEditOpen, isDeleteConfirmOpen, isContentSaving, isNoteDeleting]);
+  }, [
+    isContentEditOpen,
+    isDeleteConfirmOpen,
+    isReplacementConfirmOpen,
+    isContentSaving,
+    isNoteDeleting,
+    isReplacingNote,
+  ]);
 
   return (
     <main className={`corkboard-page ${isModalOpen ? "is-move-confirm-open" : ""}`}>
@@ -1321,6 +1405,35 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
                   </button>
                   <button type="button" className="is-danger" onClick={handleDeleteNote} disabled={isNoteDeleting}>
                     {isNoteDeleting ? labels.deletingNote : labels.confirmDelete}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isReplacementConfirmOpen ? (
+            <div
+              className="corkboard-move-confirm-overlay"
+              role="presentation"
+              onClick={isReplacingNote ? undefined : handleCloseReplacementConfirm}
+            >
+              <div
+                className="corkboard-move-confirm corkboard-note-replace-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={labels.replaceNoteTitle}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="corkboard-move-confirm-copy">
+                  <strong>{labels.replaceNoteTitle}</strong>
+                  <span>{labels.replaceNoteBody}</span>
+                </div>
+                <div className="corkboard-move-confirm-actions">
+                  <button type="button" onClick={handleCloseReplacementConfirm} disabled={isReplacingNote}>
+                    {labels.keepExistingNote}
+                  </button>
+                  <button type="button" onClick={handleReplaceExistingNote} disabled={isReplacingNote} autoFocus>
+                    {isReplacingNote ? labels.replacingNote : labels.replaceNote}
                   </button>
                 </div>
               </div>

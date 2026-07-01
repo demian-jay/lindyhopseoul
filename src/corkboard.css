@@ -695,6 +695,10 @@
   width: min(420px, calc(100vw - 32px));
 }
 
+.corkboard-note-replace-modal .corkboard-move-confirm-copy span {
+  white-space: pre-line;
+}
+
 .corkboard-note-edit-modal textarea {
   min-height: 124px;
   resize: vertical;

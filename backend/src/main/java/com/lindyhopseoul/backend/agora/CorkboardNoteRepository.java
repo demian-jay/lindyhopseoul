@@ -10,4 +10,10 @@ public interface CorkboardNoteRepository extends JpaRepository<CorkboardNote, Lo
     List<CorkboardNote> findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(Collection<Corkboard> boards);
 
     List<CorkboardNote> findByBoardOrderBySlotIndexAscIdAsc(Corkboard board);
+
+    List<CorkboardNote> findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+            String periodKey,
+            Long memberId,
+            CorkboardNoteType noteType
+    );
 }

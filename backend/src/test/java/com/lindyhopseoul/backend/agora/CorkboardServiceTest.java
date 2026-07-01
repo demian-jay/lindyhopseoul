@@ -19,6 +19,7 @@ import com.lindyhopseoul.backend.admin.AdminLanguage;
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.exception.BadRequestException;
+import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import com.lindyhopseoul.backend.member.Member;
@@ -107,6 +108,128 @@ class CorkboardServiceTest {
         assertThat(savedNote.getRotationDeg()).isEqualTo(4.2);
         assertThat(savedNote.getZIndex()).isEqualTo(1);
         assertThat(savedNote.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
+    }
+
+    @Test
+    void createMemberNoteRequiresReplacementWhenOwnActiveMemberNoteExistsInSamePeriod() {
+        CorkboardNote existingNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "already here", 0);
+        ReflectionTestUtils.setField(existingNote, "id", 100L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(noteRepository.findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+                currentBoard.getPeriodKey(),
+                1L,
+                CorkboardNoteType.MEMBER
+        )).thenReturn(List.of(existingNote));
+
+        assertThatThrownBy(() -> corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("blue", "new note", 30.0, 40.0, 1.0, 1)
+        ))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("CORKBOARD_MEMBER_NOTE_REPLACEMENT_REQUIRED");
+
+        assertThat(existingNote.isDeleted()).isFalse();
+    }
+
+    @Test
+    void createMemberNoteWithReplacementSoftDeletesOwnActiveMemberNoteAcrossPages() {
+        Corkboard secondPage = currentBoard(2L, 2);
+        CorkboardNote existingNote = CorkboardNote.createMemberNote(secondPage, member, "yellow", "old note", 5);
+        ReflectionTestUtils.setField(existingNote, "id", 101L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of(currentBoard, secondPage));
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(
+                        List.of(currentBoard, secondPage),
+                        List.of(currentBoard, secondPage),
+                        List.of(currentBoard, secondPage)
+                );
+        when(noteRepository.findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+                currentBoard.getPeriodKey(),
+                1L,
+                CorkboardNoteType.MEMBER
+        )).thenReturn(List.of(existingNote));
+        when(noteRepository.findByBoardOrderBySlotIndexAscIdAsc(currentBoard)).thenReturn(List.of());
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard, secondPage)))
+                .thenReturn(List.of(existingNote));
+
+        CorkboardCollectionResponse response = corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("blue", "replacement", 42.2, 55.5, -1.2, 1, true)
+        );
+
+        ArgumentCaptor<CorkboardNote> noteCaptor = ArgumentCaptor.forClass(CorkboardNote.class);
+        verify(noteRepository).save(noteCaptor.capture());
+        CorkboardNote savedNote = noteCaptor.getValue();
+
+        assertThat(existingNote.isDeleted()).isTrue();
+        assertThat(existingNote.getDeletedByMemberId()).isEqualTo(1L);
+        assertThat(existingNote.getDeletedAt()).isNotNull();
+        assertThat(savedNote.getContent()).isEqualTo("replacement");
+        assertThat(savedNote.getPositionX()).isEqualTo(42.2);
+        assertThat(savedNote.getPositionY()).isEqualTo(55.5);
+        assertThat(savedNote.getPlacementMode()).isEqualTo(CorkboardNotePlacementMode.FREE);
+        assertThat(response.replacedExisting()).isTrue();
+        assertThat(response.replacedNoteId()).isEqualTo(101L);
+        assertThat(response.pages().get(0).notes()).isEmpty();
+    }
+
+    @Test
+    void createMemberNoteRejectsReplacementWhenOwnHiddenMemberNoteExists() {
+        CorkboardNote hiddenNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "needs review", 0);
+        ReflectionTestUtils.setField(hiddenNote, "id", 102L);
+        hiddenNote.setHidden(true);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(noteRepository.findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+                currentBoard.getPeriodKey(),
+                1L,
+                CorkboardNoteType.MEMBER
+        )).thenReturn(List.of(hiddenNote));
+
+        assertThatThrownBy(() -> corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("blue", "try again", 30.0, 40.0, 1.0, 1, true)
+        ))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("CORKBOARD_MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED");
+
+        assertThat(hiddenNote.isDeleted()).isFalse();
+    }
+
+    @Test
+    void deletedAndOtherMemberNotesDoNotBlockMemberNoteCreation() {
+        Member otherMember = member(2L, "other@example.com", "Other", "Other");
+        CorkboardNote deletedOwnNote = CorkboardNote.createMemberNote(currentBoard, member, "yellow", "deleted", 0);
+        CorkboardNote otherMemberNote = CorkboardNote.createMemberNote(currentBoard, otherMember, "pink", "other", 1);
+        ReflectionTestUtils.setField(deletedOwnNote, "id", 103L);
+        ReflectionTestUtils.setField(otherMemberNote, "id", 104L);
+        deletedOwnNote.softDelete(1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(corkboardRepository.findByStatus(CorkboardStatus.ACTIVE)).thenReturn(List.of());
+        when(corkboardRepository.findByPeriodKeyOrderByPageNoAsc(currentBoard.getPeriodKey()))
+                .thenReturn(List.of(currentBoard), List.of(currentBoard), List.of(currentBoard));
+        when(noteRepository.findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+                currentBoard.getPeriodKey(),
+                1L,
+                CorkboardNoteType.MEMBER
+        )).thenReturn(List.of());
+        when(noteRepository.findByBoardOrderBySlotIndexAscIdAsc(currentBoard))
+                .thenReturn(List.of(deletedOwnNote, otherMemberNote));
+        when(noteRepository.findByBoardInOrderByBoard_PageNoAscSlotIndexAscIdAsc(List.of(currentBoard)))
+                .thenReturn(List.of(deletedOwnNote, otherMemberNote));
+
+        CorkboardCollectionResponse response = corkboardService.createMemberNote(
+                1L,
+                new CorkboardNoteCreateRequest("blue", "allowed", 30.0, 40.0, 1.0, 1)
+        );
+
+        ArgumentCaptor<CorkboardNote> noteCaptor = ArgumentCaptor.forClass(CorkboardNote.class);
+        verify(noteRepository).save(noteCaptor.capture());
+        assertThat(noteCaptor.getValue().getSlotIndex()).isEqualTo(2);
+        assertThat(response.replacedExisting()).isFalse();
+        assertThat(otherMemberNote.isDeleted()).isFalse();
     }
 
     @Test

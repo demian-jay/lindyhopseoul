@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.admin.AdminRole;
 import com.lindyhopseoul.backend.exception.BadRequestException;
+import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
 import com.lindyhopseoul.backend.exception.UnauthorizedException;
@@ -35,6 +36,8 @@ public class CorkboardService {
     private static final double MIN_ROTATION_DEG = -6.0;
     private static final double MAX_ROTATION_DEG = 6.0;
     private static final double[] FALLBACK_ROTATIONS = {-2.5, 1.7, -0.8, 2.4, -1.6, 0.9, 1.2, -2.1, 2.8};
+    private static final String MEMBER_NOTE_REPLACEMENT_REQUIRED = "CORKBOARD_MEMBER_NOTE_REPLACEMENT_REQUIRED";
+    private static final String MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED = "CORKBOARD_MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED";
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -124,6 +127,22 @@ public class CorkboardService {
                 request == null ? null : request.stickerTemplateKey(),
                 CorkboardNoteType.MEMBER
         );
+        List<CorkboardNote> existingNotes = findActiveMemberNotes(current.periodKey(), member.getId());
+        if (existingNotes.stream().anyMatch(CorkboardNote::isHidden)) {
+            throw new ConflictException(MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED);
+        }
+        List<CorkboardNote> visibleExistingNotes = existingNotes.stream()
+                .filter(note -> !note.isHidden())
+                .toList();
+        if (!visibleExistingNotes.isEmpty() && (request == null || !request.shouldReplaceExisting())) {
+            throw new ConflictException(MEMBER_NOTE_REPLACEMENT_REQUIRED);
+        }
+        Long replacedNoteId = null;
+        if (!visibleExistingNotes.isEmpty()) {
+            replacedNoteId = visibleExistingNotes.get(0).getId();
+            visibleExistingNotes.forEach(note -> note.softDelete(member.getId()));
+        }
+
         CorkboardSlot slot = findWritableSlot(current, request == null ? null : request.pageNo());
         CorkboardNote.Placement placement = normalizePlacement(
                 request == null ? null : request.positionX(),
@@ -141,7 +160,8 @@ public class CorkboardService {
                 placement
         ));
 
-        return findPeriodCollection(current.periodKey(), false, member.getId());
+        CorkboardCollectionResponse response = findPeriodCollection(current.periodKey(), false, member.getId());
+        return replacedNoteId == null ? response : response.withReplacement(replacedNoteId);
     }
 
     @Transactional
@@ -380,6 +400,14 @@ public class CorkboardService {
                 toAdminPeriodSummaries(true),
                 findPeriodCollection(selectedPeriodKey, true),
                 findAdminPeriodSummary(current.periodKey()).orElse(null)
+        );
+    }
+
+    private List<CorkboardNote> findActiveMemberNotes(String periodKey, Long memberId) {
+        return noteRepository.findByBoard_PeriodKeyAndMember_IdAndNoteTypeAndDeletedFalseOrderByCreatedAtAscIdAsc(
+                periodKey,
+                memberId,
+                CorkboardNoteType.MEMBER
         );
     }
 
