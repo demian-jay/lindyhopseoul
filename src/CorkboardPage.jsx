@@ -36,7 +36,7 @@ const MEMBER_NOTE_HIDDEN_REVIEW_REQUIRED = "CORKBOARD_MEMBER_NOTE_HIDDEN_REVIEW_
 const COPY = {
   ko: {
     back: "메인으로",
-    title: "Agora Corkboard",
+    title: "담벼락",
     subtitle: "스윙팝 사람들의 짧은 안내와 마음을 코르크보드에 붙여두는 공간입니다.",
     current: "현재 보드",
     archive: "지난 코르크보드",
@@ -98,7 +98,7 @@ const COPY = {
   },
   en: {
     back: "Home",
-    title: "Agora Corkboard",
+    title: "Corkboard",
     subtitle: "Short notes, guestbook messages, and warm SwingPop notices pinned in one place.",
     current: "Current board",
     archive: "Past corkboards",
@@ -676,7 +676,7 @@ export function CorkboardBoard({
     <section
       ref={stageRef}
       className={`corkboard-stage ${canPlaceNote || positionEdit ? "is-placement-enabled" : ""} ${isDraftDragging || isPositionDragging ? "is-dragging-note" : ""}`}
-      aria-label={page?.title || "Agora Corkboard"}
+      aria-label={page?.title || "Corkboard"}
       onPointerDown={handleStagePointerDown}
     >
       <div className="corkboard-slots">

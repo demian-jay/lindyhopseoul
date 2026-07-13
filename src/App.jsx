@@ -15,6 +15,7 @@ const CONTENT = {
       "스윙팝은 한국인과 외국인이 함께 어울리며 춤과 음악, 사람 사이의 연결을 즐기는 스윙댄스 커뮤니티입니다. 처음 온 사람도 편안하게 분위기를 느끼고, 서울의 스윙 문화를 자연스럽게 만나볼 수 있도록 구성했습니다.",
     heroPrimary: "일정 보고 신청하기",
     heroSecondary: "커뮤니티 소개 보기",
+    heroCorkboard: "담벼락",
     mobileApply: "일정 보고 신청하기",
     languageTitle: "언어를 선택해주세요",
     languageDesc: "Choose your preferred language to continue.",
@@ -279,6 +280,7 @@ const CONTENT = {
       "SwingPop is a swing dance community where Koreans and internationals connect through dance, music, and shared experiences. This page is designed to help first-time visitors quickly understand who we are and why Seoul’s swing dance culture is worth exploring.",
     heroPrimary: "View & Apply",
     heroSecondary: "About the Community",
+    heroCorkboard: "Corkboard",
     mobileApply: "View & Apply",
     languageTitle: "Choose your language",
     languageDesc: "Select Korean or English to continue.",
@@ -3977,7 +3979,7 @@ function PublicApp() {
                     onClick={handleCorkboardOpen}
                     className="inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-6 py-3 text-sm font-medium text-teal-900 shadow-sm transition hover:translate-y-[-1px] hover:bg-teal-100"
                   >
-                    Agora Corkboard
+                    {t.heroCorkboard}
                   </button>
                 </div>
               </div>

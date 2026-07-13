@@ -6,7 +6,7 @@ import "./corkboard.css";
 
 const COPY = {
   Kor: {
-    title: "Agora Corkboard",
+    title: "담벼락",
     description: "운영진 공지와 회원 메모가 섞여 보이는 커뮤니티 코르크보드를 관리합니다.",
     boardSettingsTitle: "보드 운영 설정",
     boardSettingsDescription: "현재 보드의 사용 기간을 확인하고, 다음 코르크보드를 예약합니다.",
@@ -104,7 +104,7 @@ const COPY = {
     unknownAuthor: "작성자 없음",
   },
   Eng: {
-    title: "Agora Corkboard",
+    title: "Corkboard",
     description: "Manage the community corkboard where staff notices and member notes live together.",
     boardSettingsTitle: "Board Settings",
     boardSettingsDescription: "Review the current board period and schedule the next corkboard.",

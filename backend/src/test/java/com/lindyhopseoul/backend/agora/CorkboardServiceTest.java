@@ -887,7 +887,7 @@ class CorkboardServiceTest {
         String periodKey = month.format(DateTimeFormatter.ofPattern("yyyy-MM"));
         Corkboard board = Corkboard.create(
                 periodKey,
-                "Agora Corkboard " + periodKey,
+                "Corkboard " + periodKey,
                 month.atDay(1),
                 month.atEndOfMonth(),
                 pageNo

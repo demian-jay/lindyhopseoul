@@ -852,7 +852,7 @@ public class CorkboardService {
         String periodKey = month.format(PERIOD_FORMATTER);
         return new PeriodDescriptor(
                 periodKey,
-                "Agora Corkboard " + periodKey,
+                "Corkboard " + periodKey,
                 month.atDay(1),
                 month.atEndOfMonth()
         );

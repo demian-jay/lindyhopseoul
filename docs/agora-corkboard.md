@@ -1,8 +1,8 @@
-# Agora Corkboard
+# Corkboard (담벼락)
 
 ## Purpose
 
-Agora Corkboard is the community-wall feature for short public notes, staff notices, external event blurbs, and guestbook-style member messages. It is intentionally not a traditional notice board: the UI presents notes as pinned or taped memo stickers on a corkboard.
+Corkboard (담벼락) is the community-wall feature for short public notes, staff notices, external event blurbs, and guestbook-style member messages. It is intentionally not a traditional notice board: the UI presents notes as pinned or taped memo stickers on a corkboard.
 
 ## Backend
 
@@ -293,7 +293,7 @@ Operational rules:
 User entry point:
 
 - `/corkboard`
-- Also linked from the main hero as `Agora Corkboard`.
+- Also linked from the main hero as `담벼락` (Korean) / `Corkboard` (English).
 
 Admin entry point:
 
