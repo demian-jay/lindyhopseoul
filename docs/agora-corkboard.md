@@ -317,6 +317,11 @@ Design notes:
 - Desktop renders notes at board-relative percentage coordinates.
 - Mobile keeps the corkboard surface and supports touch drag or tap-to-place without horizontal overflow.
 - Note templates include yellow, pink, blue, white, lined, tape, pin, and staff notice styles.
+- Colours in `src/corkboard.css` follow the `swing.*` palette registered in `tailwind.config.js`, so the board matches the rest of the site. The page background is cream/paper; the cork surface and wood frame keep their original warm browns, which already suited the palette.
+- Sticker templates keep their hue. The template labels name the colour (`연한 파랑 메모` / `Blue note`) and the key is persisted in `corkboard_note.sticker_template_key`, so a hue change would make the label wrong and would not match stored rows. Tones are vintage rather than neon; `blue` uses the brand `swing.sky` tone.
+- Sticker paper carries the same grain as `.swing-paper` on the public site.
+- Templates must stay visually distinct. `white` and `lined` share a near-identical base by design and are told apart by the ruled lines and the coloured margin, not by the base colour.
+- Status colours (danger red, success emerald, warning amber) are deliberately not themed anywhere in the Corkboard: they carry meaning rather than brand.
 - Notes have slight rotation, shadow, hover lift, selected outline, and attach/land animations.
 - The write flow includes template selection, live preview, character count, board tap/drag placement, and submit feedback.
 - Owner position editing uses long press, drag, and drop confirmation. There is no separate move button on the public board.
@@ -329,7 +334,9 @@ Design notes:
 
 ## QA Status
 
-Last verified: 2026-06-30, local dev environment.
+Feature behaviour last verified: 2026-06-30, local dev environment. The checklist below covers that pass.
+
+Theme/palette last verified: 2026-07-15. That was a colour-only pass and did **not** re-run the behaviour checklist; see "Theme pass" below for what it did and did not cover.
 
 Runtime used for verification:
 
@@ -358,6 +365,26 @@ Completed checks:
 - Admin current period info displays `periodKey`, title, start/end dates, status, page count, note count, and writable state.
 - Super-admin period controls are visible for the local super admin account.
 - Period creation, duplicate rejection, same-period page updates, manual archive, and staff rejection are covered by `CorkboardServiceTest`.
+
+### Theme pass, 2026-07-15
+
+Colour and texture only. No selector, layout, animation, or drag rule changed; `src/corkboard.css` kept 246 selectors, 13 `@keyframes`, and 3 `@media` blocks. The only non-colour edits were the paper-grain layers added to six templates, the `background-size` entry that the extra layer on `pink` requires, and the page-grain spacing (82px to 46px, to match `.swing-paper`).
+
+Checked:
+
+- `/corkboard` renders with the cream/paper page background; the cork surface (`#b87945`) and wood frame (`#855433`) are unchanged.
+- All nine sticker templates resolve to their intended colours, and note text stays well above AA on every one (10.4–13.5:1).
+- No cold/blue leftovers remain on the page, measured from computed styles rather than by eye.
+- No console errors; no horizontal overflow at 390px.
+- `npm run build` passes.
+
+Not checked in that pass, and still resting on the 2026-06-30 verification:
+
+- The write flow (template picker, live preview, placement) — it needs a member login.
+- Admin Corkboard rendering, including the `.admin-corkboard-*` rules in `src/corkboard.css` that the pass also recoloured — it needs an admin login.
+- Note landing, lift, drop, and return animations, and long-press movement. The CSS rules are unchanged, but they were not exercised.
+
+Re-run the relevant checklist items below before trusting the Corkboard after any further styling work.
 
 ## QA Checklist
 
