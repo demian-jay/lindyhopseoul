@@ -206,8 +206,8 @@ function StatusBadge({ status, labels }) {
     <span
       className={`inline-flex min-w-[72px] items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
         isDone
-          ? "border-zinc-200 bg-zinc-100 text-zinc-600"
-          : "border-teal-200 bg-teal-50 text-teal-800"
+          ? "border-swing-border/30 bg-swing-cream/70 text-swing-muted"
+          : "border-swing-teal/30 bg-swing-teal/10 text-swing-teal-deep"
       }`}
     >
       {labels.statusLabels[status] || status}
@@ -274,40 +274,40 @@ function AssigneeMultiSelect({ labels, langCd, assignees, value = [], onChange, 
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex min-h-[42px] w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-left text-sm text-zinc-900 outline-none transition hover:border-teal-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-zinc-100"
+        className="flex min-h-[42px] w-full items-center justify-between gap-2 rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-left text-sm text-swing-ink outline-none transition hover:border-swing-teal/60 focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:cursor-not-allowed disabled:bg-swing-paper disabled:text-swing-muted"
       >
         <span className="min-w-0 flex-1 truncate font-semibold">{selectedLabel}</span>
         {selectedIds.size > 0 ? (
-          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-bold text-teal-700">
+          <span className="rounded-full bg-swing-teal/10 px-2 py-0.5 text-xs font-bold text-swing-teal-deep">
             {selectedIds.size}
           </span>
         ) : null}
-        <span className="text-xs font-bold text-zinc-400">{isOpen ? "^" : "v"}</span>
+        <span className="text-xs font-bold text-swing-muted/70">{isOpen ? "^" : "v"}</span>
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 right-0 z-30 mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200 bg-white p-2 shadow-lg">
-          <label className="flex min-h-[36px] cursor-pointer items-center gap-2 rounded-md px-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50">
+        <div className="absolute left-0 right-0 z-30 mt-2 max-h-64 overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-2 shadow-lg">
+          <label className="flex min-h-[36px] cursor-pointer items-center gap-2 rounded-md px-2 text-sm font-semibold text-swing-ink transition hover:bg-swing-cream/50">
             <input
               type="checkbox"
               checked={selectedIds.size === 0}
               onChange={() => onChange([])}
               disabled={disabled}
-              className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 disabled:cursor-not-allowed"
+              className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal disabled:cursor-not-allowed"
             />
             <span className="min-w-0 truncate">{labels.allStaff}</span>
           </label>
           {assignees.map((assignee) => (
             <label
               key={assignee.userId}
-              className="flex min-h-[36px] cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 transition hover:bg-zinc-50"
+              className="flex min-h-[36px] cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-swing-ink/80 transition hover:bg-swing-cream/50"
             >
               <input
                 type="checkbox"
                 checked={selectedIds.has(assignee.userId)}
                 onChange={() => toggleAssignee(assignee.userId)}
                 disabled={disabled}
-                className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 disabled:cursor-not-allowed"
+                className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal disabled:cursor-not-allowed"
               />
               <span className="min-w-0 truncate">{assignee.name}</span>
             </label>
@@ -383,16 +383,16 @@ export function OperationCheckQuickInput({ token, langCd, onChanged }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-bold text-zinc-950">{labels.quickTitle}</h2>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">{labels.quickDescription}</p>
+          <h2 className="text-base font-bold text-swing-ink">{labels.quickTitle}</h2>
+          <p className="mt-1 text-xs leading-5 text-swing-muted">{labels.quickDescription}</p>
         </div>
         <button
           type="submit"
           disabled={isSaving}
-          className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+          className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
         >
           {isSaving ? labels.saving : labels.save}
         </button>
@@ -400,18 +400,18 @@ export function OperationCheckQuickInput({ token, langCd, onChanged }) {
 
       <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_320px]">
         <label className="block">
-          <span className="text-xs font-semibold text-zinc-600">{labels.content}</span>
+          <span className="text-xs font-semibold text-swing-muted">{labels.content}</span>
           <textarea
             name="content"
             value={form.content}
             onChange={handleContentChange}
             placeholder={labels.contentPlaceholder}
             rows={2}
-            className="mt-1.5 min-h-[64px] w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+            className="mt-1.5 min-h-[64px] w-full resize-y rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
           />
         </label>
         <div className="block">
-          <span className="text-xs font-semibold text-zinc-600">{labels.assignee}</span>
+          <span className="text-xs font-semibold text-swing-muted">{labels.assignee}</span>
           <div className="mt-1.5">
             <AssigneeMultiSelect
               labels={labels}
@@ -630,13 +630,13 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
   };
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+    <section className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-zinc-950">{labels.title}</h2>
-          <p className="mt-1 text-sm text-zinc-500">{isLoading ? labels.loading : `${items.length}`}</p>
+          <h2 className="text-lg font-bold text-swing-ink">{labels.title}</h2>
+          <p className="mt-1 text-sm text-swing-muted">{isLoading ? labels.loading : `${items.length}`}</p>
         </div>
-        <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+        <div className="flex rounded-lg border border-swing-border/30 bg-swing-cream/50 p-1">
           {[
             ["OPEN", labels.open],
             ["DONE", labels.done],
@@ -647,7 +647,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
               type="button"
               onClick={() => setStatus(value)}
               className={`min-h-[32px] rounded-md px-3 text-xs font-semibold transition ${
-                status === value ? "bg-white text-teal-700 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
+                status === value ? "bg-swing-paper text-swing-teal-deep shadow-sm" : "text-swing-muted hover:text-swing-ink"
               }`}
             >
               {label}
@@ -663,13 +663,13 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
 
       <div className="mt-4 grid gap-3">
         {!isLoading && items.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center text-sm text-zinc-500">
+          <div className="rounded-lg border border-dashed border-swing-border/45 bg-swing-cream/50 p-8 text-center text-sm text-swing-muted">
             {emptyText}
           </div>
         ) : null}
 
         {items.length > 0 ? (
-          <div className="operation-check-grid-header rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-bold text-zinc-500">
+          <div className="operation-check-grid-header rounded-lg border border-swing-border/30 bg-swing-cream/50 px-3 py-2 text-xs font-bold text-swing-muted">
             <span>{labels.status}</span>
             <span>{labels.createdBy}</span>
             <span>{labels.assignedTo}</span>
@@ -689,7 +689,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
           const latestComment = comments[comments.length - 1];
 
           return (
-            <article key={item.id} className="overflow-hidden rounded-lg border border-zinc-200">
+            <article key={item.id} className="overflow-hidden rounded-lg border border-swing-border/30">
               <div className="operation-check-grid-row">
                 <div className="operation-check-status-cell operation-check-summary-pair">
                   <span className="operation-check-mobile-label">{labels.status}</span>
@@ -697,19 +697,19 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                 </div>
                 <div className="operation-check-creator-cell operation-check-summary-cell">
                   <div className="operation-check-mobile-label">{labels.createdBy}</div>
-                  <div className="truncate font-semibold text-zinc-900">{item.createdByName || "-"}</div>
+                  <div className="truncate font-semibold text-swing-ink">{item.createdByName || "-"}</div>
                 </div>
                 <div className="operation-check-assignee-cell operation-check-summary-cell">
                   <div className="operation-check-mobile-label">{labels.assignedTo}</div>
-                  <div className="truncate font-semibold text-zinc-700">{formatAssigneeSummary(item, labels, langCd)}</div>
+                  <div className="truncate font-semibold text-swing-ink/80">{formatAssigneeSummary(item, labels, langCd)}</div>
                 </div>
                 <div className="operation-check-content-cell operation-check-summary-cell">
                   <div className="operation-check-mobile-label">{labels.content}</div>
-                  <div className="truncate text-zinc-800">{formatContentPreview(item.content)}</div>
+                  <div className="truncate text-swing-ink">{formatContentPreview(item.content)}</div>
                 </div>
                 <div className="operation-check-summary-pair operation-check-comment-cell">
                   <span className="operation-check-mobile-label">{labels.comments}</span>
-                  <span className="inline-flex min-h-[24px] items-center rounded-full bg-zinc-50 px-2 text-xs font-bold text-zinc-700">
+                  <span className="inline-flex min-h-[24px] items-center rounded-full bg-swing-cream/50 px-2 text-xs font-bold text-swing-ink/80">
                     {commentCount}
                   </span>
                 </div>
@@ -719,8 +719,8 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                   aria-expanded={isItemExpanded}
                   className={`operation-check-grid-detail-button inline-flex min-h-[34px] items-center justify-center rounded-md px-2.5 py-2 text-xs font-semibold transition ${
                     isItemExpanded
-                      ? "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
-                      : "bg-teal-700 text-white hover:bg-teal-800"
+                      ? "border border-swing-border/45 bg-swing-paper text-swing-ink/80 hover:bg-swing-cream/50"
+                      : "bg-swing-teal-deep text-swing-paper hover:bg-swing-teal"
                   }`}
                 >
                   {isItemExpanded ? labels.detailClose : labels.detailOpen}
@@ -728,34 +728,34 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
               </div>
 
               {isItemExpanded ? (
-                <div className="border-t border-zinc-100 p-4">
+                <div className="border-t border-swing-border/20 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="w-full min-w-0 sm:flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={item.status} labels={labels} />
-                    <span className="order-3 w-full text-xs font-semibold text-zinc-500 sm:order-none sm:w-auto">
+                    <span className="order-3 w-full text-xs font-semibold text-swing-muted sm:order-none sm:w-auto">
                       {formatDate(item.createdAt, langCd)}
                     </span>
-                    <span className="inline-flex min-h-[24px] max-w-full items-center rounded-full border border-teal-100 bg-teal-50 px-2 text-xs font-semibold text-teal-800">
+                    <span className="inline-flex min-h-[24px] max-w-full items-center rounded-full border border-swing-teal/20 bg-swing-teal/10 px-2 text-xs font-semibold text-swing-teal-deep">
                       {formatAssigneeSummary(item, labels, langCd)}
                     </span>
                   </div>
 
                   {isEditing ? (
-                    <div className="mt-3 grid gap-3 border-t border-zinc-100 pt-3">
+                    <div className="mt-3 grid gap-3 border-t border-swing-border/20 pt-3">
                       <label className="block">
-                        <span className="text-xs font-semibold text-zinc-600">{labels.content}</span>
+                        <span className="text-xs font-semibold text-swing-muted">{labels.content}</span>
                         <textarea
                           value={editForm.content}
                           onChange={(event) =>
                             setEditForm((current) => ({ ...current, content: event.target.value }))
                           }
                           rows={3}
-                          className="mt-1.5 min-h-[88px] w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                          className="mt-1.5 min-h-[88px] w-full resize-y rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
                         />
                       </label>
                       <div className="block">
-                        <span className="text-xs font-semibold text-zinc-600">{labels.assignee}</span>
+                        <span className="text-xs font-semibold text-swing-muted">{labels.assignee}</span>
                         <div className="mt-1.5">
                           <AssigneeMultiSelect
                             labels={labels}
@@ -771,7 +771,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-900">{item.content}</p>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-swing-ink">{item.content}</p>
                   )}
                 </div>
 
@@ -780,7 +780,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                     <button
                       type="button"
                       onClick={() => startEdit(item)}
-                      className="inline-flex min-h-[38px] flex-1 items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 sm:flex-none"
+                      className="inline-flex min-h-[38px] flex-1 items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 sm:flex-none"
                     >
                       {labels.edit}
                     </button>
@@ -789,7 +789,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                     <button
                       type="button"
                       onClick={() => startComplete(item)}
-                      className="inline-flex min-h-[38px] flex-1 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-800 transition hover:bg-teal-100 sm:flex-none"
+                      className="inline-flex min-h-[38px] flex-1 items-center justify-center rounded-lg border border-swing-teal/30 bg-swing-teal/10 px-3 py-2 text-xs font-semibold text-swing-teal-deep transition hover:bg-swing-teal/15 sm:flex-none"
                     >
                       {labels.complete}
                     </button>
@@ -803,7 +803,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                     type="button"
                     onClick={cancelEdit}
                     disabled={isUpdating}
-                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300"
+                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45"
                   >
                     {labels.cancel}
                   </button>
@@ -811,7 +811,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                     type="button"
                     onClick={() => submitEdit(item)}
                     disabled={isUpdating}
-                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-swing-teal-deep px-3 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
                   >
                     {isUpdating ? labels.updating : labels.update}
                   </button>
@@ -819,15 +819,15 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
               ) : null}
 
               {item.canComplete && completingItemId === item.id ? (
-                <div className="mt-4 border-t border-teal-100 bg-teal-50/60 p-3">
+                <div className="mt-4 border-t border-swing-teal/20 bg-swing-teal/5 p-3">
                   <label className="block">
-                    <span className="text-xs font-semibold text-teal-900">{labels.completeMemo}</span>
+                    <span className="text-xs font-semibold text-swing-teal-deep">{labels.completeMemo}</span>
                     <textarea
                       value={checkedMemo}
                       onChange={(event) => setCheckedMemo(event.target.value)}
                       placeholder={labels.completeMemoPlaceholder}
                       rows={2}
-                      className="mt-1.5 min-h-[64px] w-full resize-y rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                      className="mt-1.5 min-h-[64px] w-full resize-y rounded-lg border border-swing-teal/30 bg-swing-paper px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
                     />
                   </label>
                   <div className="mt-3 flex flex-wrap justify-end gap-2">
@@ -835,7 +835,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                       type="button"
                       onClick={cancelComplete}
                       disabled={isCompleting}
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45"
                     >
                       {labels.cancel}
                     </button>
@@ -843,7 +843,7 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                       type="button"
                       onClick={() => submitComplete(item)}
                       disabled={isCompleting}
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-swing-teal-deep px-3 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
                     >
                       {isCompleting ? labels.completing : labels.confirmComplete}
                     </button>
@@ -851,50 +851,50 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                 </div>
               ) : null}
 
-              <dl className="mt-4 grid gap-3 border-t border-zinc-100 pt-4 text-sm md:grid-cols-2 xl:grid-cols-4">
+              <dl className="mt-4 grid gap-3 border-t border-swing-border/20 pt-4 text-sm md:grid-cols-2 xl:grid-cols-4">
                 <div>
-                  <dt className="text-xs font-semibold text-zinc-500">{labels.createdBy}</dt>
-                  <dd className="mt-1 font-semibold text-zinc-900">{item.createdByName || "-"}</dd>
+                  <dt className="text-xs font-semibold text-swing-muted">{labels.createdBy}</dt>
+                  <dd className="mt-1 font-semibold text-swing-ink">{item.createdByName || "-"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-semibold text-zinc-500">{labels.assignedTo}</dt>
-                  <dd className="mt-1 font-semibold text-zinc-900">{formatAssigneeNames(item, labels)}</dd>
+                  <dt className="text-xs font-semibold text-swing-muted">{labels.assignedTo}</dt>
+                  <dd className="mt-1 font-semibold text-swing-ink">{formatAssigneeNames(item, labels)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-semibold text-zinc-500">{labels.createdAt}</dt>
-                  <dd className="mt-1 text-zinc-700">{formatDate(item.createdAt, langCd)}</dd>
+                  <dt className="text-xs font-semibold text-swing-muted">{labels.createdAt}</dt>
+                  <dd className="mt-1 text-swing-ink/80">{formatDate(item.createdAt, langCd)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-semibold text-zinc-500">{labels.status}</dt>
-                  <dd className="mt-1 text-zinc-700">{labels.statusLabels[item.status] || item.status}</dd>
+                  <dt className="text-xs font-semibold text-swing-muted">{labels.status}</dt>
+                  <dd className="mt-1 text-swing-ink/80">{labels.statusLabels[item.status] || item.status}</dd>
                 </div>
                 {item.status === "DONE" ? (
                   <>
                     <div>
-                      <dt className="text-xs font-semibold text-zinc-500">{labels.checkedBy}</dt>
-                      <dd className="mt-1 font-semibold text-zinc-900">{item.checkedByName || "-"}</dd>
+                      <dt className="text-xs font-semibold text-swing-muted">{labels.checkedBy}</dt>
+                      <dd className="mt-1 font-semibold text-swing-ink">{item.checkedByName || "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-semibold text-zinc-500">{labels.checkedMemo}</dt>
-                      <dd className="mt-1 whitespace-pre-wrap text-zinc-700">{item.checkedMemo || "-"}</dd>
+                      <dt className="text-xs font-semibold text-swing-muted">{labels.checkedMemo}</dt>
+                      <dd className="mt-1 whitespace-pre-wrap text-swing-ink/80">{item.checkedMemo || "-"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-semibold text-zinc-500">{labels.checkedAt}</dt>
-                      <dd className="mt-1 text-zinc-700">{formatDate(item.checkedAt, langCd)}</dd>
+                      <dt className="text-xs font-semibold text-swing-muted">{labels.checkedAt}</dt>
+                      <dd className="mt-1 text-swing-ink/80">{formatDate(item.checkedAt, langCd)}</dd>
                     </div>
                   </>
                 ) : null}
               </dl>
 
-              <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+              <div className="mt-4 rounded-lg border border-swing-border/30 bg-swing-cream/50 px-3 py-2.5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={() => toggleComments(item.id)}
                     aria-expanded={isCommentsOpen}
-                    className="flex min-h-[32px] w-full min-w-0 items-center gap-2 text-left text-sm text-zinc-700 transition hover:text-zinc-950 sm:flex-1"
+                    className="flex min-h-[32px] w-full min-w-0 items-center gap-2 text-left text-sm text-swing-ink/80 transition hover:text-swing-ink sm:flex-1"
                   >
-                    <span className="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-bold text-zinc-700">
+                    <span className="shrink-0 rounded-full bg-swing-paper px-2 py-1 text-xs font-bold text-swing-ink/80">
                       {labels.comments} {commentCount}
                     </span>
                     <span className="min-w-0 truncate">
@@ -915,8 +915,8 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                       }}
                       className={`inline-flex min-h-[36px] w-full items-center justify-center rounded-md px-2.5 py-2 text-xs font-semibold transition sm:w-auto ${
                         isCommentsOpen
-                          ? "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
-                          : "bg-teal-700 text-white hover:bg-teal-800"
+                          ? "border border-swing-border/45 bg-swing-paper text-swing-ink/80 hover:bg-swing-cream/50"
+                          : "bg-swing-teal-deep text-swing-paper hover:bg-swing-teal"
                       }`}
                     >
                       {isCommentsOpen ? labels.commentToggleClose : labels.commentOpenAction}
@@ -926,23 +926,23 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
               </div>
 
               {isCommentsOpen ? (
-                <section className="mt-3 border-t border-zinc-100 pt-4">
+                <section className="mt-3 border-t border-swing-border/20 pt-4">
                   <div className="grid gap-3">
                     {comments.length === 0 ? (
-                      <p className="rounded-lg bg-zinc-50 px-3 py-3 text-sm text-zinc-500">{labels.noComments}</p>
+                      <p className="rounded-lg bg-swing-cream/50 px-3 py-3 text-sm text-swing-muted">{labels.noComments}</p>
                     ) : (
                       comments.map((comment) => (
                         <div
                           key={comment.id || `${item.id}-${comment.createdAt}`}
-                          className="border-l-2 border-zinc-200 pl-3"
+                          className="border-l-2 border-swing-border/30 pl-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold text-zinc-900">{comment.createdByName || "-"}</span>
-                            <span className="text-xs font-semibold text-zinc-400">
+                            <span className="text-sm font-semibold text-swing-ink">{comment.createdByName || "-"}</span>
+                            <span className="text-xs font-semibold text-swing-muted/70">
                               {formatDate(comment.createdAt, langCd)}
                             </span>
                           </div>
-                          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-zinc-700">{comment.content}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-swing-ink/80">{comment.content}</p>
                         </div>
                       ))
                     )}
@@ -961,14 +961,14 @@ export default function OperationCheckPanel({ token, langCd, refreshKey = 0, onC
                       onChange={(event) => updateCommentDraft(item.id, event.target.value)}
                       placeholder={labels.commentPlaceholder}
                       rows={2}
-                      className="min-h-[64px] w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                      className="min-h-[64px] w-full resize-y rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
                     />
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() => submitComment(item)}
                         disabled={commentingItemId === item.id}
-                        className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 sm:w-auto"
+                        className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-3 py-2 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 sm:w-auto"
                       >
                         {commentingItemId === item.id ? labels.commenting : labels.addComment}
                       </button>

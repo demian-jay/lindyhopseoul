@@ -701,10 +701,10 @@ function LessonNoticePanel({ token, lessonId, copy }) {
   };
 
   return (
-    <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+    <section className="mt-4 rounded-lg border border-swing-border/30 bg-swing-paper p-3">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-xs font-semibold text-zinc-500">{copy.notices}</h4>
-        {isLoading ? <span className="text-xs text-zinc-400">{copy.loading}</span> : null}
+        <h4 className="text-xs font-semibold text-swing-muted">{copy.notices}</h4>
+        {isLoading ? <span className="text-xs text-swing-muted/70">{copy.loading}</span> : null}
       </div>
       <form onSubmit={handleSubmit} className="mt-3 grid gap-2">
         <TextArea
@@ -727,11 +727,11 @@ function LessonNoticePanel({ token, lessonId, copy }) {
       {notices.length > 0 ? (
         <div className="mt-3 grid gap-2">
           {notices.map((notice) => (
-            <article key={notice.id} className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-              <div className="text-xs font-semibold text-zinc-500">
+            <article key={notice.id} className="rounded-md border border-swing-border/30 bg-swing-cream/50 px-3 py-2">
+              <div className="text-xs font-semibold text-swing-muted">
                 {noticeAuthorLabel(notice, copy)} · {formatNoticeDate(notice.createdAt)}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-800">{notice.content}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-swing-ink">{notice.content}</p>
             </article>
           ))}
         </div>
@@ -743,49 +743,49 @@ function LessonNoticePanel({ token, lessonId, copy }) {
 function ParticipantList({ participants, copy, onRemoveParticipant }) {
   const items = Array.isArray(participants) ? participants : [];
   return (
-    <div className="mt-4 w-full basis-full rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+    <div className="mt-4 w-full basis-full rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold text-zinc-500">{copy.participants}</div>
-        <div className="text-sm font-bold text-zinc-900">{items.length}</div>
+        <div className="text-xs font-semibold text-swing-muted">{copy.participants}</div>
+        <div className="text-sm font-bold text-swing-ink">{items.length}</div>
       </div>
       {items.length > 0 ? (
         <div className="participant-card-grid mt-3">
           {items.map((participant) => (
-            <div key={participant.id} className="min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2">
+            <div key={participant.id} className="min-w-0 rounded-md border border-swing-border/30 bg-swing-paper px-3 py-2">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 text-sm font-semibold text-zinc-950">
+                <div className="min-w-0 text-sm font-semibold text-swing-ink">
                   <MemberNameLabel name={participant.applicantName} status={participant.memberStatus} />
                 </div>
                 {onRemoveParticipant ? (
                   <button
                     type="button"
                     onClick={() => onRemoveParticipant(participant)}
-                    className="shrink-0 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                    className="shrink-0 rounded-md border border-red-200 bg-swing-paper px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
                   >
                     {copy.removeApplication}
                   </button>
                 ) : null}
               </div>
               {participantSummaryText(participant, copy) ? (
-                <div className="mt-1 text-xs text-zinc-600">{participantSummaryText(participant, copy)}</div>
+                <div className="mt-1 text-xs text-swing-muted">{participantSummaryText(participant, copy)}</div>
               ) : null}
               {participant.requestMemo ? (
-                <div className="mt-2 rounded-md bg-zinc-50 px-2.5 py-2 text-xs leading-5 text-zinc-700">
-                  <span className="font-semibold text-zinc-800">{copy.requestMemo}: </span>
+                <div className="mt-2 rounded-md bg-swing-cream/50 px-2.5 py-2 text-xs leading-5 text-swing-ink/80">
+                  <span className="font-semibold text-swing-ink">{copy.requestMemo}: </span>
                   {previewText(participant.requestMemo)}
                 </div>
               ) : null}
-              <details className="mt-2 text-xs text-zinc-700">
-                <summary className="cursor-pointer font-semibold text-teal-700">{copy.viewParticipantDetail}</summary>
-                <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-                  <div className="font-semibold text-zinc-800">{copy.requestMemo}</div>
-                  <p className="mt-1 whitespace-pre-wrap leading-5 text-zinc-700">
+              <details className="mt-2 text-xs text-swing-ink/80">
+                <summary className="cursor-pointer font-semibold text-swing-teal-deep">{copy.viewParticipantDetail}</summary>
+                <div className="mt-2 rounded-md border border-swing-border/30 bg-swing-cream/50 px-3 py-2">
+                  <div className="font-semibold text-swing-ink">{copy.requestMemo}</div>
+                  <p className="mt-1 whitespace-pre-wrap leading-5 text-swing-ink/80">
                     {participant.requestMemo || copy.noRequestMemo}
                   </p>
                   {participantLegacyContactText(participant, copy) ? (
                     <div className="mt-3">
-                      <div className="font-semibold text-zinc-800">{copy.legacyContact}</div>
-                      <div className="mt-1 text-zinc-700">{participantLegacyContactText(participant, copy)}</div>
+                      <div className="font-semibold text-swing-ink">{copy.legacyContact}</div>
+                      <div className="mt-1 text-swing-ink/80">{participantLegacyContactText(participant, copy)}</div>
                     </div>
                   ) : null}
                 </div>
@@ -794,7 +794,7 @@ function ParticipantList({ participants, copy, onRemoveParticipant }) {
           ))}
         </div>
       ) : (
-        <div className="mt-2 text-xs text-zinc-500">{copy.noParticipants}</div>
+        <div className="mt-2 text-xs text-swing-muted">{copy.noParticipants}</div>
       )}
     </div>
   );
@@ -803,7 +803,7 @@ function ParticipantList({ participants, copy, onRemoveParticipant }) {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-zinc-600">{label}</span>
+      <span className="text-xs font-semibold text-swing-muted">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
@@ -813,7 +813,7 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="min-h-[40px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[40px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -822,7 +822,7 @@ function SelectInput(props) {
   return (
     <select
       {...props}
-      className="min-h-[40px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[40px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -831,7 +831,7 @@ function TextArea(props) {
   return (
     <textarea
       {...props}
-      className="min-h-[96px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[96px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -849,7 +849,7 @@ function Notice({ type = "error", children }) {
 
 function Badge({ children }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+    <span className="inline-flex items-center rounded-full border border-swing-border/30 bg-swing-cream/50 px-2.5 py-1 text-xs font-semibold text-swing-muted">
       {children}
     </span>
   );
@@ -859,7 +859,7 @@ function PrimaryButton(props) {
   return (
     <button
       {...props}
-      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 ${props.className || ""}`}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 ${props.className || ""}`}
     />
   );
 }
@@ -868,7 +868,7 @@ function SecondaryButton(props) {
   return (
     <button
       {...props}
-      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45 ${props.className || ""}`}
     />
   );
 }
@@ -877,21 +877,21 @@ function DangerButton(props) {
   return (
     <button
       {...props}
-      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+      className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border border-red-200 bg-swing-paper px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-swing-muted/45 ${props.className || ""}`}
     />
   );
 }
 
 function LanguageTabs({ activeLanguage, onChange }) {
   return (
-    <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+    <div className="inline-flex rounded-lg border border-swing-border/30 bg-swing-cream/50 p-1">
       {SUPPORTED_LANGUAGES.map((languageCode) => (
         <button
           key={languageCode}
           type="button"
           onClick={() => onChange(languageCode)}
           className={`min-h-[32px] rounded-md px-3 text-xs font-semibold ${
-            activeLanguage === languageCode ? "bg-white text-teal-700 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
+            activeLanguage === languageCode ? "bg-swing-paper text-swing-teal-deep shadow-sm" : "text-swing-muted hover:text-swing-ink"
           }`}
         >
           {languageCode === "ko" ? "한국어" : "English"}
@@ -965,9 +965,9 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
   const activeTranslation = form.translations[activeLanguage];
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-        <h2 className="text-lg font-bold text-zinc-950">{initialValue?.id ? copy.editEvent : copy.createEvent}</h2>
+    <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+        <h2 className="text-lg font-bold text-swing-ink">{initialValue?.id ? copy.editEvent : copy.createEvent}</h2>
         <SecondaryButton type="button" onClick={onCancel}>
           {copy.cancel}
         </SecondaryButton>
@@ -1011,17 +1011,17 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
             <TextInput name="location" value={form.location} onChange={handleChange} />
           </Field>
         </div>
-        <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-2">
+        <label className="flex items-start gap-3 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3 md:col-span-2">
           <input
             type="checkbox"
             name="addressInfoEnabled"
             checked={Boolean(form.addressInfoEnabled)}
             onChange={handleChange}
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+            className="mt-1 h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
           />
           <span>
-            <span className="block text-sm font-semibold text-zinc-800">{copy.addressInfoEnabled}</span>
-            <span className="mt-1 block text-xs leading-5 text-zinc-500">{copy.addressInfoEnabledDesc}</span>
+            <span className="block text-sm font-semibold text-swing-ink">{copy.addressInfoEnabled}</span>
+            <span className="mt-1 block text-xs leading-5 text-swing-muted">{copy.addressInfoEnabledDesc}</span>
           </span>
         </label>
         {form.addressInfoEnabled ? (
@@ -1035,9 +1035,9 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
           </>
         ) : null}
       </div>
-      <div className="mt-5 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-swing-border/30 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-zinc-950">{copy.languageInfo}</h3>
+          <h3 className="text-sm font-bold text-swing-ink">{copy.languageInfo}</h3>
           <LanguageTabs activeLanguage={activeLanguage} onChange={setActiveLanguage} />
         </div>
         <div className="mt-4 grid gap-4">
@@ -1138,9 +1138,9 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
   const activeTranslation = form.translations[activeLanguage];
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-        <h2 className="text-lg font-bold text-zinc-950">{initialValue?.id ? copy.editLesson : copy.addLesson}</h2>
+    <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+        <h2 className="text-lg font-bold text-swing-ink">{initialValue?.id ? copy.editLesson : copy.addLesson}</h2>
         <SecondaryButton type="button" onClick={onCancel}>
           {copy.cancel}
         </SecondaryButton>
@@ -1170,17 +1170,17 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
             ))}
           </SelectInput>
         </Field>
-        <label className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-2">
+        <label className="flex items-start gap-3 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3 md:col-span-2">
           <input
             type="checkbox"
             name="roleSelectionEnabled"
             checked={Boolean(form.roleSelectionEnabled)}
             onChange={handleChange}
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+            className="mt-1 h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
           />
           <span>
-            <span className="block text-sm font-semibold text-zinc-800">{copy.roleSelectionEnabled}</span>
-            <span className="mt-1 block text-xs leading-5 text-zinc-500">{copy.roleSelectionEnabledDesc}</span>
+            <span className="block text-sm font-semibold text-swing-ink">{copy.roleSelectionEnabled}</span>
+            <span className="mt-1 block text-xs leading-5 text-swing-muted">{copy.roleSelectionEnabledDesc}</span>
           </span>
         </label>
         <Field label={copy.lessonStartDate}>
@@ -1208,23 +1208,23 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
         </Field>
       </div>
       <div className="mt-5">
-        <div className="text-xs font-semibold text-zinc-600">{copy.teachers}</div>
+        <div className="text-xs font-semibold text-swing-muted">{copy.teachers}</div>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {teachers.map((teacher) => (
-            <label key={teacher.teacherUserId} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm">
+            <label key={teacher.teacherUserId} className="flex items-center gap-2 rounded-lg border border-swing-border/30 px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={form.teacherUserIds.includes(teacher.teacherUserId)}
                 onChange={() => handleTeacherToggle(teacher.teacherUserId)}
               />
-              <span className="font-semibold text-zinc-800">{teacher.teacherUserNm}</span>
+              <span className="font-semibold text-swing-ink">{teacher.teacherUserNm}</span>
             </label>
           ))}
         </div>
       </div>
-      <div className="mt-5 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-swing-border/30 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-zinc-950">{copy.languageInfo}</h3>
+          <h3 className="text-sm font-bold text-swing-ink">{copy.languageInfo}</h3>
           <LanguageTabs activeLanguage={activeLanguage} onChange={setActiveLanguage} />
         </div>
         <div className="mt-4 grid gap-4">
@@ -1504,9 +1504,9 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[330px_1fr]">
-      <aside className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.events}</h2>
+      <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.events}</h2>
           <div className="flex flex-wrap gap-2">
             <SecondaryButton type="button" onClick={() => setShowEventFilters((current) => !current)}>
               {showEventFilters ? copy.hideFilters : copy.showFilters}
@@ -1547,8 +1547,8 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
           </div>
         ) : null}
         <div className="mt-4 grid gap-2">
-          {isLoading ? <div className="text-sm text-zinc-500">{copy.loading}</div> : null}
-          {!isLoading && events.length === 0 ? <div className="text-sm text-zinc-500">{copy.noEvents}</div> : null}
+          {isLoading ? <div className="text-sm text-swing-muted">{copy.loading}</div> : null}
+          {!isLoading && events.length === 0 ? <div className="text-sm text-swing-muted">{copy.noEvents}</div> : null}
           {events.map((event) => (
             <button
               key={event.id}
@@ -1559,12 +1559,12 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
               }}
               className={`rounded-lg border px-3 py-3 text-left transition ${
                 selectedEventId === event.id
-                  ? "border-teal-600 bg-teal-50"
-                  : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                  ? "border-swing-teal bg-swing-teal/10"
+                  : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
               }`}
             >
-              <div className="text-sm font-bold text-zinc-950">{eventTitle(event, languageCode)}</div>
-              <div className="mt-1 text-xs text-zinc-500">
+              <div className="text-sm font-bold text-swing-ink">{eventTitle(event, languageCode)}</div>
+              <div className="mt-1 text-xs text-swing-muted">
                 {formatDateRange(event.startDate, event.endDate)} / {eventTypeLabel(event.eventType, langCd)}
               </div>
               <div className="mt-2">
@@ -1602,11 +1602,11 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
         ) : null}
 
         {mode === "promotion" && selectedEvent ? (
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
+          <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
               <div>
-                <h2 className="text-lg font-bold text-zinc-950">{copy.promotion}</h2>
-                <div className="mt-1 text-sm text-zinc-500">{selectedTitle}</div>
+                <h2 className="text-lg font-bold text-swing-ink">{copy.promotion}</h2>
+                <div className="mt-1 text-sm text-swing-muted">{selectedTitle}</div>
               </div>
               <SecondaryButton type="button" onClick={() => setMode("detail")}>
                 {copy.cancel}
@@ -1643,7 +1643,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
                 {copy.copy}
               </SecondaryButton>
             </div>
-            <pre className="mt-4 min-h-[240px] whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-800">
+            <pre className="mt-4 min-h-[240px] whitespace-pre-wrap rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4 text-sm leading-6 text-swing-ink">
               {promotion.renderedText}
             </pre>
           </div>
@@ -1699,17 +1699,17 @@ function EventDetail({
 }) {
   if (!event) {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 shadow-sm">
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-8 text-center text-sm text-swing-muted shadow-sm">
         {copy.selectEvent}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+    <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-swing-border/30 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-zinc-950">{eventTitle(event, languageCode)}</h2>
+          <h2 className="text-xl font-bold text-swing-ink">{eventTitle(event, languageCode)}</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge>{eventTypeLabel(event.eventType, languageCode === "en" ? "Eng" : "Kor")}</Badge>
             <Badge>{event.status}</Badge>
@@ -1718,7 +1718,7 @@ function EventDetail({
               {toTimeInput(event.startTime)}-{toTimeInput(event.endTime)}
             </Badge>
           </div>
-          <div className="mt-2 text-sm text-zinc-500">{event.location}</div>
+          <div className="mt-2 text-sm text-swing-muted">{event.location}</div>
         </div>
         <div className="flex flex-wrap gap-2">
           <SecondaryButton type="button" onClick={onEditEvent}>
@@ -1739,30 +1739,30 @@ function EventDetail({
         {SUPPORTED_LANGUAGES.map((languageCode) => {
           const item = translation(event, languageCode);
           return (
-            <section key={languageCode} className="rounded-lg border border-zinc-200 p-4">
-              <h3 className="text-sm font-bold text-zinc-950">{languageCode === "ko" ? "한국어" : "English"}</h3>
-              <div className="mt-3 text-sm font-semibold text-zinc-900">{item.title}</div>
-              <div className="mt-2 text-sm text-zinc-600">{item.shortDescription}</div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">{item.description}</p>
+            <section key={languageCode} className="rounded-lg border border-swing-border/30 p-4">
+              <h3 className="text-sm font-bold text-swing-ink">{languageCode === "ko" ? "한국어" : "English"}</h3>
+              <div className="mt-3 text-sm font-semibold text-swing-ink">{item.title}</div>
+              <div className="mt-2 text-sm text-swing-muted">{item.shortDescription}</div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-swing-ink/80">{item.description}</p>
             </section>
           );
         })}
       </div>
 
       <div className="mt-6">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-3">
-          <h3 className="text-lg font-bold text-zinc-950">{copy.lessons}</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-3">
+          <h3 className="text-lg font-bold text-swing-ink">{copy.lessons}</h3>
           <PrimaryButton type="button" onClick={onAddLesson}>
             {copy.addLesson}
           </PrimaryButton>
         </div>
         <div className="mt-4 grid gap-3">
-          {event.lessons.length === 0 ? <div className="text-sm text-zinc-500">{copy.noLessons}</div> : null}
+          {event.lessons.length === 0 ? <div className="text-sm text-swing-muted">{copy.noLessons}</div> : null}
           {event.lessons.map((lesson) => (
-            <div key={lesson.id} className="rounded-lg border border-zinc-200 p-4">
+            <div key={lesson.id} className="rounded-lg border border-swing-border/30 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-[min(100%,280px)] flex-1">
-                  <div className="text-base font-bold text-zinc-950">{lessonTitle(lesson, languageCode)}</div>
+                  <div className="text-base font-bold text-swing-ink">{lessonTitle(lesson, languageCode)}</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge>{lesson.lessonType}</Badge>
                     <Badge>{lesson.scheduleType}</Badge>
@@ -1775,11 +1775,11 @@ function EventDetail({
                     <Badge>
                       <span>{lesson.fee} {lesson.currency}</span>
                       {Number(lesson.fee) > 0 ? (
-                        <span className="ml-1 text-[10px] font-medium text-zinc-400">{copy.feePaymentNote}</span>
+                        <span className="ml-1 text-[10px] font-medium text-swing-muted/70">{copy.feePaymentNote}</span>
                       ) : null}
                     </Badge>
                   </div>
-                  <div className="mt-3 text-sm text-zinc-600">
+                  <div className="mt-3 text-sm text-swing-muted">
                     {lesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
                   </div>
                 </div>
@@ -1818,10 +1818,10 @@ function ConfirmDialog({
   onConfirm,
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4">
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-bold text-zinc-950">{title}</h2>
-        <p className="mt-3 text-sm leading-6 text-zinc-600">{body}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-swing-ink/40 px-4">
+      <div className="w-full max-w-md rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-xl">
+        <h2 className="text-lg font-bold text-swing-ink">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-swing-muted">{body}</p>
         <div className="mt-5 flex justify-end gap-2">
           <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting}>
             {cancelLabel}
@@ -1958,9 +1958,9 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.templates}</h2>
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
           {editingId ? (
             <SecondaryButton
               type="button"
@@ -2010,14 +2010,14 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
       </form>
 
       <div className="grid gap-5">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.templates}</h2>
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
           <div className="mt-4 grid gap-2">
             {templates.map((template) => (
-              <div key={template.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3">
+              <div key={template.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-swing-border/30 p-3">
                 <div>
-                  <div className="font-semibold text-zinc-950">{template.templateName}</div>
-                  <div className="mt-1 text-xs text-zinc-500">
+                  <div className="font-semibold text-swing-ink">{template.templateName}</div>
+                  <div className="mt-1 text-xs text-swing-muted">
                     {template.templateType} / {template.useYn}
                   </div>
                 </div>
@@ -2036,8 +2036,8 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.preview}</h2>
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.preview}</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label={copy.templates}>
               <SelectInput
@@ -2087,16 +2087,16 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
               {copy.copy}
             </SecondaryButton>
           </div>
-          <pre className="mt-4 min-h-[180px] whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6">
+          <pre className="mt-4 min-h-[180px] whitespace-pre-wrap rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4 text-sm leading-6">
             {preview.renderedText}
           </pre>
         </div>
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.variables}</h2>
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.variables}</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {TEMPLATE_VARIABLES.map((variable) => (
-              <code key={variable} className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
+              <code key={variable} className="rounded-md border border-swing-border/30 bg-swing-cream/50 px-2 py-1 text-xs text-swing-ink/80">
                 {variable}
               </code>
             ))}
@@ -2144,9 +2144,9 @@ export function TeacherDashboardPanel({ token, langCd }) {
   return (
     <section className="grid gap-5">
       <Notice>{error}</Notice>
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{copy.teachingSchedule}</h2>
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.teachingSchedule}</h2>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-end">
             <div className="sm:w-36">
               <Field label={copy.lessonStatusFilter}>
@@ -2181,17 +2181,17 @@ export function TeacherDashboardPanel({ token, langCd }) {
 
 function LessonDashboardRows({ lessons, copy, languageCode, token }) {
   if (lessons.length === 0) {
-    return <div className="text-sm text-zinc-500">{copy.noLessons}</div>;
+    return <div className="text-sm text-swing-muted">{copy.noLessons}</div>;
   }
 
   return (
     <div className="grid gap-3">
       {lessons.map((lesson) => (
-        <div key={lesson.lessonId} className="rounded-lg border border-zinc-200 p-4">
+        <div key={lesson.lessonId} className="rounded-lg border border-swing-border/30 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-[min(100%,280px)] flex-1">
-              <div className="text-base font-bold text-zinc-950">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
-              <div className="mt-1 text-sm text-zinc-600">{localizedTitle(lesson.eventTitle, languageCode)}</div>
+              <div className="text-base font-bold text-swing-ink">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
+              <div className="mt-1 text-sm text-swing-muted">{localizedTitle(lesson.eventTitle, languageCode)}</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
                 <Badge>{lesson.status}</Badge>
@@ -2202,7 +2202,7 @@ function LessonDashboardRows({ lessons, copy, languageCode, token }) {
                   {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
                 </Badge>
               </div>
-              <div className="mt-3 text-sm text-zinc-600">
+              <div className="mt-3 text-sm text-swing-muted">
                 {copy.teachers}: {lesson.teachers.map((teacher) => teacher.name).join(", ")}
               </div>
             </div>

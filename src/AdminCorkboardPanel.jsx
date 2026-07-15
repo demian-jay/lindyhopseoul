@@ -432,12 +432,12 @@ function AdminPeriodMetric({ label, value, tone = "default" }) {
   const toneClass = tone === "positive"
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
     : tone === "muted"
-      ? "border-zinc-200 bg-zinc-50 text-zinc-600"
-      : "border-zinc-200 bg-white text-zinc-900";
+      ? "border-swing-border/30 bg-swing-cream/50 text-swing-muted"
+      : "border-swing-border/30 bg-swing-paper text-swing-ink";
 
   return (
     <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
-      <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-500">{label}</div>
+      <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-swing-muted">{label}</div>
       <div className="mt-1 break-words text-sm font-bold">{value ?? "-"}</div>
     </div>
   );
@@ -1073,27 +1073,27 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
   return (
     <div className="grid gap-5">
-      <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-teal-700">Agora</p>
-            <h2 className="mt-1 text-2xl font-bold text-zinc-950">{labels.title}</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">{labels.description}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-swing-teal-deep">Agora</p>
+            <h2 className="mt-1 text-2xl font-bold text-swing-ink">{labels.title}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-swing-muted">{labels.description}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => loadCorkboards()}
-              className="rounded-full bg-teal-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-800"
+              className="rounded-full bg-swing-teal-deep px-4 py-2 text-sm font-bold text-swing-paper transition hover:bg-swing-teal"
             >
               {labels.current}
             </button>
-            <label className="flex items-center gap-2 text-sm font-bold text-zinc-600">
+            <label className="flex items-center gap-2 text-sm font-bold text-swing-muted">
               {labels.periods}
               <select
                 value={selectedPeriodKey}
                 onChange={(event) => loadCorkboards(event.target.value)}
-                className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800"
+                className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink"
               >
                 {periods.map((period) => (
                   <option key={period.periodKey} value={period.periodKey}>
@@ -1117,16 +1117,16 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
         </div>
       ) : null}
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-zinc-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-swing-border/30 pb-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-teal-700">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-swing-teal-deep">
               {labels.boardSettingsTitle}
             </p>
-            <h3 className="mt-1 text-xl font-bold text-zinc-950">
+            <h3 className="mt-1 text-xl font-bold text-swing-ink">
               {currentPeriod?.title || labels.noCurrentBoard}
             </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-swing-muted">
               {labels.boardSettingsDescription}
             </p>
           </div>
@@ -1138,7 +1138,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
         </div>
 
         <div className="mt-4">
-          <h4 className="text-sm font-bold text-zinc-950">{labels.currentBoardInfo}</h4>
+          <h4 className="text-sm font-bold text-swing-ink">{labels.currentBoardInfo}</h4>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <AdminPeriodMetric label={labels.periodKey} value={currentPeriod?.periodKey} />
             <AdminPeriodMetric
@@ -1163,32 +1163,32 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
         {canManagePeriods ? (
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <form onSubmit={handleSaveSettings} className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+            <form onSubmit={handleSaveSettings} className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-sm font-bold text-zinc-700 sm:col-span-2">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80 sm:col-span-2">
                   {labels.periodTitle}
                   <input
                     value={settingsForm.title}
                     onChange={(event) => handleSettingsChange("title", event.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodStart}
                   <input
                     type="date"
                     value={settingsForm.periodStart}
                     onChange={(event) => handleSettingsChange("periodStart", event.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodEnd}
                   <input
                     type="date"
                     value={settingsForm.periodEnd}
                     onChange={(event) => handleSettingsChange("periodEnd", event.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
               </div>
@@ -1197,27 +1197,27 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                   type="button"
                   onClick={handleArchiveCurrent}
                   disabled={!currentPeriod?.periodKey || isArchivingPeriod}
-                  className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg border border-red-200 bg-swing-paper px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isArchivingPeriod ? labels.archivingCurrent : labels.archiveCurrent}
                 </button>
                 <button
                   type="submit"
                   disabled={!currentPeriod?.periodKey || isSavingSettings}
-                  className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-swing-teal-deep px-4 py-2 text-sm font-bold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSavingSettings ? labels.savingSettings : labels.saveSettings}
                 </button>
               </div>
             </form>
 
-            <form onSubmit={handleCreatePeriod} className="rounded-lg border border-zinc-200 bg-white p-4">
+            <form onSubmit={handleCreatePeriod} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4">
               <div>
-                <h4 className="text-sm font-bold text-zinc-950">{labels.createPeriodTitle}</h4>
-                <p className="mt-1 text-sm leading-6 text-zinc-600">{labels.createPeriodDescription}</p>
+                <h4 className="text-sm font-bold text-swing-ink">{labels.createPeriodTitle}</h4>
+                <p className="mt-1 text-sm leading-6 text-swing-muted">{labels.createPeriodDescription}</p>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodKey}
                   <input
                     value={createPeriodForm.periodKey}
@@ -1227,33 +1227,33 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                     maxLength={6}
                     pattern="[0-9]{6}"
                     autoComplete="off"
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodTitle}
                   <input
                     value={createPeriodForm.title}
                     readOnly
-                    className="rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-700 outline-none"
+                    className="rounded-lg border border-swing-border/45 bg-swing-cream/70 px-3 py-2 text-sm font-semibold text-swing-ink/80 outline-none"
                   />
                 </label>
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodStart}
                   <input
                     type="date"
                     value={createPeriodForm.periodStart}
                     onChange={(event) => handleCreatePeriodChange("periodStart", event.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
-                <label className="grid gap-1 text-sm font-bold text-zinc-700">
+                <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodEnd}
                   <input
                     type="date"
                     value={createPeriodForm.periodEnd}
                     onChange={(event) => handleCreatePeriodChange("periodEnd", event.target.value)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
                 </label>
               </div>
@@ -1261,7 +1261,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 <button
                   type="submit"
                   disabled={isCreatingPeriod}
-                  className="rounded-lg bg-zinc-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-swing-ink px-4 py-2 text-sm font-bold text-swing-paper transition hover:bg-swing-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isCreatingPeriod ? labels.creatingPeriod : labels.createPeriod}
                 </button>
@@ -1272,25 +1272,25 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
         <div className="mt-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h4 className="text-sm font-bold text-zinc-950">{labels.periodArchiveTitle}</h4>
-            <span className="text-xs font-bold text-zinc-500">{archivePeriods.length}</span>
+            <h4 className="text-sm font-bold text-swing-ink">{labels.periodArchiveTitle}</h4>
+            <span className="text-xs font-bold text-swing-muted">{archivePeriods.length}</span>
           </div>
           {archivePeriods.length ? (
             <div className="mt-3 grid gap-2">
               {archivePeriods.map((period) => (
                 <div
                   key={period.periodKey}
-                  className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                  className="grid gap-3 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-zinc-950">{period.periodKey}</span>
-                      <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-bold text-zinc-700">
+                      <span className="font-bold text-swing-ink">{period.periodKey}</span>
+                      <span className="rounded-full bg-swing-cream/80 px-2 py-0.5 text-[11px] font-bold text-swing-ink/80">
                         {period.status}
                       </span>
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold text-zinc-700">{period.title}</div>
-                    <div className="mt-1 text-xs font-semibold text-zinc-500">
+                    <div className="mt-1 truncate text-sm font-semibold text-swing-ink/80">{period.title}</div>
+                    <div className="mt-1 text-xs font-semibold text-swing-muted">
                       {formatPeriodDate(period.periodStart, langCd)} - {formatPeriodDate(period.periodEnd, langCd)}
                       {" · "}
                       {labels.pageCount} {period.pageCount}
@@ -1301,7 +1301,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                   <button
                     type="button"
                     onClick={() => loadCorkboards(period.periodKey)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-bold text-zinc-700 transition hover:bg-zinc-100"
+                    className="rounded-lg border border-swing-border/45 bg-swing-paper px-3 py-2 text-sm font-bold text-swing-ink/80 transition hover:bg-swing-cream/60"
                   >
                     {labels.openPeriod}
                   </button>
@@ -1309,7 +1309,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               ))}
             </div>
           ) : (
-            <div className="mt-3 rounded-lg bg-zinc-50 px-4 py-6 text-center text-sm font-semibold text-zinc-500">
+            <div className="mt-3 rounded-lg bg-swing-cream/50 px-4 py-6 text-center text-sm font-semibold text-swing-muted">
               {labels.periodArchiveEmpty}
             </div>
           )}
@@ -1317,11 +1317,11 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+        <section className="min-w-0 rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-zinc-950">{selected?.title || labels.title}</h3>
-              <p className="mt-1 text-sm font-semibold text-zinc-500">{selected?.periodKey}</p>
+              <h3 className="text-lg font-bold text-swing-ink">{selected?.title || labels.title}</h3>
+              <p className="mt-1 text-sm font-semibold text-swing-muted">{selected?.periodKey}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="admin-corkboard-view-toggle" role="tablist" aria-label="Corkboard view mode">
@@ -1341,7 +1341,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 </button>
               </div>
               {selected?.readOnly ? (
-                <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold text-white">
+                <span className="w-fit rounded-full bg-swing-ink px-3 py-1 text-xs font-bold text-swing-paper">
                   {labels.readOnly}
                 </span>
               ) : null}
@@ -1357,8 +1357,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                   onClick={() => setActivePageIndex(index)}
                   className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
                     index === activePageIndex
-                      ? "bg-teal-700 text-white"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                      ? "bg-swing-teal-deep text-swing-paper"
+                      : "bg-swing-cream/70 text-swing-muted hover:bg-swing-cream"
                   }`}
                 >
                   {labels.board} {page.pageNo}
@@ -1368,7 +1368,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
           ) : null}
 
           {isLoading && !selected ? (
-            <div className="grid min-h-80 place-items-center text-sm font-bold text-zinc-500">{labels.loading}</div>
+            <div className="grid min-h-80 place-items-center text-sm font-bold text-swing-muted">{labels.loading}</div>
           ) : boardViewMode === "preview" ? (
             <div className="admin-corkboard-preview-board">
               <CorkboardBoard
@@ -1410,14 +1410,14 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
           )}
         </section>
 
-        <aside className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           {selected?.readOnly ? (
-            <div className="rounded-lg bg-zinc-50 p-4 text-sm font-semibold text-zinc-600">{labels.readOnly}</div>
+            <div className="rounded-lg bg-swing-cream/50 p-4 text-sm font-semibold text-swing-muted">{labels.readOnly}</div>
           ) : (
             <form onSubmit={handleCreate} className="grid gap-4">
               <div>
-                <h3 className="text-lg font-bold text-zinc-950">{labels.createTitle}</h3>
-                <p className="mt-1 text-sm leading-6 text-zinc-600">{labels.createDescription}</p>
+                <h3 className="text-lg font-bold text-swing-ink">{labels.createTitle}</h3>
+                <p className="mt-1 text-sm leading-6 text-swing-muted">{labels.createDescription}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -1436,7 +1436,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               </div>
 
               <div>
-                <div className="mb-2 text-xs font-bold text-zinc-500">{labels.preview}</div>
+                <div className="mb-2 text-xs font-bold text-swing-muted">{labels.preview}</div>
                 <AdminCorkboardNoticePreview note={previewNote} labels={labels} />
               </div>
 
@@ -1463,15 +1463,15 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 maxLength={200}
                 onChange={(event) => setContent(event.target.value.slice(0, 200))}
                 placeholder={labels.contentPlaceholder}
-                className="min-h-32 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                className="min-h-32 w-full resize-y rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
               />
 
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold text-zinc-500">{labels.remaining(200 - content.length)}</span>
+                <span className="text-xs font-bold text-swing-muted">{labels.remaining(200 - content.length)}</span>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full bg-teal-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-60"
+                  className="rounded-full bg-swing-teal-deep px-4 py-2 text-sm font-bold text-swing-paper transition hover:bg-swing-teal disabled:cursor-wait disabled:opacity-60"
                 >
                   {isSubmitting ? labels.submitting : labels.submit}
                 </button>

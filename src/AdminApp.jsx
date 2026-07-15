@@ -640,7 +640,7 @@ function StatusBadge({ useYn, labels }) {
       className={`inline-flex min-w-[72px] items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
         isActive
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-zinc-200 bg-zinc-100 text-zinc-500"
+          : "border-swing-border/30 bg-swing-cream/70 text-swing-muted"
       }`}
     >
       {labels.statuses[useYn] || useYn}
@@ -669,10 +669,10 @@ function RoleBadge({ role, labels }) {
     role === "SUPER_ADMIN"
       ? "border-amber-200 bg-amber-50 text-amber-800"
       : role === "STAFF"
-        ? "border-teal-200 bg-teal-50 text-teal-800"
+        ? "border-swing-teal/30 bg-swing-teal/10 text-swing-teal-deep"
         : role === "TEACHER"
-          ? "border-violet-200 bg-violet-50 text-violet-800"
-          : "border-zinc-200 bg-zinc-50 text-zinc-700";
+          ? "border-swing-burgundy/30 bg-swing-burgundy/10 text-swing-burgundy"
+          : "border-swing-border/30 bg-swing-cream/50 text-swing-ink/80";
 
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
@@ -696,7 +696,7 @@ function RoleBadges({ item, labels }) {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-zinc-600">{label}</span>
+      <span className="text-xs font-semibold text-swing-muted">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
@@ -706,7 +706,7 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="min-h-[42px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[42px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -715,7 +715,7 @@ function SelectInput(props) {
   return (
     <select
       {...props}
-      className="min-h-[42px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[42px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -737,7 +737,7 @@ function PrimaryButton(props) {
   return (
     <button
       {...props}
-      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 ${props.className || ""}`}
+      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 ${props.className || ""}`}
     />
   );
 }
@@ -746,7 +746,7 @@ function SecondaryButton(props) {
   return (
     <button
       {...props}
-      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300 ${props.className || ""}`}
+      className={`inline-flex min-h-[38px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45 ${props.className || ""}`}
     />
   );
 }
@@ -796,13 +796,13 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100 px-5 py-10 text-zinc-900">
+    <div className="min-h-screen bg-swing-cream px-5 py-10 text-swing-ink">
       <main className="mx-auto flex min-h-[calc(100vh-80px)] max-w-md items-center">
-        <form onSubmit={handleSubmit} className="w-full rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4 border-b border-zinc-200 pb-5">
+        <form onSubmit={handleSubmit} className="w-full rounded-lg border border-swing-border/30 bg-swing-paper p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4 border-b border-swing-border/30 pb-5">
             <div>
-              <div className="text-sm font-semibold text-teal-700">{loginLabels.brand}</div>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{loginLabels.title}</h1>
+              <div className="text-sm font-semibold text-swing-teal-deep">{loginLabels.brand}</div>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-swing-ink">{loginLabels.title}</h1>
             </div>
           </div>
 
@@ -835,7 +835,7 @@ function LoginScreen({ onLogin }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+            className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
           >
             {isSubmitting ? loginLabels.submitting : loginLabels.submit}
           </button>
@@ -848,31 +848,31 @@ function LoginScreen({ onLogin }) {
 function DashboardPanel({ session, labels }) {
   return (
     <section className="grid gap-5">
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-swing-border/30 pb-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-zinc-950">{labels.dashboard.title}</h2>
-            <div className="mt-2 text-sm text-zinc-500">{session.user.userNm}</div>
+            <h2 className="text-xl font-bold tracking-tight text-swing-ink">{labels.dashboard.title}</h2>
+            <div className="mt-2 text-sm text-swing-muted">{session.user.userNm}</div>
           </div>
           <RoleBadges item={session.user} labels={labels} />
         </div>
 
         <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-            <dt className="text-xs font-semibold text-zinc-500">{labels.fields.loginId}</dt>
-            <dd className="mt-1 text-sm font-semibold text-zinc-900">{session.user.loginId}</dd>
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.loginId}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">{session.user.loginId}</dd>
           </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-            <dt className="text-xs font-semibold text-zinc-500">{labels.fields.role}</dt>
-            <dd className="mt-1 text-sm font-semibold text-zinc-900">
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.role}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">
               {normalizeRoles(session.user)
                 .map((role) => labels.roles[role] || role)
                 .join(", ")}
             </dd>
           </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-            <dt className="text-xs font-semibold text-zinc-500">{labels.fields.language}</dt>
-            <dd className="mt-1 text-sm font-semibold text-zinc-900">{labels.languages[session.user.langCd]}</dd>
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.language}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">{labels.languages[session.user.langCd]}</dd>
           </div>
         </dl>
       </div>
@@ -1019,13 +1019,13 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[390px_1fr]">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">
             {isEditing ? labels.adminUsers.editTitle : labels.adminUsers.createTitle}
           </h2>
           {isEditing ? (
-            <button type="button" onClick={resetForm} className="text-sm font-semibold text-zinc-500 hover:text-zinc-900">
+            <button type="button" onClick={resetForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
               {labels.common.cancel}
             </button>
           ) : null}
@@ -1048,15 +1048,15 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
             />
           </Field>
           <Field label={labels.fields.role}>
-            <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+            <div className="grid gap-2 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
               {roleOptions.map((role) => (
-                <label key={role} className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                <label key={role} className="flex items-center gap-2 text-sm font-semibold text-swing-ink/80">
                   <input
                     type="checkbox"
                     checked={form.roles.includes(role)}
                     onChange={() => handleRoleToggle(role)}
                     disabled={!canManageSuperAdmin && role === "SUPER_ADMIN"}
-                    className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                    className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                   />
                   {labels.roles[role]}
                 </label>
@@ -1086,7 +1086,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+          className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
         >
           {isSaving ? labels.common.saving : isEditing ? labels.common.save : labels.common.create}
         </button>
@@ -1220,13 +1220,13 @@ function TeacherUsersPanel({ token, langCd, labels }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[390px_1fr]">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">
             {isEditing ? labels.teacherUsers.editTitle : labels.teacherUsers.createTitle}
           </h2>
           {isEditing ? (
-            <button type="button" onClick={resetForm} className="text-sm font-semibold text-zinc-500 hover:text-zinc-900">
+            <button type="button" onClick={resetForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
               {labels.common.cancel}
             </button>
           ) : null}
@@ -1271,7 +1271,7 @@ function TeacherUsersPanel({ token, langCd, labels }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+          className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
         >
           {isSaving ? labels.common.saving : isEditing ? labels.common.save : labels.common.create}
         </button>
@@ -1308,47 +1308,47 @@ function AccountTable({
   canDeactivate,
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-        <h2 className="text-lg font-bold text-zinc-950">{title}</h2>
-        <span className="text-sm text-zinc-500">{isLoading ? labels.common.loading : labels.common.count(items.length)}</span>
+    <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+        <h2 className="text-lg font-bold text-swing-ink">{title}</h2>
+        <span className="text-sm text-swing-muted">{isLoading ? labels.common.loading : labels.common.count(items.length)}</span>
       </div>
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-[860px] w-full border-separate border-spacing-0 text-left text-sm">
           <thead>
-            <tr className="text-xs font-semibold uppercase text-zinc-500">
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.name}</th>
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.loginId}</th>
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.role}</th>
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.language}</th>
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.status}</th>
-              <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.updatedAt}</th>
-              <th className="border-b border-zinc-200 px-3 py-2 text-right">{labels.fields.actions}</th>
+            <tr className="text-xs font-semibold uppercase text-swing-muted">
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.name}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.loginId}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.role}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.language}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.status}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.updatedAt}</th>
+              <th className="border-b border-swing-border/30 px-3 py-2 text-right">{labels.fields.actions}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={getKey(item)} className="align-middle">
-                <td className="border-b border-zinc-100 px-3 py-3 font-semibold text-zinc-900">{getName(item)}</td>
-                <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">{item.loginId}</td>
-                <td className="border-b border-zinc-100 px-3 py-3">
+                <td className="border-b border-swing-border/20 px-3 py-3 font-semibold text-swing-ink">{getName(item)}</td>
+                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{item.loginId}</td>
+                <td className="border-b border-swing-border/20 px-3 py-3">
                   <RoleBadges item={item} labels={labels} />
                 </td>
-                <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
+                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                   {labels.languages[item.langCd || "Kor"]}
                 </td>
-                <td className="border-b border-zinc-100 px-3 py-3">
+                <td className="border-b border-swing-border/20 px-3 py-3">
                   <StatusBadge useYn={item.useYn} labels={labels} />
                 </td>
-                <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">{formatDate(item.modDt, langCd)}</td>
-                <td className="border-b border-zinc-100 px-3 py-3">
+                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{formatDate(item.modDt, langCd)}</td>
+                <td className="border-b border-swing-border/20 px-3 py-3">
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => onEdit(item)}
                       disabled={!canEdit(item)}
-                      className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-300"
+                      className="rounded-lg border border-swing-border/45 px-3 py-1.5 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45"
                     >
                       {labels.common.edit}
                     </button>
@@ -1356,7 +1356,7 @@ function AccountTable({
                       type="button"
                       onClick={() => onDeactivate(item)}
                       disabled={!canDeactivate(item)}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-zinc-300"
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-swing-muted/45"
                     >
                       {labels.common.deactivate}
                     </button>
@@ -1562,20 +1562,20 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
 
   return (
     <section className="grid gap-4 sm:gap-5">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-3 sm:gap-3 sm:pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{memberLabels.filtersTitle}</h2>
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-swing-border/30 pb-3 sm:gap-3 sm:pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{memberLabels.filtersTitle}</h2>
           <div className="flex gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 sm:min-h-[38px] sm:text-sm"
+              className="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 sm:min-h-[38px] sm:text-sm"
             >
               {memberLabels.reset}
             </button>
             <button
               type="submit"
-              className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white transition hover:bg-teal-800 sm:min-h-[38px] sm:px-4 sm:text-sm"
+              className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-swing-teal-deep px-3 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal sm:min-h-[38px] sm:px-4 sm:text-sm"
             >
               {memberLabels.search}
             </button>
@@ -1617,11 +1617,11 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
         </div>
       </form>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 border-b border-zinc-200 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{memberLabels.listTitle}</h2>
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-swing-border/30 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{memberLabels.listTitle}</h2>
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="mr-auto text-xs font-semibold text-zinc-600 sm:mr-0 sm:text-sm">
+            <span className="mr-auto text-xs font-semibold text-swing-muted sm:mr-0 sm:text-sm">
               {memberLabels.selectedCount(selectedMemberIds.length)}
             </span>
             <SecondaryButton type="button" onClick={toggleVisibleSelection} disabled={items.length === 0}>
@@ -1630,7 +1630,7 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
             <PrimaryButton type="button" onClick={openMessageModal} disabled={selectedMemberIds.length === 0}>
               {memberLabels.sendMessage}
             </PrimaryButton>
-            <span className="text-sm text-zinc-500">
+            <span className="text-sm text-swing-muted">
               {isLoading ? memberLabels.loading : labels.common.count(items.length)}
             </span>
           </div>
@@ -1642,10 +1642,10 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
         </div>
 
         {items.length === 0 && !isLoading ? (
-          <div className="py-10 text-center text-sm text-zinc-500">{memberLabels.empty}</div>
+          <div className="py-10 text-center text-sm text-swing-muted">{memberLabels.empty}</div>
         ) : (
           <>
-            <div className="mt-3 divide-y divide-zinc-100 md:hidden">
+            <div className="mt-3 divide-y divide-swing-border/20 md:hidden">
               {items.map((member) => (
                 <article key={member.memberId} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-start gap-3">
@@ -1654,7 +1654,7 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                       checked={selectedMemberIdSet.has(member.memberId)}
                       onChange={() => toggleMemberSelection(member.memberId)}
                       aria-label={`${memberLabels.select}: ${member.displayName || member.email}`}
-                      className="mt-1 h-5 w-5 shrink-0 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                      className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -1662,18 +1662,18 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                           <MemberNameLabel
                             name={member.displayName || labels.common.empty}
                             status={member.memberStatus}
-                            className="text-sm font-semibold text-zinc-950"
+                            className="text-sm font-semibold text-swing-ink"
                           />
-                          <div className="mt-1 truncate text-xs text-zinc-500">
+                          <div className="mt-1 truncate text-xs text-swing-muted">
                             {member.nickname || labels.common.empty}
                           </div>
                         </div>
                         <MemberStatusBadge status={member.memberStatus} labels={labels} />
                       </div>
-                      <div className="mt-2 truncate text-xs text-zinc-600">{member.email}</div>
-                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-5 text-zinc-500">
+                      <div className="mt-2 truncate text-xs text-swing-muted">{member.email}</div>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-5 text-swing-muted">
                         <div className="min-w-0">
-                          <dt className="inline font-semibold text-zinc-600">{labels.fields.preferredLanguage}: </dt>
+                          <dt className="inline font-semibold text-swing-muted">{labels.fields.preferredLanguage}: </dt>
                           <dd className="inline">
                             {labels.memberLanguages[member.preferredLanguage] ||
                               member.preferredLanguage ||
@@ -1681,25 +1681,25 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                           </dd>
                         </div>
                         <div className="min-w-0">
-                          <dt className="inline font-semibold text-zinc-600">{labels.fields.createdAt}: </dt>
+                          <dt className="inline font-semibold text-swing-muted">{labels.fields.createdAt}: </dt>
                           <dd className="inline">{formatDate(member.createdAt, langCd)}</dd>
                         </div>
                         <div className="min-w-0">
-                          <dt className="inline font-semibold text-zinc-600">{labels.fields.lastLoginAt}: </dt>
+                          <dt className="inline font-semibold text-swing-muted">{labels.fields.lastLoginAt}: </dt>
                           <dd className="inline">{formatDate(member.lastLoginAt, langCd)}</dd>
                         </div>
                         <div className="min-w-0">
-                          <dt className="inline font-semibold text-zinc-600">{labels.fields.withdrawnAt}: </dt>
+                          <dt className="inline font-semibold text-swing-muted">{labels.fields.withdrawnAt}: </dt>
                           <dd className="inline">{formatDate(member.withdrawnAt, langCd)}</dd>
                         </div>
                       </dl>
-                      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-zinc-700">
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level1} {member.level1ApplicationCount}</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level2} {member.level2ApplicationCount}</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level3} {member.level3ApplicationCount}</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.level4} {member.level4ApplicationCount}</span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5">{memberLabels.workshop} {member.workshopApplicationCount}</span>
-                        <span className="rounded bg-teal-50 px-1.5 py-0.5 text-teal-800">
+                      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-swing-ink/80">
+                        <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level1} {member.level1ApplicationCount}</span>
+                        <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level2} {member.level2ApplicationCount}</span>
+                        <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level3} {member.level3ApplicationCount}</span>
+                        <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level4} {member.level4ApplicationCount}</span>
+                        <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.workshop} {member.workshopApplicationCount}</span>
+                        <span className="rounded bg-swing-teal/10 px-1.5 py-0.5 text-swing-teal-deep">
                           {memberLabels.totalApplications} {member.totalApplicationCount}
                         </span>
                       </div>
@@ -1733,91 +1733,91 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
             <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-xs lg:text-sm">
               <thead>
-                <tr className="text-xs font-semibold uppercase text-zinc-500">
-                  <th className="w-12 border-b border-zinc-200 px-3 py-2">
+                <tr className="text-xs font-semibold uppercase text-swing-muted">
+                  <th className="w-12 border-b border-swing-border/30 px-3 py-2">
                     <input
                       type="checkbox"
                       checked={isAllVisibleSelected}
                       onChange={toggleVisibleSelection}
                       disabled={items.length === 0}
                       aria-label={memberLabels.selectAllVisible}
-                      className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                      className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                     />
                   </th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.name}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.nickname}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.email}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.status}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.preferredLanguage}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.createdAt}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.lastLoginAt}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2">{labels.fields.withdrawnAt}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level1}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level2}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level3}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.level4}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.workshop}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{memberLabels.totalApplications}</th>
-                  <th className="border-b border-zinc-200 px-3 py-2 text-right">{labels.fields.actions}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.name}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.nickname}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.email}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.status}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.preferredLanguage}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.createdAt}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.lastLoginAt}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.withdrawnAt}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level1}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level2}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level3}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level4}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.workshop}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.totalApplications}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{labels.fields.actions}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((member) => (
                   <tr key={member.memberId} className="align-middle">
-                    <td className="border-b border-zinc-100 px-3 py-3">
+                    <td className="border-b border-swing-border/20 px-3 py-3">
                       <input
                         type="checkbox"
                         checked={selectedMemberIdSet.has(member.memberId)}
                         onChange={() => toggleMemberSelection(member.memberId)}
                         aria-label={`${memberLabels.select}: ${member.displayName || member.email}`}
-                        className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600"
+                        className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                       />
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3">
+                    <td className="border-b border-swing-border/20 px-3 py-3">
                       <MemberNameLabel
                         name={member.displayName || labels.common.empty}
                         status={member.memberStatus}
-                        className="font-semibold text-zinc-950"
+                        className="font-semibold text-swing-ink"
                       />
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {member.nickname || labels.common.empty}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">{member.email}</td>
-                    <td className="border-b border-zinc-100 px-3 py-3">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{member.email}</td>
+                    <td className="border-b border-swing-border/20 px-3 py-3">
                       <MemberStatusBadge status={member.memberStatus} labels={labels} />
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-600">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {labels.memberLanguages[member.preferredLanguage] || member.preferredLanguage || labels.common.empty}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {formatDate(member.createdAt, langCd)}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {formatDate(member.lastLoginAt, langCd)}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-zinc-500">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {formatDate(member.withdrawnAt, langCd)}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.level1ApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.level2ApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.level3ApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.level4ApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-semibold text-zinc-700">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.workshopApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3 text-right font-bold text-zinc-950">
+                    <td className="border-b border-swing-border/20 px-3 py-3 text-right font-bold text-swing-ink">
                       {member.totalApplicationCount}
                     </td>
-                    <td className="border-b border-zinc-100 px-3 py-3">
+                    <td className="border-b border-swing-border/20 px-3 py-3">
                       <div className="flex justify-end gap-2">
                         {canChangeMemberStatus && member.memberStatus === "ACTIVE" ? (
                           <button
@@ -1903,12 +1903,12 @@ function MemberMessageSendModal({
   const moreCount = Math.max(0, members.length - previewMembers.length);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/40 px-3 py-4 sm:items-center sm:px-4">
-      <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl sm:p-5">
-        <h2 className="text-lg font-bold text-zinc-950">{labels.sendMessageTitle}</h2>
-        <p className="mt-3 text-sm leading-6 text-zinc-600">{labels.sendMessageDescription(members.length)}</p>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
+        <h2 className="text-lg font-bold text-swing-ink">{labels.sendMessageTitle}</h2>
+        <p className="mt-3 text-sm leading-6 text-swing-muted">{labels.sendMessageDescription(members.length)}</p>
 
-        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+        <div className="mt-4 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
               {labels.activeRecipients(activeCount)}
@@ -1923,7 +1923,7 @@ function MemberMessageSendModal({
             {previewMembers.map((member) => (
               <span
                 key={member.memberId}
-                className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700"
+                className="inline-flex items-center rounded-full border border-swing-border/30 bg-swing-paper px-2.5 py-1 text-xs font-semibold text-swing-ink/80"
               >
                 <MemberNameLabel
                   name={member.displayName || commonLabels.empty}
@@ -1932,24 +1932,24 @@ function MemberMessageSendModal({
               </span>
             ))}
             {moreCount > 0 ? (
-              <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500">
+              <span className="inline-flex items-center rounded-full border border-swing-border/30 bg-swing-paper px-2.5 py-1 text-xs font-semibold text-swing-muted">
                 {labels.previewMore(moreCount)}
               </span>
             ) : null}
           </div>
         </div>
 
-        <p className="mt-3 text-xs leading-5 text-zinc-500">{labels.sendMessagePrivacyNote}</p>
+        <p className="mt-3 text-xs leading-5 text-swing-muted">{labels.sendMessagePrivacyNote}</p>
 
         <label className="mt-4 block">
-          <span className="text-xs font-semibold text-zinc-600">{labels.messageLabel}</span>
+          <span className="text-xs font-semibold text-swing-muted">{labels.messageLabel}</span>
           <textarea
             value={content}
             onChange={(event) => onContentChange(event.target.value)}
             maxLength={2000}
             rows={5}
             placeholder={labels.messagePlaceholder}
-            className="mt-1.5 min-h-[128px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 sm:min-h-[160px]"
+            className="mt-1.5 min-h-[128px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 sm:min-h-[160px]"
           />
         </label>
         {error ? <div className="mt-2 text-sm font-semibold text-red-600">{error}</div> : null}
@@ -1980,31 +1980,31 @@ function MemberStatusChangeModal({
 }) {
   const isSuspend = type === "suspend";
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/40 px-3 py-4 sm:items-center sm:px-4">
-      <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl sm:p-5">
-        <h2 className="text-lg font-bold text-zinc-950">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
+        <h2 className="text-lg font-bold text-swing-ink">
           {isSuspend ? labels.suspendTitle : labels.reactivateTitle}
         </h2>
-        <p className="mt-3 text-sm leading-6 text-zinc-600">
+        <p className="mt-3 text-sm leading-6 text-swing-muted">
           {isSuspend ? labels.suspendBody : labels.reactivateBody}
         </p>
-        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+        <div className="mt-4 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
           <MemberNameLabel
             name={member.displayName || commonLabels.empty}
             status={member.memberStatus}
-            className="font-semibold text-zinc-950"
+            className="font-semibold text-swing-ink"
           />
-          <div className="mt-1 text-xs text-zinc-500">{member.email}</div>
+          <div className="mt-1 text-xs text-swing-muted">{member.email}</div>
         </div>
         <label className="mt-4 block">
-          <span className="text-xs font-semibold text-zinc-600">{labels.reasonLabel}</span>
+          <span className="text-xs font-semibold text-swing-muted">{labels.reasonLabel}</span>
           <textarea
             value={reason}
             onChange={(event) => onReasonChange(event.target.value)}
             maxLength={1000}
             rows={4}
             placeholder={labels.reasonPlaceholder}
-            className="mt-1.5 min-h-[112px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+            className="mt-1.5 min-h-[112px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
           />
         </label>
         {reasonError ? <div className="mt-2 text-sm font-semibold text-red-600">{reasonError}</div> : null}
@@ -2060,9 +2060,9 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
 
   return (
     <section className="grid gap-5">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{logLabels.filtersTitle}</h2>
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{logLabels.filtersTitle}</h2>
           <div className="flex gap-2">
             <SecondaryButton type="button" onClick={handleReset}>
               {logLabels.reset}
@@ -2092,19 +2092,19 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
 
       <Notice>{error}</Notice>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{logLabels.listTitle}</h2>
-          <span className="text-sm font-semibold text-zinc-500">{labels.common.count(logs.length)}</span>
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{logLabels.listTitle}</h2>
+          <span className="text-sm font-semibold text-swing-muted">{labels.common.count(logs.length)}</span>
         </div>
-        {isLoading ? <div className="py-8 text-center text-sm text-zinc-500">{logLabels.loading}</div> : null}
+        {isLoading ? <div className="py-8 text-center text-sm text-swing-muted">{logLabels.loading}</div> : null}
         {!isLoading && logs.length === 0 ? (
-          <div className="py-8 text-center text-sm text-zinc-500">{logLabels.empty}</div>
+          <div className="py-8 text-center text-sm text-swing-muted">{logLabels.empty}</div>
         ) : null}
         {!isLoading && logs.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[1100px] w-full divide-y divide-zinc-200 text-left text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <table className="min-w-[1100px] w-full divide-y divide-swing-border/30 text-left text-sm">
+              <thead className="bg-swing-cream/50 text-xs font-semibold uppercase tracking-wide text-swing-muted">
                 <tr>
                   <th className="px-3 py-3">{logLabels.actionAt}</th>
                   <th className="px-3 py-3">{logLabels.actor}</th>
@@ -2120,21 +2120,21 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                   <th className="px-3 py-3">{logLabels.reason}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-swing-border/20">
                 {logs.map((log) => {
                   const targetName = log.targetMemberNickname || log.targetMemberDisplayName || log.applicantName;
                   const targetEmail = log.targetMemberEmail || log.applicantEmail || labels.common.empty;
                   return (
                     <tr key={log.id} className="align-top">
-                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(log.actionAt, langCd)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-swing-muted">{formatDate(log.actionAt, langCd)}</td>
                       <td className="px-3 py-3">
-                        <div className="font-semibold text-zinc-900">{log.actorAdminName || log.actorLoginId}</div>
-                        <div className="mt-1 text-xs text-zinc-500">{log.actorLoginId || log.actorAdminId}</div>
+                        <div className="font-semibold text-swing-ink">{log.actorAdminName || log.actorLoginId}</div>
+                        <div className="mt-1 text-xs text-swing-muted">{log.actorLoginId || log.actorAdminId}</div>
                       </td>
                       <td className="px-3 py-3">
                         <RoleBadge role={log.actorRole} labels={labels} />
                       </td>
-                      <td className="px-3 py-3 font-semibold text-zinc-900">
+                      <td className="px-3 py-3 font-semibold text-swing-ink">
                         <MemberNameLabel
                           member={{
                             memberNickname: log.targetMemberNickname,
@@ -2147,23 +2147,23 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                           fallback={labels.common.empty}
                         />
                       </td>
-                      <td className="px-3 py-3 text-zinc-600">{targetEmail}</td>
-                      <td className="px-3 py-3 text-zinc-900">
+                      <td className="px-3 py-3 text-swing-muted">{targetEmail}</td>
+                      <td className="px-3 py-3 text-swing-ink">
                         <div className="font-semibold">{log.lessonTitle || log.eventTitle || labels.common.empty}</div>
-                        <div className="mt-1 text-xs text-zinc-500">#{log.lessonId || log.eventId}</div>
+                        <div className="mt-1 text-xs text-swing-muted">#{log.lessonId || log.eventId}</div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                      <td className="whitespace-nowrap px-3 py-3 text-swing-muted">
                         {formatDateRange(log.lessonStartDate, log.lessonEndDate, labels.common.empty)}
                       </td>
-                      <td className="px-3 py-3 text-zinc-700">{logLabels.actions[log.action] || log.action}</td>
-                      <td className="px-3 py-3 text-zinc-600">
+                      <td className="px-3 py-3 text-swing-ink/80">{logLabels.actions[log.action] || log.action}</td>
+                      <td className="px-3 py-3 text-swing-muted">
                         {labels.memberStatuses[log.previousMemberStatus] || log.previousMemberStatus || labels.common.empty}
                       </td>
-                      <td className="px-3 py-3 text-zinc-600">
+                      <td className="px-3 py-3 text-swing-muted">
                         {labels.memberStatuses[log.nextMemberStatus] || log.nextMemberStatus || labels.common.empty}
                       </td>
-                      <td className="px-3 py-3 text-zinc-700">{log.summary || labels.common.empty}</td>
-                      <td className="px-3 py-3 text-zinc-600">{log.reason || logLabels.noReason}</td>
+                      <td className="px-3 py-3 text-swing-ink/80">{log.summary || labels.common.empty}</td>
+                      <td className="px-3 py-3 text-swing-muted">{log.reason || logLabels.noReason}</td>
                     </tr>
                   );
                 })}
@@ -2270,16 +2270,16 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{messageLabels.listTitle}</h2>
-          <span className="text-sm text-zinc-500">
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{messageLabels.listTitle}</h2>
+          <span className="text-sm text-swing-muted">
             {isLoadingThreads ? messageLabels.loading : labels.common.count(threads.length)}
           </span>
         </div>
 
         {threads.length === 0 && !isLoadingThreads ? (
-          <div className="py-8 text-center text-sm text-zinc-500">{messageLabels.emptyThreads}</div>
+          <div className="py-8 text-center text-sm text-swing-muted">{messageLabels.emptyThreads}</div>
         ) : (
           <div className="mt-4 grid gap-2">
             {threads.map((thread) => {
@@ -2296,10 +2296,10 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                   }}
                   className={`rounded-lg border p-3 text-left transition ${
                     isSelected
-                      ? "border-teal-600 bg-teal-50"
+                      ? "border-swing-teal bg-swing-teal/10"
                       : isUnread
-                        ? "border-teal-300 bg-teal-50/60 hover:border-teal-400 hover:bg-teal-50"
-                      : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                        ? "border-swing-teal/40 bg-swing-teal/5 hover:border-swing-teal/60 hover:bg-swing-teal/10"
+                      : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -2308,23 +2308,23 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                         <MemberNameLabel
                           member={thread}
                           fallback={labels.common.empty}
-                          className={`${isUnread ? "font-bold" : "font-semibold"} text-zinc-950`}
+                          className={`${isUnread ? "font-bold" : "font-semibold"} text-swing-ink`}
                         />
                         {isUnread ? (
-                          <span className="inline-flex items-center rounded-full bg-teal-700 px-2 py-0.5 text-[11px] font-bold text-white">
+                          <span className="inline-flex items-center rounded-full bg-swing-teal-deep px-2 py-0.5 text-[11px] font-bold text-swing-paper">
                             {thread.unreadMessageCountForAdmin > 1
                               ? `${messageLabels.unread} ${thread.unreadMessageCountForAdmin}`
                               : messageLabels.unread}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1 text-xs text-zinc-500">{thread.memberEmail}</div>
+                      <div className="mt-1 text-xs text-swing-muted">{thread.memberEmail}</div>
                     </div>
-                    <div className="shrink-0 text-xs text-zinc-400">
+                    <div className="shrink-0 text-xs text-swing-muted/70">
                       {formatDate(thread.lastMessageAt, langCd)}
                     </div>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-600">
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-swing-muted">
                     {thread.lastMessagePreview || labels.common.empty}
                   </p>
                 </button>
@@ -2334,13 +2334,13 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
         )}
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="border-b border-zinc-200 pb-4">
-          <h2 className="text-lg font-bold text-zinc-950">{messageLabels.detailTitle}</h2>
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="border-b border-swing-border/30 pb-4">
+          <h2 className="text-lg font-bold text-swing-ink">{messageLabels.detailTitle}</h2>
           {detail?.member ? (
-            <div className="mt-3 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3 text-sm text-swing-muted sm:grid-cols-2">
               <div>
-                <span className="font-semibold text-zinc-950">{messageLabels.memberInfo}: </span>
+                <span className="font-semibold text-swing-ink">{messageLabels.memberInfo}: </span>
                 <MemberNameLabel member={detail.member} fallback={labels.common.empty} />
               </div>
               <div>{detail.member.email}</div>
@@ -2366,12 +2366,12 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
         </div>
 
         {!selectedThreadId ? (
-          <div className="py-12 text-center text-sm text-zinc-500">{messageLabels.selectThread}</div>
+          <div className="py-12 text-center text-sm text-swing-muted">{messageLabels.selectThread}</div>
         ) : isLoadingDetail ? (
-          <div className="py-12 text-center text-sm text-zinc-500">{messageLabels.loading}</div>
+          <div className="py-12 text-center text-sm text-swing-muted">{messageLabels.loading}</div>
         ) : (
           <>
-            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+            <div className="mt-4 grid max-h-[520px] gap-3 overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
               {detail?.messages?.length > 0 ? (
                 detail.messages.map((message) => {
                   const isAdmin = message.senderType === "ADMIN";
@@ -2380,11 +2380,11 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                       <div
                         className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
                           isAdmin
-                            ? "bg-teal-700 text-white"
-                            : "border border-zinc-200 bg-white text-zinc-900"
+                            ? "bg-swing-teal-deep text-swing-paper"
+                            : "border border-swing-border/30 bg-swing-paper text-swing-ink"
                         }`}
                       >
-                        <div className={`text-xs font-semibold ${isAdmin ? "text-white/75" : "text-zinc-500"}`}>
+                        <div className={`text-xs font-semibold ${isAdmin ? "text-swing-paper/75" : "text-swing-muted"}`}>
                           {isAdmin ? (
                             formatStaffSenderLabel(message, messageLabels)
                           ) : (
@@ -2392,7 +2392,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                           )}
                         </div>
                         <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
-                        <div className={`mt-2 text-[11px] ${isAdmin ? "text-white/65" : "text-zinc-400"}`}>
+                        <div className={`mt-2 text-[11px] ${isAdmin ? "text-swing-paper/65" : "text-swing-muted/70"}`}>
                           {formatDate(message.createdAt, langCd)}
                         </div>
                       </div>
@@ -2400,7 +2400,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                   );
                 })
               ) : (
-                <div className="py-8 text-center text-sm text-zinc-500">{messageLabels.noMessages}</div>
+                <div className="py-8 text-center text-sm text-swing-muted">{messageLabels.noMessages}</div>
               )}
             </div>
 
@@ -2415,13 +2415,13 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                 maxLength={2000}
                 rows={4}
                 placeholder={messageLabels.replyPlaceholder}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
               />
               <div className="mt-3 flex justify-end">
                 <button
                   type="submit"
                   disabled={isSending}
-                  className="inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300 sm:w-auto"
+                  className="inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 sm:w-auto"
                 >
                   {isSending ? messageLabels.replying : messageLabels.reply}
                 </button>
@@ -2582,7 +2582,7 @@ export default function AdminApp() {
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-100 text-sm font-semibold text-zinc-500">
+      <div className="flex min-h-screen items-center justify-center bg-swing-cream text-sm font-semibold text-swing-muted">
         {labels.checkingSession}
       </div>
     );
@@ -2593,20 +2593,20 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 text-zinc-900">
-      <header className="border-b border-zinc-200 bg-white">
+    <div className="min-h-screen bg-swing-cream text-swing-ink">
+      <header className="border-b border-swing-border/30 bg-swing-paper">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="text-sm font-semibold text-teal-700">{labels.brand}</div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-950">{pageTitle}</h1>
+            <div className="text-sm font-semibold text-swing-teal-deep">{labels.brand}</div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-swing-ink">{pageTitle}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
-            <span className="text-sm font-semibold text-zinc-700">{session.user.userNm}</span>
+            <span className="text-sm font-semibold text-swing-ink/80">{session.user.userNm}</span>
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
             >
               {labels.common.logout}
             </button>
@@ -2615,7 +2615,7 @@ export default function AdminApp() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_1fr]">
-        <aside className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
+        <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
           <nav className="grid gap-1">
             {visibleMenus.map((menu) => (
               <button
@@ -2624,15 +2624,15 @@ export default function AdminApp() {
                 onClick={() => setActiveMenu(menu)}
                 className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
                   safeActiveMenu === menu
-                    ? "bg-teal-700 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+                    ? "bg-swing-teal-deep text-swing-paper"
+                    : "text-swing-muted hover:bg-swing-cream/60 hover:text-swing-ink"
                 }`}
               >
                 <span>{labels.menus[menu] || menu}</span>
                 {menu === "OPERATION_CHECK" && operationCheckSummary.openAssignedCount > 0 ? (
                   <span
                     className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                      safeActiveMenu === menu ? "bg-white text-teal-700" : "bg-teal-700 text-white"
+                      safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
                     }`}
                   >
                     {operationCheckSummary.openAssignedCount}
@@ -2641,7 +2641,7 @@ export default function AdminApp() {
                 {menu === "MEMBER_MESSAGES" && memberMessageUnreadCount > 0 ? (
                   <span
                     className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                      safeActiveMenu === menu ? "bg-white text-teal-700" : "bg-teal-700 text-white"
+                      safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
                     }`}
                   >
                     {memberMessageUnreadCount}

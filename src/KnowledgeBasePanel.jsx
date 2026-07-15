@@ -118,7 +118,7 @@ function TextInput(props) {
   return (
     <input
       {...props}
-      className="min-h-[42px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[42px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -127,7 +127,7 @@ function TextArea(props) {
   return (
     <textarea
       {...props}
-      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -136,7 +136,7 @@ function SelectInput(props) {
   return (
     <select
       {...props}
-      className="min-h-[42px] w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 disabled:bg-zinc-100"
+      className="min-h-[42px] w-full rounded-lg border border-swing-border/70 bg-swing-cream px-3 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40 disabled:bg-swing-paper disabled:text-swing-muted"
     />
   );
 }
@@ -144,7 +144,7 @@ function SelectInput(props) {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-zinc-600">{label}</span>
+      <span className="text-xs font-semibold text-swing-muted">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
@@ -185,8 +185,8 @@ function LanguageTabs({ supportedLanguages, activeLanguage, onChange }) {
           onClick={() => onChange(languageCode)}
           className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
             activeLanguage === languageCode
-              ? "border-teal-600 bg-teal-700 text-white"
-              : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50"
+              ? "border-swing-teal bg-swing-teal-deep text-swing-paper"
+              : "border-swing-border/45 bg-swing-paper text-swing-muted hover:bg-swing-cream/50"
           }`}
         >
           {LANGUAGE_LABELS[languageCode] || languageCode}
@@ -204,7 +204,7 @@ function TagList({ tags }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {tags.map((tag) => (
-        <span key={tag} className="rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
+        <span key={tag} className="rounded-full border border-swing-teal/20 bg-swing-teal/10 px-2.5 py-1 text-xs font-semibold text-swing-teal-deep">
           {tag}
         </span>
       ))}
@@ -529,7 +529,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
 
   return (
     <section className="grid gap-5">
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="grid gap-4 xl:grid-cols-[1fr_260px_240px]">
           <Field label={kb.searchLabel}>
             <TextInput
@@ -572,17 +572,17 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[390px_1fr]">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-            <h2 className="text-lg font-bold text-zinc-950">{kb.resultsTitle}</h2>
-            <span className="text-sm text-zinc-500">
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+            <h2 className="text-lg font-bold text-swing-ink">{kb.resultsTitle}</h2>
+            <span className="text-sm text-swing-muted">
               {isLoading ? labels.common.loading : labels.common.count(filteredItems.length)}
             </span>
           </div>
 
           <div className="mt-4 grid max-h-[640px] gap-3 overflow-y-auto pr-1">
             {filteredItems.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-5 text-sm leading-6 text-zinc-500">
+              <div className="rounded-lg border border-dashed border-swing-border/45 bg-swing-cream/50 p-5 text-sm leading-6 text-swing-muted">
                 {kb.noResults}
               </div>
             ) : null}
@@ -607,16 +607,16 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                   onClick={() => setSelectedItemId(item.id)}
                   className={`rounded-lg border p-4 text-left transition ${
                     selectedItem?.id === item.id
-                      ? "border-teal-300 bg-teal-50"
-                      : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                      ? "border-swing-teal/40 bg-swing-teal/10"
+                      : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-teal-700">{categoryTranslation.value.name}</span>
+                    <span className="text-xs font-semibold text-swing-teal-deep">{categoryTranslation.value.name}</span>
                     <MissingBadge show={categoryTranslation.missing || itemTranslation.missing} label={kb.translationMissing} />
                   </div>
-                  <div className="mt-1 text-base font-bold text-zinc-950">{itemTranslation.value.title}</div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{itemTranslation.value.summary}</p>
+                  <div className="mt-1 text-base font-bold text-swing-ink">{itemTranslation.value.title}</div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-swing-muted">{itemTranslation.value.summary}</p>
                   <div className="mt-3">
                     <TagList tags={itemTranslation.value.tags} />
                   </div>
@@ -626,24 +626,24 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
           </div>
         </div>
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           {selectedItem ? (
             <>
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-swing-border/30 pb-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-teal-700">{selectedCategoryTranslation.value.name}</span>
+                    <span className="text-sm font-semibold text-swing-teal-deep">{selectedCategoryTranslation.value.name}</span>
                     <MissingBadge show={selectedCategoryTranslation.missing || selectedItemTranslation.missing} label={kb.translationMissing} />
                   </div>
-                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-zinc-950">{selectedItemTranslation.value.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-zinc-600">{selectedItemTranslation.value.summary}</p>
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-swing-ink">{selectedItemTranslation.value.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-swing-muted">{selectedItemTranslation.value.summary}</p>
                 </div>
                 {canManage ? (
                   <div className="flex shrink-0 gap-2">
                     <button
                       type="button"
                       onClick={() => handleEditItem(selectedItem)}
-                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                      className="rounded-lg border border-swing-border/45 px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
                     >
                       {labels.common.edit}
                     </button>
@@ -662,7 +662,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                 <TagList tags={selectedItemTranslation.value.tags} />
               </div>
 
-              <div className="mt-5 whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-5 text-sm leading-7 text-zinc-800">
+              <div className="mt-5 whitespace-pre-wrap rounded-lg border border-swing-border/30 bg-swing-cream/50 p-5 text-sm leading-7 text-swing-ink">
                 {selectedItemTranslation.value.content}
               </div>
 
@@ -673,13 +673,13 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                 <Info label={kb.lastUpdated} value={formatDateTime(selectedItem.updatedAt, manualLanguage, labels.common.empty)} />
               </dl>
 
-              <div className="mt-4 rounded-lg border border-zinc-200 p-4">
-                <div className="text-xs font-semibold text-zinc-500">{kb.sourceNote}</div>
-                <div className="mt-1 text-sm leading-6 text-zinc-700">{selectedItem.sourceNote || labels.common.empty}</div>
+              <div className="mt-4 rounded-lg border border-swing-border/30 p-4">
+                <div className="text-xs font-semibold text-swing-muted">{kb.sourceNote}</div>
+                <div className="mt-1 text-sm leading-6 text-swing-ink/80">{selectedItem.sourceNote || labels.common.empty}</div>
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-sm text-zinc-500">
+            <div className="rounded-lg border border-dashed border-swing-border/45 bg-swing-cream/50 p-8 text-sm text-swing-muted">
               {kb.selectItem}
             </div>
           )}
@@ -688,13 +688,13 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
 
       {canManage ? (
         <div className="grid gap-5 xl:grid-cols-[1fr_390px]">
-          <form onSubmit={handleSubmitItem} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-              <h2 className="text-lg font-bold text-zinc-950">
+          <form onSubmit={handleSubmitItem} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+              <h2 className="text-lg font-bold text-swing-ink">
                 {editingItemId ? kb.editItemTitle : kb.createItemTitle}
               </h2>
               {editingItemId ? (
-                <button type="button" onClick={resetItemForm} className="text-sm font-semibold text-zinc-500 hover:text-zinc-900">
+                <button type="button" onClick={resetItemForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
                   {labels.common.cancel}
                 </button>
               ) : null}
@@ -744,7 +744,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
               </div>
             </div>
 
-            <div className="mt-6 border-t border-zinc-200 pt-5">
+            <div className="mt-6 border-t border-swing-border/30 pt-5">
               <LanguageTabs
                 supportedLanguages={supportedLanguages}
                 activeLanguage={activeItemFormLanguage}
@@ -788,20 +788,20 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
             <button
               type="submit"
               disabled={isSaving || categories.length === 0}
-              className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+              className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {isSaving ? labels.common.saving : editingItemId ? labels.common.save : labels.common.create}
             </button>
           </form>
 
           <div className="grid gap-5">
-            <form onSubmit={handleSubmitCategory} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-4">
-                <h2 className="text-lg font-bold text-zinc-950">
+            <form onSubmit={handleSubmitCategory} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+                <h2 className="text-lg font-bold text-swing-ink">
                   {editingCategoryId ? kb.editCategoryTitle : kb.createCategoryTitle}
                 </h2>
                 {editingCategoryId ? (
-                  <button type="button" onClick={resetCategoryForm} className="text-sm font-semibold text-zinc-500 hover:text-zinc-900">
+                  <button type="button" onClick={resetCategoryForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
                     {labels.common.cancel}
                   </button>
                 ) : null}
@@ -813,7 +813,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                 </Field>
               </div>
 
-              <div className="mt-5 border-t border-zinc-200 pt-5">
+              <div className="mt-5 border-t border-swing-border/30 pt-5">
                 <LanguageTabs
                   supportedLanguages={supportedLanguages}
                   activeLanguage={activeCategoryFormLanguage}
@@ -841,14 +841,14 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
               <button
                 type="submit"
                 disabled={isSaving}
-                className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-300"
+                className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
               >
                 {isSaving ? labels.common.saving : editingCategoryId ? labels.common.save : labels.common.create}
               </button>
             </form>
 
-            <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold text-zinc-950">{kb.categoryListTitle}</h2>
+            <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+              <h2 className="text-lg font-bold text-swing-ink">{kb.categoryListTitle}</h2>
               <div className="mt-4 grid gap-2">
                 {categories.map((category) => {
                   const categoryTranslation = getTranslation(category, manualLanguage, defaultLanguage, {
@@ -856,20 +856,20 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                     description: "",
                   });
                   return (
-                    <div key={category.id} className="rounded-lg border border-zinc-200 p-3">
+                    <div key={category.id} className="rounded-lg border border-swing-border/30 p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-bold text-zinc-900">{categoryTranslation.value.name}</span>
+                            <span className="text-sm font-bold text-swing-ink">{categoryTranslation.value.name}</span>
                             <MissingBadge show={categoryTranslation.missing} label={kb.translationMissing} />
                           </div>
-                          <div className="mt-1 text-xs leading-5 text-zinc-500">{categoryTranslation.value.description}</div>
+                          <div className="mt-1 text-xs leading-5 text-swing-muted">{categoryTranslation.value.description}</div>
                         </div>
                         <div className="flex shrink-0 gap-2">
                           <button
                             type="button"
                             onClick={() => handleEditCategory(category)}
-                            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                            className="rounded-lg border border-swing-border/45 px-2.5 py-1.5 text-xs font-semibold text-swing-ink/80 hover:bg-swing-cream/50"
                           >
                             {labels.common.edit}
                           </button>
@@ -944,9 +944,9 @@ function buildCategoryTranslationsPayload(translations, supportedLanguages, defa
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-      <dt className="text-xs font-semibold text-zinc-500">{label}</dt>
-      <dd className="mt-1 text-sm font-semibold text-zinc-900">{value}</dd>
+    <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+      <dt className="text-xs font-semibold text-swing-muted">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-swing-ink">{value}</dd>
     </div>
   );
 }

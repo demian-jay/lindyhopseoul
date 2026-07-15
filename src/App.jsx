@@ -1164,7 +1164,7 @@ runComponentTests();
 function ImagePlaceholder({ label = "Image Placeholder", height = "h-72" }) {
   return (
     <div
-      className={`flex w-full items-center justify-center rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 text-sm text-blue-900/60 ${height}`}
+      className={`flex w-full items-center justify-center rounded-3xl border border-dashed border-swing-border/30 bg-swing-cream/35 text-sm text-swing-muted ${height}`}
     >
       {label}
     </div>
@@ -1182,20 +1182,20 @@ function SectionWrapper({ id, children, className = "", contentClassName = "py-2
 function LanguageSelectionModal({ title, description, onSelect }) {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-blue-950/45 px-5 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-swing-ink/45 px-5 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="language-modal-title"
       aria-describedby="language-modal-description"
     >
-      <div className="w-full max-w-sm rounded-[2rem] border border-blue-100 bg-white p-6 shadow-2xl sm:p-7">
-        <div className="mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-800">
+      <div className="w-full max-w-sm rounded-[2rem] border border-swing-border/20 bg-swing-paper p-6 shadow-2xl sm:p-7">
+        <div className="mb-4 inline-flex rounded-full border border-swing-border/30 bg-swing-cream/50 px-3 py-1 text-xs font-medium text-swing-teal-deep">
           Language Selection
         </div>
-        <h2 id="language-modal-title" className="text-2xl font-semibold tracking-tight text-blue-950">
+        <h2 id="language-modal-title" className="text-2xl font-semibold tracking-tight text-swing-ink">
           {title}
         </h2>
-        <p id="language-modal-description" className="mt-3 text-sm leading-6 text-blue-950/70">
+        <p id="language-modal-description" className="mt-3 text-sm leading-6 text-swing-ink/70">
           {description}
         </p>
 
@@ -1203,27 +1203,27 @@ function LanguageSelectionModal({ title, description, onSelect }) {
           <button
             type="button"
             onClick={() => onSelect("ko")}
-            className="flex w-full items-center justify-between rounded-2xl border border-blue-200 bg-white px-5 py-4 text-left shadow-sm transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex w-full items-center justify-between rounded-2xl border border-swing-border/30 bg-swing-paper px-5 py-4 text-left shadow-sm transition hover:border-swing-border/45 hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             aria-label="한국어 선택"
           >
             <div>
-              <div className="text-base font-semibold text-blue-950">한국어</div>
-              <div className="mt-1 text-sm text-blue-950/65">한국어로 페이지 보기</div>
+              <div className="text-base font-semibold text-swing-ink">한국어</div>
+              <div className="mt-1 text-sm text-swing-ink/65">한국어로 페이지 보기</div>
             </div>
-            <span className="text-blue-700">→</span>
+            <span className="text-swing-teal-deep">→</span>
           </button>
 
           <button
             type="button"
             onClick={() => onSelect("en")}
-            className="flex w-full items-center justify-between rounded-2xl border border-blue-200 bg-white px-5 py-4 text-left shadow-sm transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex w-full items-center justify-between rounded-2xl border border-swing-border/30 bg-swing-paper px-5 py-4 text-left shadow-sm transition hover:border-swing-border/45 hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             aria-label="Choose English"
           >
             <div>
-              <div className="text-base font-semibold text-blue-950">English</div>
-              <div className="mt-1 text-sm text-blue-950/65">View the page in English</div>
+              <div className="text-base font-semibold text-swing-ink">English</div>
+              <div className="mt-1 text-sm text-swing-ink/65">View the page in English</div>
             </div>
-            <span className="text-blue-700">→</span>
+            <span className="text-swing-teal-deep">→</span>
           </button>
         </div>
       </div>
@@ -1503,7 +1503,7 @@ function VisitorGuideSection({ language, labels, info }) {
                 </div>
 
                 {notice ? (
-                  <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-7 text-teal-950">
+                  <div className="rounded-2xl border border-swing-teal/30 bg-swing-teal/10 px-4 py-3 text-sm leading-7 text-swing-teal-deep">
                     {notice}
                   </div>
                 ) : null}
@@ -1759,22 +1759,22 @@ function MemoBoard({ labels }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
       <div>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-swing-muted">
           {labels.eyebrow}
         </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-swing-ink md:text-5xl">
           {labels.title}
         </h2>
-        <p className="mt-4 max-w-xl text-base leading-8 text-blue-950/70">
+        <p className="mt-4 max-w-xl text-base leading-8 text-swing-ink/70">
           {labels.description}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-semibold text-blue-950">
+        <form onSubmit={handleSubmit} className="mt-8 rounded-3xl border border-swing-border/30 bg-swing-paper p-6 shadow-sm">
+          <h3 className="text-xl font-semibold text-swing-ink">
             {isEditing ? labels.editFormTitle : labels.formTitle}
           </h3>
 
-          <label className="mt-5 block text-sm font-medium text-blue-950/75" htmlFor="memo-title">
+          <label className="mt-5 block text-sm font-medium text-swing-ink/75" htmlFor="memo-title">
             {labels.titleLabel}
           </label>
           <input
@@ -1784,10 +1784,10 @@ function MemoBoard({ labels }) {
             value={form.title}
             onChange={handleFormChange}
             placeholder={labels.titlePlaceholder}
-            className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="mt-2 min-h-[48px] w-full rounded-2xl border border-swing-border/30 px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
           />
 
-          <label className="mt-4 block text-sm font-medium text-blue-950/75" htmlFor="memo-content">
+          <label className="mt-4 block text-sm font-medium text-swing-ink/75" htmlFor="memo-content">
             {labels.contentLabel}
           </label>
           <textarea
@@ -1797,14 +1797,14 @@ function MemoBoard({ labels }) {
             onChange={handleFormChange}
             placeholder={labels.contentPlaceholder}
             rows={5}
-            className="mt-2 w-full resize-none rounded-2xl border border-blue-200 px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="mt-2 w-full resize-none rounded-2xl border border-swing-border/30 px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
           />
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {isEditing ? labels.updateButton : labels.createButton}
             </button>
@@ -1812,7 +1812,7 @@ function MemoBoard({ labels }) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50"
               >
                 {labels.cancelButton}
               </button>
@@ -1821,10 +1821,10 @@ function MemoBoard({ labels }) {
         </form>
       </div>
 
-      <div className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-swing-border/30 bg-swing-paper p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-xl font-semibold text-blue-950">{labels.listTitle}</h3>
-          {isLoading ? <span className="text-sm text-blue-950/50">{labels.loading}</span> : null}
+          <h3 className="text-xl font-semibold text-swing-ink">{labels.listTitle}</h3>
+          {isLoading ? <span className="text-sm text-swing-ink/50">{labels.loading}</span> : null}
         </div>
 
         <div className="mt-4 space-y-3" aria-live="polite">
@@ -1842,37 +1842,37 @@ function MemoBoard({ labels }) {
 
         <div className="mt-5 grid gap-4">
           {!isLoading && memos.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/70 p-6">
-              <div className="text-base font-semibold text-blue-950">{labels.emptyTitle}</div>
-              <p className="mt-2 text-sm leading-6 text-blue-950/65">{labels.emptyDescription}</p>
+            <div className="rounded-3xl border border-dashed border-swing-border/30 bg-swing-cream/40 p-6">
+              <div className="text-base font-semibold text-swing-ink">{labels.emptyTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-swing-ink/65">{labels.emptyDescription}</p>
             </div>
           ) : null}
 
           {memos.map((memo) => (
-            <article key={memo.id} className="rounded-3xl border border-blue-100 bg-blue-50/50 p-5">
+            <article key={memo.id} className="rounded-3xl border border-swing-border/20 bg-swing-cream/30 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h4 className="text-lg font-semibold text-blue-950">{memo.title}</h4>
-                  <p className="mt-1 text-xs text-blue-950/45">{formatMemoDate(memo.updatedAt)}</p>
+                  <h4 className="text-lg font-semibold text-swing-ink">{memo.title}</h4>
+                  <p className="mt-1 text-xs text-swing-ink/45">{formatMemoDate(memo.updatedAt)}</p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
                     onClick={() => handleEdit(memo)}
-                    className="rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-950 transition hover:bg-blue-50"
+                    className="rounded-full border border-swing-border/30 bg-swing-paper px-4 py-2 text-sm font-medium text-swing-ink transition hover:bg-swing-cream/50"
                   >
                     {labels.editButton}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(memo.id)}
-                    className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                    className="rounded-full border border-red-200 bg-swing-paper px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
                   >
                     {labels.deleteButton}
                   </button>
                 </div>
               </div>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-blue-950/70">{memo.content}</p>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-swing-ink/70">{memo.content}</p>
             </article>
           ))}
         </div>
@@ -1890,12 +1890,12 @@ function DetailRow({ label, value, tone = "default" }) {
     <div>
       <dt
         className={`text-xs font-semibold uppercase tracking-[0.12em] ${
-          isSwing ? "text-swing-muted/70" : "text-blue-900/45"
+          isSwing ? "text-swing-muted/70" : "text-swing-muted/70"
         }`}
       >
         {label}
       </dt>
-      <dd className={`mt-1 text-sm leading-6 ${isSwing ? "text-swing-ink/85" : "text-blue-950/75"}`}>{value}</dd>
+      <dd className={`mt-1 text-sm leading-6 ${isSwing ? "text-swing-ink/85" : "text-swing-ink/75"}`}>{value}</dd>
     </div>
   );
 }
@@ -1904,7 +1904,7 @@ function PriceValue({ price, note }) {
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <span>{price}</span>
-      {note ? <span className="text-xs leading-5 text-blue-950/45">{note}</span> : null}
+      {note ? <span className="text-xs leading-5 text-swing-ink/45">{note}</span> : null}
     </span>
   );
 }
@@ -2309,32 +2309,32 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-blue-950/55 px-4 py-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-swing-ink/55 px-4 py-4 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="application-modal-title"
     >
-      <div className="max-h-[calc(100vh-32px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-blue-100 bg-white p-5 shadow-2xl sm:p-7">
+      <div className="max-h-[calc(100vh-32px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-7">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-900/45">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-swing-muted/70">
               {item.eventType}
             </p>
-            <h2 id="application-modal-title" className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">
+            <h2 id="application-modal-title" className="mt-2 text-2xl font-semibold tracking-tight text-swing-ink">
               {item.title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-sm font-semibold text-blue-950 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-swing-border/30 bg-swing-paper text-sm font-semibold text-swing-ink transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             aria-label={labels.close}
           >
             X
           </button>
         </div>
 
-        <dl className="mt-6 grid gap-4 rounded-3xl border border-blue-200 bg-blue-50/70 p-5 sm:grid-cols-2">
+        <dl className="mt-6 grid gap-4 rounded-3xl border border-swing-border/30 bg-swing-cream/40 p-5 sm:grid-cols-2">
           <DetailRow label={detailLabels.details.date} value={item.date} />
           <DetailRow label={detailLabels.details.time} value={item.time} />
           <DetailRow label={detailLabels.details.location} value={item.location} />
@@ -2342,10 +2342,10 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
           <DetailRow label={detailLabels.details.teacher} value={item.teacher} />
         </dl>
 
-        <p className="mt-5 text-sm leading-7 text-blue-950/70">{item.description}</p>
+        <p className="mt-5 text-sm leading-7 text-swing-ink/70">{item.description}</p>
 
         {item.requiresLevelNotice ? (
-          <p className="mt-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-900">
+          <p className="mt-4 rounded-2xl border border-swing-teal/30 bg-swing-teal/10 px-4 py-3 text-sm leading-6 text-swing-teal-deep">
             {detailLabels.levelNotice}
           </p>
         ) : null}
@@ -2362,7 +2362,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                 href="https://open.kakao.com/o/gdODdZIe"
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                className="mt-3 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
               >
                 {labels.announcementRoom}
               </a>
@@ -2388,7 +2388,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                     href="https://www.instagram.com/swingpopseoul"
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                    className="mt-2 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
                   >
                     {labels.instagramDm}
                   </a>
@@ -2405,7 +2405,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                       href={item.googleMapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
                     >
                       {labels.googleMaps}
                     </a>
@@ -2415,7 +2415,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                       href={item.naverMapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
                     >
                       {labels.naverMap}
                     </a>
@@ -2426,7 +2426,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-auto"
+              className="mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-swing-paper transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-auto"
             >
               {labels.chooseAnother}
             </button>
@@ -2435,12 +2435,12 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
           <form onSubmit={handleSubmit} className="mt-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="flex items-center gap-2 text-sm font-semibold text-blue-950/75">
+                <span className="flex items-center gap-2 text-sm font-semibold text-swing-ink/75">
                   {labels.nameLabel}
                   <button
                     type="button"
                     onClick={() => setIsNameHelpOpen((current) => !current)}
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-xs font-bold text-blue-800 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-swing-border/30 bg-swing-cream/50 text-xs font-bold text-swing-teal-deep transition hover:bg-swing-cream/70 focus:outline-none focus:ring-2 focus:ring-swing-teal"
                     aria-label={labels.nameLabel}
                     aria-expanded={isNameHelpOpen}
                   >
@@ -2448,7 +2448,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                   </button>
                 </span>
                 {isNameHelpOpen ? (
-                  <div className="mt-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-950/75">
+                  <div className="mt-2 rounded-2xl border border-swing-border/30 bg-swing-cream/50 px-4 py-3 text-xs leading-5 text-swing-ink/75">
                     {labels.nameHelp.map((line) => (
                       <p key={line} className="mt-2 first:mt-0">
                         {line}
@@ -2463,14 +2463,14 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                   onChange={handleChange}
                   placeholder={labels.namePlaceholder}
                   readOnly={isAuthenticated}
-                  className={`mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:ring-2 focus:ring-blue-200 ${
+                  className={`mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:ring-2 focus:ring-swing-teal/30 ${
                     isAuthenticated
-                      ? "border-blue-100 bg-blue-50/70 text-blue-950/70"
-                      : "border-blue-200 bg-white focus:border-blue-500"
+                      ? "border-swing-border/20 bg-swing-cream/40 text-swing-ink/70"
+                      : "border-swing-border/30 bg-swing-paper focus:border-swing-teal"
                   }`}
                 />
                 {isAuthenticated ? (
-                  <span className="mt-2 block text-xs leading-5 text-blue-950/55">
+                  <span className="mt-2 block text-xs leading-5 text-swing-ink/55">
                     {labels.nameManagedBySettings}
                   </span>
                 ) : null}
@@ -2478,12 +2478,12 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
               {item.roleSelectionEnabled ? (
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="text-sm font-semibold text-blue-950/75">{labels.danceRoleLabel}</span>
+                    <span className="text-sm font-semibold text-swing-ink/75">{labels.danceRoleLabel}</span>
                     <select
                       name="danceRole"
                       value={form.danceRole}
                       onChange={handleChange}
-                      className="mt-2 min-h-[48px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                      className="mt-2 min-h-[48px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
                     >
                       <option value="">{labels.danceRolePlaceholder}</option>
                       {Object.entries(labels.danceRoles).map(([value, label]) => (
@@ -2493,7 +2493,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                       ))}
                     </select>
                   </label>
-                  <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-sm leading-7 text-blue-950/75">
+                  <div className="mt-3 rounded-2xl border border-swing-border/30 bg-swing-cream/40 px-4 py-3 text-sm leading-7 text-swing-ink/75">
                     {labels.danceRoleGuide.map((line) => (
                       <p key={line}>{line}</p>
                     ))}
@@ -2501,16 +2501,16 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                 </div>
               ) : null}
               <label className="block sm:col-span-2">
-                <span className="text-sm font-semibold text-blue-950/75">{labels.requestMemoLabel}</span>
+                <span className="text-sm font-semibold text-swing-ink/75">{labels.requestMemoLabel}</span>
                 <textarea
                   name="requestMemo"
                   value={form.requestMemo}
                   onChange={handleChange}
                   rows={4}
                   placeholder={labels.requestMemoPlaceholder}
-                  className="mt-2 w-full rounded-2xl border border-blue-200 px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="mt-2 w-full rounded-2xl border border-swing-border/30 px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
                 />
-                <span className="mt-2 block text-xs leading-5 text-blue-950/55">
+                <span className="mt-2 block text-xs leading-5 text-swing-ink/55">
                   {labels.requestMemoHelp}
                 </span>
               </label>
@@ -2526,14 +2526,14 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
               >
                 {labels.close}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
               >
                 {isSubmitting ? labels.submitting : labels.submit}
               </button>
@@ -2650,22 +2650,22 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
   if (!authState?.authenticated) {
     return (
       <main className="min-h-screen px-5 py-24">
-        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
-          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+        <section className="mx-auto max-w-xl rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-swing-ink">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.loginRequiredBody}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={onLogin}
               disabled={isLoading}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {labels.login}
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             >
               {labels.back}
             </button>
@@ -2674,7 +2674,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
             <a
               href="/privacy"
               onClick={onPrivacy}
-              className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+              className="text-xs font-medium text-swing-ink/45 underline decoration-swing-ink/20 underline-offset-2 transition hover:text-swing-ink/70"
             >
               {labels.privacyLink}
             </a>
@@ -2686,47 +2686,47 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
 
   return (
     <main className="min-h-screen px-5 py-20 sm:py-24">
-      <section className="mx-auto max-w-2xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+      <section className="mx-auto max-w-2xl rounded-3xl border border-swing-border/20 bg-swing-paper/90 p-5 shadow-sm backdrop-blur sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
-            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-swing-ink sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.description}</p>
           </div>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
           >
             {labels.back}
           </button>
         </div>
 
         {isSettingsLoading ? (
-          <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-950/65">
+          <div className="mt-8 rounded-2xl border border-swing-border/20 bg-swing-cream/50 px-4 py-3 text-sm text-swing-ink/65">
             ...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
             <label className="block">
-              <span className="text-sm font-semibold text-blue-950/70">{labels.email}</span>
+              <span className="text-sm font-semibold text-swing-ink/70">{labels.email}</span>
               <input
                 type="text"
                 readOnly
                 value={settings?.email || authState?.email || ""}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-100 bg-blue-50/70 px-4 text-sm text-blue-950/70 outline-none"
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/20 bg-swing-cream/40 px-4 text-sm text-swing-ink/70 outline-none"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-blue-950/70">{labels.displayName}</span>
+              <span className="text-sm font-semibold text-swing-ink/70">{labels.displayName}</span>
               <input
                 type="text"
                 readOnly
                 value={settings?.displayName || authState?.displayName || ""}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-100 bg-blue-50/70 px-4 text-sm text-blue-950/70 outline-none"
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/20 bg-swing-cream/40 px-4 text-sm text-swing-ink/70 outline-none"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-blue-950/70">{labels.nickname}</span>
+              <span className="text-sm font-semibold text-swing-ink/70">{labels.nickname}</span>
               <input
                 name="nickname"
                 type="text"
@@ -2734,16 +2734,16 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 onChange={handleChange}
                 maxLength={20}
                 placeholder={labels.nicknamePlaceholder}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-blue-950/70">{labels.preferredLanguage}</span>
+              <span className="text-sm font-semibold text-swing-ink/70">{labels.preferredLanguage}</span>
               <select
                 name="preferredLanguage"
                 value={form.preferredLanguage}
                 onChange={handleChange}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-blue-200 bg-white px-4 text-sm text-blue-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
               >
                 <option value="KO">{labels.korean}</option>
                 <option value="EN">{labels.english}</option>
@@ -2765,13 +2765,13 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
               <button
                 type="submit"
                 disabled={isSaving}
-                className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300 sm:w-auto"
+                className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 sm:w-auto"
               >
                 {isSaving ? labels.saving : labels.save}
               </button>
             </div>
 
-            <div className="mt-4 border-t border-blue-100 pt-5">
+            <div className="mt-4 border-t border-swing-border/20 pt-5">
               <button
                 type="button"
                 onClick={() => {
@@ -2779,7 +2779,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                   setNotice("");
                   setIsWithdrawConfirmOpen(true);
                 }}
-                className="inline-flex min-h-[34px] items-center justify-center rounded-xl border border-red-100 bg-white px-3 text-xs font-semibold text-red-700/70 transition hover:border-red-200 hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200"
+                className="inline-flex min-h-[34px] items-center justify-center rounded-xl border border-red-100 bg-swing-paper px-3 text-xs font-semibold text-red-700/70 transition hover:border-red-200 hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200"
               >
                 {labels.withdrawButton}
               </button>
@@ -2791,7 +2791,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
           <a
             href="/privacy"
             onClick={onPrivacy}
-            className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+            className="text-xs font-medium text-swing-ink/45 underline decoration-swing-ink/20 underline-offset-2 transition hover:text-swing-ink/70"
           >
             {labels.privacyLink}
           </a>
@@ -2800,22 +2800,22 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
 
       {isWithdrawConfirmOpen ? (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-blue-950/45 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-swing-ink/45 px-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="withdraw-confirm-title"
         >
-          <section className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-5 shadow-2xl sm:p-6">
-            <h2 id="withdraw-confirm-title" className="text-xl font-semibold tracking-tight text-blue-950">
+          <section className="w-full max-w-md rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-6">
+            <h2 id="withdraw-confirm-title" className="text-xl font-semibold tracking-tight text-swing-ink">
               {labels.withdrawConfirmTitle}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.withdrawConfirmBody}</p>
+            <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.withdrawConfirmBody}</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setIsWithdrawConfirmOpen(false)}
                 disabled={isWithdrawing}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:text-swing-muted/45"
               >
                 {labels.withdrawCancel}
               </button>
@@ -2823,7 +2823,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 type="button"
                 onClick={handleWithdraw}
                 disabled={isWithdrawing}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
               >
                 {isWithdrawing ? labels.withdrawing : labels.withdrawConfirm}
               </button>
@@ -2912,22 +2912,22 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
   if (!authState?.authenticated) {
     return (
       <main className="min-h-screen px-5 py-24">
-        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
-          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+        <section className="mx-auto max-w-xl rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-swing-ink">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.loginRequiredBody}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={onLogin}
               disabled={isLoading}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {labels.login}
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             >
               {labels.back}
             </button>
@@ -2939,16 +2939,16 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
 
   return (
     <main className="min-h-screen px-5 py-20 sm:py-24">
-      <section className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+      <section className="mx-auto max-w-3xl rounded-3xl border border-swing-border/20 bg-swing-paper/90 p-5 shadow-sm backdrop-blur sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
-            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-swing-ink sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.description}</p>
           </div>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
           >
             {labels.back}
           </button>
@@ -2956,7 +2956,7 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
 
         <div className="mt-8">
           {isApplicationsLoading ? (
-            <div className="rounded-3xl border border-blue-100 bg-blue-50/60 px-5 py-8 text-center text-sm text-blue-950/60">
+            <div className="rounded-3xl border border-swing-border/20 bg-swing-cream/35 px-5 py-8 text-center text-sm text-swing-ink/60">
               {labels.loading}
             </div>
           ) : null}
@@ -2968,7 +2968,7 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
           ) : null}
 
           {!isApplicationsLoading && !error && applications.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/50 px-5 py-8 text-center text-sm text-blue-950/60">
+            <div className="rounded-3xl border border-dashed border-swing-border/30 bg-swing-cream/30 px-5 py-8 text-center text-sm text-swing-ink/60">
               {labels.empty}
             </div>
           ) : null}
@@ -2987,14 +2987,14 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
                 return (
                   <article
                     key={application.applicationId}
-                    className="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+                    className="rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-sm"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="inline-flex min-h-[28px] items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
                           {labels.status}
                         </div>
-                        <h2 className="mt-3 text-lg font-semibold tracking-tight text-blue-950">
+                        <h2 className="mt-3 text-lg font-semibold tracking-tight text-swing-ink">
                           {application.classTitle}
                         </h2>
                       </div>
@@ -3005,15 +3005,15 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
                       <DetailRow label={labels.appliedAt} value={formatMessageDate(application.appliedAt, language)} />
                     </dl>
                     {notices.length > 0 ? (
-                      <section className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3">
-                        <div className="text-xs font-semibold text-blue-950/50">{labels.notices}</div>
+                      <section className="mt-5 rounded-2xl border border-swing-border/20 bg-swing-cream/35 px-4 py-3">
+                        <div className="text-xs font-semibold text-swing-ink/50">{labels.notices}</div>
                         <div className="mt-3 grid gap-3">
                           {notices.map((notice) => (
-                            <article key={notice.id} className="rounded-2xl border border-blue-100 bg-white px-4 py-3">
-                              <div className="text-xs font-semibold text-blue-950/50">
+                            <article key={notice.id} className="rounded-2xl border border-swing-border/20 bg-swing-paper px-4 py-3">
+                              <div className="text-xs font-semibold text-swing-ink/50">
                                 {formatLessonNoticeAuthor(notice, labels)} · {formatMessageDate(notice.createdAt, language)}
                               </div>
-                              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-blue-950/75">
+                              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-swing-ink/75">
                                 {notice.content}
                               </p>
                             </article>
@@ -3096,22 +3096,22 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
   if (!authState?.authenticated) {
     return (
       <main className="min-h-screen px-5 py-24">
-        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
-          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+        <section className="mx-auto max-w-xl rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-swing-ink">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.loginRequiredBody}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={onLogin}
               disabled={isLoading}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {labels.login}
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             >
               {labels.back}
             </button>
@@ -3123,26 +3123,26 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
 
   return (
     <main className="min-h-screen px-5 py-20 sm:py-24">
-      <section className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur sm:p-8">
+      <section className="mx-auto max-w-3xl rounded-3xl border border-swing-border/20 bg-swing-paper/90 p-5 shadow-sm backdrop-blur sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">{labels.title}</h1>
-            <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-swing-ink sm:text-3xl">{labels.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.description}</p>
           </div>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
           >
             {labels.back}
           </button>
         </div>
 
-        <div className="mt-8 rounded-3xl border border-blue-100 bg-blue-50/50 p-4 sm:p-5">
+        <div className="mt-8 rounded-3xl border border-swing-border/20 bg-swing-cream/30 p-4 sm:p-5">
           {isMessagesLoading ? (
-            <div className="py-8 text-center text-sm text-blue-950/60">{labels.loading}</div>
+            <div className="py-8 text-center text-sm text-swing-ink/60">{labels.loading}</div>
           ) : thread.messages.length === 0 ? (
-            <div className="py-8 text-center text-sm text-blue-950/60">{labels.empty}</div>
+            <div className="py-8 text-center text-sm text-swing-ink/60">{labels.empty}</div>
           ) : (
             <div className="grid gap-4">
               {thread.messages.map((message) => {
@@ -3155,15 +3155,15 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
                     <div
                       className={`max-w-[82%] rounded-3xl px-4 py-3 shadow-sm ${
                         isMember
-                          ? "bg-blue-700 text-white"
-                          : "border border-blue-100 bg-white text-blue-950"
+                          ? "bg-swing-teal-deep text-swing-paper"
+                          : "border border-swing-border/20 bg-swing-paper text-swing-ink"
                       }`}
                     >
-                      <div className={`text-xs font-semibold ${isMember ? "text-white/75" : "text-blue-950/55"}`}>
+                      <div className={`text-xs font-semibold ${isMember ? "text-swing-paper/75" : "text-swing-ink/55"}`}>
                         {isMember ? labels.member : formatStaffSenderLabel(message, labels)}
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
-                      <div className={`mt-2 text-[11px] ${isMember ? "text-white/65" : "text-blue-950/45"}`}>
+                      <div className={`mt-2 text-[11px] ${isMember ? "text-swing-paper/65" : "text-swing-ink/45"}`}>
                         {formatMessageDate(message.createdAt, language)}
                       </div>
                     </div>
@@ -3185,7 +3185,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
             maxLength={2000}
             rows={4}
             placeholder={labels.placeholder}
-            className="w-full rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-blue-950 outline-none transition placeholder:text-blue-950/35 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
           />
 
           {notice ? (
@@ -3203,7 +3203,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
             <button
               type="submit"
               disabled={isSending}
-              className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300 sm:w-auto"
+              className="inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 sm:w-auto"
             >
               {isSending ? labels.sending : labels.send}
             </button>
@@ -3241,22 +3241,22 @@ function MyPage({
   if (!authState?.authenticated) {
     return (
       <main className="min-h-screen px-5 py-24">
-        <section className="mx-auto max-w-xl rounded-3xl border border-blue-100 bg-white/85 p-6 shadow-sm backdrop-blur sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-blue-950">{labels.loginRequiredTitle}</h1>
-          <p className="mt-3 text-sm leading-7 text-blue-950/65">{labels.loginRequiredBody}</p>
+        <section className="mx-auto max-w-xl rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-6 shadow-sm backdrop-blur sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-swing-ink">{labels.loginRequiredTitle}</h1>
+          <p className="mt-3 text-sm leading-7 text-swing-ink/65">{labels.loginRequiredBody}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={onLogin}
               disabled={isLoading}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
             >
               {labels.login}
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper px-5 text-sm font-semibold text-swing-ink shadow-sm transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
             >
               {labels.back}
             </button>
@@ -3271,27 +3271,27 @@ function MyPage({
       <section className="mx-auto max-w-4xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-blue-950 sm:text-4xl">{labels.title}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-950/65">{labels.description}</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-swing-ink sm:text-4xl">{labels.title}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-swing-ink/65">{labels.description}</p>
           </div>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white/85 px-4 text-sm font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper/85 px-4 text-sm font-semibold text-swing-ink shadow-sm backdrop-blur transition hover:bg-swing-paper focus:outline-none focus:ring-2 focus:ring-swing-teal"
           >
             {labels.back}
           </button>
         </div>
 
-        <div className="mt-8 rounded-3xl border border-blue-100 bg-white/85 p-5 shadow-sm backdrop-blur sm:p-6">
-          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-900/45">
+        <div className="mt-8 rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-5 shadow-sm backdrop-blur sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-swing-muted/70">
             {labels.accountLabel}
           </div>
-          <div className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">{displayName}</div>
+          <div className="mt-2 text-2xl font-semibold tracking-tight text-swing-ink">{displayName}</div>
           {email ? (
-            <div className="mt-2 text-sm text-blue-950/55">
+            <div className="mt-2 text-sm text-swing-ink/55">
               <span className="font-semibold">{labels.emailLabel}</span>
-              <span className="mx-2 text-blue-950/25">/</span>
+              <span className="mx-2 text-swing-ink/25">/</span>
               <span>{email}</span>
             </div>
           ) : null}
@@ -3310,17 +3310,17 @@ function MyPage({
                 key={item.id}
                 type="button"
                 onClick={menuActions[item.id]}
-                className="min-h-[132px] rounded-3xl border border-blue-100 bg-white/90 p-5 text-left shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="min-h-[132px] rounded-3xl border border-swing-border/20 bg-swing-paper/90 p-5 text-left shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-swing-border/30 hover:bg-swing-paper hover:shadow-md focus:outline-none focus:ring-2 focus:ring-swing-teal"
               >
-                <span className="flex items-center justify-between gap-3 text-lg font-semibold tracking-tight text-blue-950">
+                <span className="flex items-center justify-between gap-3 text-lg font-semibold tracking-tight text-swing-ink">
                   <span>{item.title}</span>
                   {unreadCount > 0 ? (
-                    <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-blue-700 px-2 py-0.5 text-xs font-bold text-white">
+                    <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-swing-teal-deep px-2 py-0.5 text-xs font-bold text-swing-paper">
                       {unreadCount}
                     </span>
                   ) : null}
                 </span>
-                <span className="mt-3 block text-sm leading-6 text-blue-950/62">{item.description}</span>
+                <span className="mt-3 block text-sm leading-6 text-swing-ink/62">{item.description}</span>
               </button>
             );
           })}
@@ -3331,7 +3331,7 @@ function MyPage({
             type="button"
             onClick={onLogout}
             disabled={isPending}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-blue-200 bg-white/70 px-4 text-sm font-semibold text-blue-950/70 shadow-sm backdrop-blur transition hover:bg-white hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/35"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-swing-border/30 bg-swing-paper/70 px-4 text-sm font-semibold text-swing-ink/70 shadow-sm backdrop-blur transition hover:bg-swing-paper hover:text-swing-ink focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-not-allowed disabled:text-swing-muted/45"
           >
             {isPending ? labels.loggingOut : labels.logout}
           </button>
@@ -3341,7 +3341,7 @@ function MyPage({
           <a
             href="/privacy"
             onClick={onPrivacy}
-            className="text-xs font-medium text-blue-950/45 underline decoration-blue-950/20 underline-offset-2 transition hover:text-blue-950/70"
+            className="text-xs font-medium text-swing-ink/45 underline decoration-swing-ink/20 underline-offset-2 transition hover:text-swing-ink/70"
           >
             {labels.privacyLink}
           </a>
@@ -3359,7 +3359,7 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
   const toneClass =
     tone === "swing"
       ? "border-swing-border/30 bg-swing-teal-deep/95 text-swing-paper hover:bg-swing-teal focus:ring-swing-teal disabled:text-swing-paper/50"
-      : "border-white/70 bg-white/80 text-blue-950 hover:bg-white focus:ring-blue-500 disabled:text-blue-950/45";
+      : "border-swing-border/30 bg-swing-paper/80 text-swing-ink hover:bg-swing-paper focus:ring-swing-teal disabled:text-swing-muted/45";
 
   return (
     <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] justify-end sm:right-5 sm:top-5">
@@ -3440,16 +3440,16 @@ function PrivacyPolicyPage({ language, onBack }) {
   }, [language]);
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-24 text-blue-950 md:px-8 md:py-28">
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-24 text-swing-ink md:px-8 md:py-28">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-blue-200 bg-white/80 px-4 text-sm font-semibold text-blue-950/70 shadow-sm backdrop-blur transition hover:bg-white hover:text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="inline-flex min-h-[38px] items-center justify-center rounded-full border border-swing-border/30 bg-swing-paper/80 px-4 text-sm font-semibold text-swing-ink/70 shadow-sm backdrop-blur transition hover:bg-swing-paper hover:text-swing-ink focus:outline-none focus:ring-2 focus:ring-swing-teal"
         >
           {labels.back}
         </button>
-        <div className="inline-flex rounded-full border border-blue-200 bg-white/80 p-1 shadow-sm backdrop-blur">
+        <div className="inline-flex rounded-full border border-swing-border/30 bg-swing-paper/80 p-1 shadow-sm backdrop-blur">
           {[
             { value: "ko", label: "한국어" },
             { value: "en", label: "English" },
@@ -3460,8 +3460,8 @@ function PrivacyPolicyPage({ language, onBack }) {
                 key={option.value}
                 type="button"
                 onClick={() => setPolicyLanguage(option.value)}
-                className={`min-h-[32px] rounded-full px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isActive ? "bg-blue-700 text-white shadow-sm" : "text-blue-950/60 hover:bg-blue-50 hover:text-blue-950"
+                className={`min-h-[32px] rounded-full px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-swing-teal ${
+                  isActive ? "bg-swing-teal-deep text-swing-paper shadow-sm" : "text-swing-ink/60 hover:bg-swing-cream/50 hover:text-swing-ink"
                 }`}
               >
                 {option.label}
@@ -3471,19 +3471,19 @@ function PrivacyPolicyPage({ language, onBack }) {
         </div>
       </div>
 
-      <article className="mt-8 rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur md:p-8">
-        <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-900/45">{labels.eyebrow}</p>
+      <article className="mt-8 rounded-3xl border border-swing-border/20 bg-swing-paper/90 p-6 shadow-sm backdrop-blur md:p-8">
+        <p className="text-sm font-medium uppercase tracking-[0.18em] text-swing-muted/70">{labels.eyebrow}</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">{labels.title}</h1>
-        <p className="mt-5 text-base leading-8 text-blue-950/70">{labels.intro}</p>
+        <p className="mt-5 text-base leading-8 text-swing-ink/70">{labels.intro}</p>
 
         <div className="mt-8 space-y-8">
           {labels.sections.map((section) => (
             <section key={section.title}>
               <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
-              <ul className="mt-3 space-y-2 text-sm leading-7 text-blue-950/70">
+              <ul className="mt-3 space-y-2 text-sm leading-7 text-swing-ink/70">
                 {section.items.map((item) => (
                   <li key={item} className="flex gap-2">
-                    <span className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" aria-hidden="true" />
+                    <span className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full bg-swing-teal" aria-hidden="true" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -3968,7 +3968,7 @@ function PublicApp() {
         className={
           isSwingThemedPage
             ? "swing-theme swing-paper min-h-screen bg-swing-paper text-swing-ink"
-            : "min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900"
+            : "min-h-screen bg-swing-cream text-swing-ink"
         }
       >
         {!isLoginConsentPath ? (
@@ -3983,7 +3983,7 @@ function PublicApp() {
           />
         ) : null}
         {accountNotice ? (
-          <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
+          <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-swing-paper/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
             {accountNotice}
           </div>
         ) : null}
