@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
 import { authApi } from "./api/auth";
-import { corkboardApi } from "./api/corkboards";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
 
@@ -22,46 +21,6 @@ const CONTENT = {
     languageDesc: "Choose your preferred language to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
-    memberHome: {
-      eyebrow: "Member Home",
-      title: "이번 달 SwingPop에서 확인할 것",
-      description: "보드에 새 소식이 붙었는지, 내 신청과 수업 안내가 있는지 가볍게 확인해보세요.",
-      corkboard: {
-        title: "이번 달 Corkboard",
-        loading: "코르크보드를 살펴보는 중입니다.",
-        loadError: "Corkboard 미리보기를 잠시 불러오지 못했어요. 보드는 바로 열 수 있습니다.",
-        officialLabel: "운영진 공지",
-        officialEmpty: "아직 붙어 있는 운영진 공지는 없어요.",
-        noteCount: (count) => `${count}개의 스티커가 붙어 있어요.`,
-        myStickerReady: "이번 달 스티커를 붙였어요. 보드에서 수정하거나 옮길 수 있어요.",
-        myStickerEmpty: "이번 달 내 스티커를 붙여보세요.",
-        openBoard: "보드 보러가기",
-        pinSticker: "스티커 붙이러 가기",
-      },
-      activity: {
-        title: "내 활동",
-        description: "내 수업, 신청 내역, 운영진 메시지를 한곳에서 확인할 수 있어요.",
-        classNotice: (count) => (count > 0 ? `읽지 않은 수업 안내 ${count}개` : "새 수업 안내가 있으면 여기서 확인해요."),
-        messageNotice: (count) => (count > 0 ? `읽지 않은 메시지 ${count}개` : "운영진 메시지도 My Page에서 볼 수 있어요."),
-        myPage: "My Page",
-        myClasses: "내 신청 내역 보기",
-      },
-      schedule: {
-        title: "수업 & 소셜",
-        loading: "신청 가능한 일정을 불러오는 중입니다.",
-        loadError: "일정을 잠시 불러오지 못했어요.",
-        empty: "현재 공개 모집 중인 일정이 없습니다.",
-        nextLabel: "열려 있는 일정",
-        social: "토요일 소셜과 수업 안내는 공지방에서도 함께 확인해주세요.",
-        apply: "수업 신청하기",
-        details: "수업 정보 보기",
-      },
-      intro: {
-        title: "처음 오시나요?",
-        description: "SwingPop 소개와 오는 길은 아래에서 계속 확인할 수 있어요.",
-        button: "소개와 오는 길 보기",
-      },
-    },
     visitorGuide: {
       eyebrow: "처음 오시는 분",
       title: "장소 및 공지방 안내",
@@ -327,46 +286,6 @@ const CONTENT = {
     languageDesc: "Select Korean or English to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
-    memberHome: {
-      eyebrow: "Member Home",
-      title: "What to check at SwingPop this month",
-      description: "See whether anything new is pinned, then jump to your classes and the next open schedule.",
-      corkboard: {
-        title: "This Month's Corkboard",
-        loading: "Checking the corkboard.",
-        loadError: "The corkboard preview is unavailable for a moment. You can still open the board.",
-        officialLabel: "Staff notice",
-        officialEmpty: "No staff notice is pinned yet.",
-        noteCount: (count) => `${count} sticker${count === 1 ? "" : "s"} pinned this month.`,
-        myStickerReady: "You have pinned your sticker this month. Edit or move it on the board.",
-        myStickerEmpty: "Pin your sticker for this month.",
-        openBoard: "Open board",
-        pinSticker: "Pin a sticker",
-      },
-      activity: {
-        title: "My Activity",
-        description: "Check your classes, applications, and messages in one place.",
-        classNotice: (count) => (count > 0 ? `${count} unread class notice${count === 1 ? "" : "s"}` : "New class notices will appear here."),
-        messageNotice: (count) => (count > 0 ? `${count} unread message${count === 1 ? "" : "s"}` : "Staff messages are available from My Page."),
-        myPage: "My Page",
-        myClasses: "My applications",
-      },
-      schedule: {
-        title: "Classes & Social",
-        loading: "Loading open schedules.",
-        loadError: "Could not load schedules for a moment.",
-        empty: "No public schedule is open right now.",
-        nextLabel: "Open schedule",
-        social: "Saturday social and class updates are also shared in the announcement chat.",
-        apply: "Apply for class",
-        details: "View class info",
-      },
-      intro: {
-        title: "First time here?",
-        description: "You can still find the SwingPop intro and directions below.",
-        button: "See intro & directions",
-      },
-    },
     visitorGuide: {
       eyebrow: "First Time Here",
       title: "Where to find us",
@@ -1245,20 +1164,9 @@ runComponentTests();
 function ImagePlaceholder({ label = "Image Placeholder", height = "h-72" }) {
   return (
     <div
-      className={`wes-visual relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 text-sm text-blue-900/60 ${height}`}
-      role="img"
-      aria-label={label}
+      className={`flex w-full items-center justify-center rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 text-sm text-blue-900/60 ${height}`}
     >
-      <div className="wes-visual-stage" aria-hidden="true">
-        <span className="wes-visual-sun" />
-        <span className="wes-visual-record" />
-        <span className="wes-visual-card wes-visual-card-left" />
-        <span className="wes-visual-card wes-visual-card-right" />
-        <span className="wes-visual-step wes-visual-step-one" />
-        <span className="wes-visual-step wes-visual-step-two" />
-        <span className="wes-visual-step wes-visual-step-three" />
-      </div>
-      <span className="sr-only">{label}</span>
+      {label}
     </div>
   );
 }
@@ -1334,13 +1242,68 @@ function scrollToHash(hash) {
   }
 }
 
+// Anchor-only navigation over sections that already exist. No routing added.
+function SiteHeader({ nav, corkboardLabel, onCorkboard }) {
+  return (
+    <header className="sticky top-0 z-[70] border-b border-swing-border/30 bg-swing-paper/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 md:px-8">
+        <a
+          href="#top"
+          onClick={(event) => {
+            event.preventDefault();
+            scrollToHash("#top");
+          }}
+          className="shrink-0 font-display text-lg font-bold tracking-[0.14em] text-swing-teal-deep transition hover:text-swing-teal"
+        >
+          SWINGPOP
+        </a>
+
+        <nav className="hidden flex-1 justify-center lg:flex" aria-label="Site">
+          <ul className="flex items-center gap-1">
+            {nav.map((label, index) => {
+              const hash = `#${SECTION_IDS[index]}`;
+
+              return (
+                <li key={hash}>
+                  <a
+                    href={hash}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      scrollToHash(hash);
+                    }}
+                    className="inline-flex min-h-[38px] items-center rounded-full px-3 text-xs font-medium tracking-[0.08em] text-swing-muted transition hover:bg-swing-cream hover:text-swing-ink"
+                  >
+                    {label}
+                  </a>
+                </li>
+              );
+            })}
+            <li>
+              <button
+                type="button"
+                onClick={onCorkboard}
+                className="inline-flex min-h-[38px] items-center rounded-full px-3 text-xs font-medium tracking-[0.08em] text-swing-burgundy transition hover:bg-swing-gold/25"
+              >
+                {corkboardLabel}
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        {/* Reserves room for the fixed AuthControl button in the top-right. */}
+        <div className="ml-auto h-1 w-24 shrink-0 sm:w-28 lg:ml-0" aria-hidden="true" />
+      </div>
+    </header>
+  );
+}
+
 function MobileStickyCta({ label, onClick }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blue-900/10 bg-white/90 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-swing-border/25 bg-swing-paper/92 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(46,39,32,0.12)] backdrop-blur md:hidden">
       <button
         type="button"
         onClick={onClick}
-        className="wes-button wes-button-primary flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-swing-teal-deep px-5 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper"
         aria-label={label}
       >
         {label}
@@ -1359,7 +1322,7 @@ function VisitorGuideLink({ href, children }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="wes-button wes-button-secondary inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-swing-border/35 bg-swing-paper/85 px-4 text-sm font-medium text-swing-teal-deep transition hover:-translate-y-0.5 hover:bg-swing-cream focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-sky/30"
     >
       {children}
     </a>
@@ -1370,24 +1333,24 @@ function VisitorGuidePanel({ panel, isOpen, onToggle, children }) {
   const contentId = `visitor-guide-${panel.id}`;
 
   return (
-    <article className="wes-card overflow-hidden rounded-3xl border border-blue-200 bg-white/90 shadow-sm">
+    <article className="swing-frame overflow-hidden rounded-sm bg-swing-paper/90">
       <button
         type="button"
         onClick={onToggle}
-        className="flex min-h-[76px] w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-blue-50/70 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:px-6"
+        className="flex min-h-[76px] w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-swing-cream/60 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-swing-teal sm:px-6"
         aria-expanded={isOpen}
         aria-controls={contentId}
       >
         <span>
-          <span className="block text-base font-semibold text-blue-950 sm:text-lg">{panel.title}</span>
-          <span className="mt-1 block text-sm leading-6 text-blue-950/60">{panel.summary}</span>
+          <span className="block font-display text-base font-bold text-swing-ink sm:text-lg">{panel.title}</span>
+          <span className="mt-1 block text-sm leading-6 text-swing-muted">{panel.summary}</span>
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-lg font-semibold text-blue-800">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-swing-teal/40 bg-swing-mint/50 text-lg font-semibold text-swing-teal-deep">
           {isOpen ? "-" : "+"}
         </span>
       </button>
       {isOpen ? (
-        <div id={contentId} className="border-t border-blue-100 px-5 py-5 sm:px-6">
+        <div id={contentId} className="border-t border-swing-border/20 px-5 py-5 sm:px-6">
           {children}
         </div>
       ) : null}
@@ -1443,14 +1406,14 @@ function VisitorGuideSection({ language, labels, info }) {
     <div>
       <div className="grid gap-3">
         {labels.firstVisit.items.map((item, index) => (
-            <article key={item.id} className="wes-card rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+          <article key={item.id} className="rounded-2xl border border-swing-border/25 bg-swing-cream/55 p-4">
             <div className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-xs font-semibold text-blue-800">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-swing-border/35 bg-swing-paper/85 text-xs font-semibold text-swing-teal-deep">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-blue-950">{item.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-blue-950/70">{item.body}</p>
+                <h3 className="text-sm font-semibold text-swing-ink">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-swing-muted">{item.body}</p>
               </div>
             </div>
           </article>
@@ -1460,7 +1423,7 @@ function VisitorGuideSection({ language, labels, info }) {
         <button
           type="button"
           onClick={handleShowBackEntranceGuide}
-          className="wes-button wes-button-secondary mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+          className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-swing-border/35 bg-swing-paper/85 px-4 text-sm font-semibold text-swing-teal-deep shadow-sm transition hover:-translate-y-0.5 hover:bg-swing-cream focus:outline-none focus:ring-2 focus:ring-swing-teal sm:w-auto"
         >
           {labels.firstVisit.backEntranceButton}
         </button>
@@ -1470,7 +1433,7 @@ function VisitorGuideSection({ language, labels, info }) {
 
   const renderAnnouncementPanel = () => (
     <div>
-      <p className="text-sm leading-7 text-blue-950/70">{labels.announcement.intro}</p>
+      <p className="text-sm leading-7 text-swing-muted">{labels.announcement.intro}</p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {enabledAnnouncementLinks.map((link) => (
           <VisitorGuideLink key={link.type} href={link.url}>
@@ -1483,21 +1446,21 @@ function VisitorGuideSection({ language, labels, info }) {
 
   const renderContactPanel = () => (
     <div>
-      <p className="text-sm leading-7 text-blue-950/70">{labels.contact.intro}</p>
+      <p className="text-sm leading-7 text-swing-muted">{labels.contact.intro}</p>
       <div className="mt-5 grid gap-4 md:grid-cols-[1fr_0.9fr]">
-        <div className="wes-card rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-          <div className="text-sm font-semibold text-blue-950">{labels.contact.kakaoTalk}</div>
-          <div className="mt-3 grid gap-2 text-sm leading-6 text-blue-950/75">
+        <div className="rounded-2xl border border-swing-border/25 bg-swing-cream/55 p-4">
+          <div className="text-sm font-semibold text-swing-ink">{labels.contact.kakaoTalk}</div>
+          <div className="mt-3 grid gap-2 text-sm leading-6 text-swing-muted">
             {kakaoContacts.map((contact) => (
               <div key={`${contact.type}-${contact.value}`} className="flex flex-wrap gap-x-2 gap-y-1">
-                <span className="font-semibold text-blue-950">{getLocalizedLinkLabel(contact, language)}:</span>
+                <span className="font-semibold text-swing-ink">{getLocalizedLinkLabel(contact, language)}:</span>
                 <span>{contact.value}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="wes-card rounded-2xl border border-blue-100 bg-white p-4">
-          <div className="text-sm font-semibold text-blue-950">{labels.contact.instagram}</div>
+        <div className="rounded-2xl border border-swing-border/25 bg-swing-paper/85 p-4">
+          <div className="text-sm font-semibold text-swing-ink">{labels.contact.instagram}</div>
           <div className="mt-3 flex flex-col gap-2">
             {instagramLinks.map((link) => (
               <VisitorGuideLink key={link.type} href={link.url}>
@@ -1512,7 +1475,7 @@ function VisitorGuideSection({ language, labels, info }) {
 
   const renderLocationPanel = () => (
     <div>
-      <p className="text-sm leading-7 text-blue-950/70">{labels.location.intro}</p>
+      <p className="text-sm leading-7 text-swing-muted">{labels.location.intro}</p>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         {info.locations.map((location) => {
           const locationName = language === "en" ? location.nameEn : location.nameKo;
@@ -1526,12 +1489,12 @@ function VisitorGuideSection({ language, labels, info }) {
             <article
               id={`visitor-guide-location-${location.anchorId}`}
               key={location.name}
-              className="wes-card scroll-mt-28 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+              className="scroll-mt-28 rounded-3xl border border-swing-border/25 bg-swing-paper/85 p-5 shadow-sm"
             >
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-blue-950">{locationName}</h3>
-                  <p className="mt-2 text-sm leading-7 text-blue-950/65">{description}</p>
+                  <h3 className="text-xl font-semibold tracking-tight text-swing-ink">{locationName}</h3>
+                  <p className="mt-2 text-sm leading-7 text-swing-muted">{description}</p>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1550,7 +1513,7 @@ function VisitorGuideSection({ language, labels, info }) {
                     <button
                       type="button"
                       onClick={() => toggleImageLocation(location.name)}
-                      className="wes-button wes-button-secondary inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-900 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-swing-border/35 bg-swing-cream/60 px-4 text-sm font-semibold text-swing-teal-deep transition hover:bg-swing-mint/60 focus:outline-none focus:ring-2 focus:ring-swing-teal sm:w-auto"
                       aria-expanded={areImagesOpen}
                     >
                       {areImagesOpen ? labels.location.backEntranceCloseButton : labels.location.backEntranceButton}
@@ -1559,7 +1522,7 @@ function VisitorGuideSection({ language, labels, info }) {
                     {areImagesOpen ? (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         {sortedImages.map((image) => (
-                          <figure key={image.sortOrder} className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50/70">
+                          <figure key={image.sortOrder} className="overflow-hidden rounded-2xl border border-swing-border/25 bg-swing-cream/60/70">
                             {image.imageUrl ? (
                               <img
                                 src={image.imageUrl}
@@ -1567,7 +1530,7 @@ function VisitorGuideSection({ language, labels, info }) {
                                 className="aspect-[4/3] w-full object-cover"
                               />
                             ) : (
-                              <div className="flex aspect-[4/3] w-full items-center justify-center px-4 text-center text-sm font-medium leading-6 text-blue-900/55">
+                              <div className="flex aspect-[4/3] w-full items-center justify-center px-4 text-center text-sm font-medium leading-6 text-swing-muted/70">
                                 {language === "en" ? image.altTextEn : image.altTextKo}
                               </div>
                             )}
@@ -1601,9 +1564,11 @@ function VisitorGuideSection({ language, labels, info }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
       <div>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{labels.eyebrow}</p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-4xl">{labels.title}</h2>
-        <p className="mt-5 max-w-xl text-base leading-8 text-blue-950/70">{labels.description}</p>
+        <p className="font-display text-sm tracking-[0.2em] text-swing-teal">{labels.eyebrow}</p>
+        <h2 className="mt-4 font-display text-[1.6rem] font-bold leading-snug text-swing-ink md:text-[2.1rem]">
+          {labels.title}
+        </h2>
+        <p className="mt-5 max-w-xl text-[0.95rem] leading-8 text-swing-muted">{labels.description}</p>
       </div>
       <div className="grid gap-3">
         {labels.panels.map((panel) => (
@@ -1686,198 +1651,6 @@ function formatClassDate(value, language) {
 
 function formatClassRole(role, labels) {
   return labels.roles?.[role] || labels.noRole;
-}
-
-function corkboardSummaryNotes(boardData) {
-  return (boardData?.pages || []).flatMap((page) => page.notes || []);
-}
-
-function dateSortValue(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function latestOfficialNote(notes) {
-  return [...notes]
-    .filter((note) => note?.noteType === "OFFICIAL")
-    .sort((first, second) => dateSortValue(second.createdAt) - dateSortValue(first.createdAt))[0] || null;
-}
-
-function hasOwnVisibleMemberNote(notes) {
-  return notes.some(
-    (note) =>
-      note?.noteType === "MEMBER" &&
-      (note.positionEditable || note.contentEditable || note.deletable)
-  );
-}
-
-function previewText(value, maxLength = 96) {
-  const normalized = String(value || "").replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) {
-    return normalized;
-  }
-  return `${normalized.slice(0, maxLength - 1)}...`;
-}
-
-function MemberHomeSummary({
-  labels,
-  authState,
-  boardData,
-  isBoardLoading,
-  boardError,
-  scheduleItems,
-  isScheduleLoading,
-  scheduleError,
-  classNoticeUnreadCount,
-  messageUnreadCount,
-  onCorkboard,
-  onMyPage,
-  onMyClasses,
-  onSchedule,
-  onIntro,
-}) {
-  const displayName = memberApplicationName(authState);
-  const notes = corkboardSummaryNotes(boardData);
-  const noteCount = notes.length;
-  const officialNote = latestOfficialNote(notes);
-  const hasMySticker = hasOwnVisibleMemberNote(notes);
-  const openSchedule = scheduleItems.find((item) => !item.isApplied) || scheduleItems[0] || null;
-  const hasScheduleError = Boolean(scheduleError);
-
-  return (
-    <div className="grid gap-6">
-      <div className="max-w-3xl">
-        <p className="text-sm font-medium uppercase text-blue-900/60">{labels.eyebrow}</p>
-        <h1 className="mt-3 text-4xl font-semibold leading-tight text-blue-950 md:text-5xl">
-          {labels.title}
-        </h1>
-        <p className="mt-5 text-base leading-8 text-blue-950/70 md:text-lg">
-          {displayName ? `${displayName}, ` : ""}
-          {labels.description}
-        </p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-amber-200 bg-amber-50/95 p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase text-amber-800/65">Corkboard</p>
-              <h2 className="mt-2 text-2xl font-semibold text-amber-950">{labels.corkboard.title}</h2>
-            </div>
-            <span className="rounded-full border border-amber-300 bg-white/80 px-3 py-1 text-xs font-semibold text-amber-900">
-              {boardData?.periodKey || "Now"}
-            </span>
-          </div>
-
-          <div className="mt-5 flex-1 space-y-4 text-sm leading-6 text-amber-950/75">
-            {isBoardLoading ? <p>{labels.corkboard.loading}</p> : null}
-            {!isBoardLoading && boardError ? <p>{labels.corkboard.loadError}</p> : null}
-            {!isBoardLoading && !boardError ? (
-              <>
-                <div>
-                  <div className="text-xs font-semibold uppercase text-amber-800/60">
-                    {labels.corkboard.officialLabel}
-                  </div>
-                  <p className="mt-2">
-                    {officialNote ? previewText(officialNote.content) : labels.corkboard.officialEmpty}
-                  </p>
-                </div>
-                <p className="font-semibold text-amber-950">{labels.corkboard.noteCount(noteCount)}</p>
-                <p>{hasMySticker ? labels.corkboard.myStickerReady : labels.corkboard.myStickerEmpty}</p>
-              </>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={onCorkboard}
-            className="wes-button wes-button-gold mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-amber-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600"
-          >
-            {hasMySticker ? labels.corkboard.openBoard : labels.corkboard.pinSticker}
-          </button>
-        </article>
-
-        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-teal-200 bg-white/95 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase text-teal-700/70">Activity</p>
-          <h2 className="mt-2 text-2xl font-semibold text-blue-950">{labels.activity.title}</h2>
-          <p className="mt-4 text-sm leading-7 text-blue-950/70">{labels.activity.description}</p>
-
-          <div className="mt-5 flex-1 space-y-3 text-sm leading-6 text-blue-950/70">
-            <p className="rounded-2xl bg-teal-50 px-4 py-3">{labels.activity.classNotice(classNoticeUnreadCount)}</p>
-            <p className="rounded-2xl bg-blue-50 px-4 py-3">{labels.activity.messageNotice(messageUnreadCount)}</p>
-          </div>
-
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <button
-              type="button"
-              onClick={onMyPage}
-              className="wes-button wes-button-primary inline-flex min-h-[46px] items-center justify-center rounded-2xl bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {labels.activity.myPage}
-            </button>
-            <button
-              type="button"
-              onClick={onMyClasses}
-              className="wes-button wes-button-secondary inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {labels.activity.myClasses}
-            </button>
-          </div>
-        </article>
-
-        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-rose-200 bg-rose-50/80 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase text-rose-800/65">Classes</p>
-          <h2 className="mt-2 text-2xl font-semibold text-blue-950">{labels.schedule.title}</h2>
-
-          <div className="mt-5 flex-1 space-y-4 text-sm leading-6 text-blue-950/70">
-            {isScheduleLoading ? <p>{labels.schedule.loading}</p> : null}
-            {!isScheduleLoading && hasScheduleError ? <p>{labels.schedule.loadError}</p> : null}
-            {!isScheduleLoading && !hasScheduleError && openSchedule ? (
-              <div>
-                <div className="text-xs font-semibold uppercase text-rose-800/60">{labels.schedule.nextLabel}</div>
-                <h3 className="mt-2 text-lg font-semibold text-blue-950">{openSchedule.title}</h3>
-                <p className="mt-2">{[openSchedule.date, openSchedule.time].filter(Boolean).join(" · ")}</p>
-                <p className="mt-1">{openSchedule.location}</p>
-              </div>
-            ) : null}
-            {!isScheduleLoading && !hasScheduleError && !openSchedule ? <p>{labels.schedule.empty}</p> : null}
-            <p>{labels.schedule.social}</p>
-          </div>
-
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <button
-              type="button"
-              onClick={onSchedule}
-              className="wes-button wes-button-coral inline-flex min-h-[46px] items-center justify-center rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
-            >
-              {labels.schedule.apply}
-            </button>
-            <button
-              type="button"
-              onClick={onSchedule}
-              className="wes-button wes-button-secondary inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-900 shadow-sm transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500"
-            >
-              {labels.schedule.details}
-            </button>
-          </div>
-        </article>
-      </div>
-
-      <div className="wes-card flex flex-col gap-3 rounded-3xl border border-blue-100 bg-white/80 px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-blue-950">{labels.intro.title}</h2>
-          <p className="mt-1 text-sm leading-6 text-blue-950/65">{labels.intro.description}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onIntro}
-          className="wes-button wes-button-secondary inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {labels.intro.button}
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function MemoBoard({ labels }) {
@@ -2108,11 +1881,21 @@ function MemoBoard({ labels }) {
   );
 }
 
-function DetailRow({ label, value }) {
+// `tone` only swaps colors. The default keeps the existing look for the
+// application modal and My Classes, which are not part of the public redesign.
+function DetailRow({ label, value, tone = "default" }) {
+  const isSwing = tone === "swing";
+
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/45">{label}</dt>
-      <dd className="mt-1 text-sm leading-6 text-blue-950/75">{value}</dd>
+      <dt
+        className={`text-xs font-semibold uppercase tracking-[0.12em] ${
+          isSwing ? "text-swing-muted/70" : "text-blue-900/45"
+        }`}
+      >
+        {label}
+      </dt>
+      <dd className={`mt-1 text-sm leading-6 ${isSwing ? "text-swing-ink/85" : "text-blue-950/75"}`}>{value}</dd>
     </div>
   );
 }
@@ -2282,37 +2065,41 @@ function ApplicationCard({ item, language, labels, onApply }) {
 
   return (
     <article
-      className={`wes-card wes-application-card grid gap-5 rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-        item.isRecommended ? "border-amber-300 ring-2 ring-amber-100" : "border-blue-200"
+      className={`swing-frame grid gap-5 rounded-sm bg-swing-paper/92 p-6 transition hover:-translate-y-0.5 ${
+        item.isRecommended ? "border-swing-gold/70 bg-swing-cream/70" : ""
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap gap-2">
-            <span className="wes-chip rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+            <span className="rounded-full border border-swing-teal/40 bg-swing-mint/50 px-3 py-1 text-xs font-medium text-swing-teal-deep">
               {item.eventType}
             </span>
             {item.isRecommended ? (
-              <span className="wes-chip wes-chip-gold rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              <span className="rounded-full border border-swing-gold/60 bg-swing-gold/30 px-3 py-1 text-xs font-medium text-swing-burgundy">
                 {labels.recommended}
               </span>
             ) : null}
           </div>
-          <h3 className="mt-3 text-xl font-semibold tracking-tight text-blue-950">{item.title}</h3>
-          <p className="mt-3 text-sm leading-7 text-blue-950/70">{item.description}</p>
+          <h3 className="mt-4 font-display text-xl font-bold text-swing-ink">{item.title}</h3>
+          <p className="mt-3 text-sm leading-7 text-swing-muted">{item.description}</p>
         </div>
       </div>
 
       <dl className="grid gap-4 sm:grid-cols-2">
-        <DetailRow label={labels.details.date} value={item.date} />
-        <DetailRow label={labels.details.time} value={item.time} />
-        <DetailRow label={labels.details.location} value={item.location} />
-        <DetailRow label={labels.details.price} value={<PriceValue price={item.price} note={item.paymentNote} />} />
-        <DetailRow label={labels.details.teacher} value={item.teacher} />
+        <DetailRow tone="swing" label={labels.details.date} value={item.date} />
+        <DetailRow tone="swing" label={labels.details.time} value={item.time} />
+        <DetailRow tone="swing" label={labels.details.location} value={item.location} />
+        <DetailRow
+          tone="swing"
+          label={labels.details.price}
+          value={<PriceValue price={item.price} note={item.paymentNote} />}
+        />
+        <DetailRow tone="swing" label={labels.details.teacher} value={item.teacher} />
       </dl>
 
       {item.requiresLevelNotice ? (
-        <p className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-900">
+        <p className="rounded-sm border border-swing-teal/35 bg-swing-mint/45 px-4 py-3 text-sm leading-6 text-swing-teal-deep">
           {labels.levelNotice}
         </p>
       ) : null}
@@ -2325,12 +2112,12 @@ function ApplicationCard({ item, language, labels, onApply }) {
           }
         }}
         disabled={isApplyDisabled}
-        className={`wes-button inline-flex min-h-[48px] items-center justify-center rounded-2xl px-5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        className={`inline-flex min-h-[48px] items-center justify-center rounded-full px-5 text-sm font-medium tracking-wide transition focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper ${
           isApplied
-            ? "cursor-default border border-emerald-200 bg-emerald-50 text-emerald-800"
+            ? "cursor-default border border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
             : item.isApplyStatusLoading
-              ? "cursor-wait border border-blue-100 bg-blue-50 text-blue-950/45"
-              : "bg-blue-700 text-white hover:bg-blue-800"
+              ? "cursor-wait border border-swing-border/25 bg-swing-cream/60 text-swing-muted/60"
+              : "bg-swing-teal-deep text-swing-paper shadow-frame hover:bg-swing-teal"
         }`}
       >
         {isApplied ? labels.appliedButton : labels.applyButton}
@@ -2356,10 +2143,12 @@ function ScheduleAndApplicationSection({
 
   return (
     <div>
-      <div className="max-w-3xl">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">{scheduleSection.eyebrow}</p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">{scheduleSection.title}</h2>
-        <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="font-display text-sm tracking-[0.2em] text-swing-teal">{scheduleSection.eyebrow}</p>
+        <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
+          {scheduleSection.title}
+        </h2>
+        <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-muted">
           {scheduleSection.body.map((paragraph) => (
             <p key={`${language}-schedule-${paragraph}`}>{paragraph}</p>
           ))}
@@ -2367,18 +2156,20 @@ function ScheduleAndApplicationSection({
       </div>
 
       <div className="scroll-mt-24">
-        <div className="mt-8">
-          <div className="mb-3 text-sm font-semibold text-blue-950">{labels.filtersTitle}</div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="mt-12">
+          <div className="mb-3 text-center text-xs uppercase tracking-frame text-swing-muted">
+            {labels.filtersTitle}
+          </div>
+          <div className="flex justify-start gap-2 overflow-x-auto pb-2 md:justify-center">
             {labels.filters.map((filter) => (
               <button
                 key={filter.id}
                 type="button"
                 onClick={() => onFilterChange(filter.id)}
-                className={`min-h-[40px] shrink-0 rounded-full border px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`min-h-[40px] shrink-0 rounded-full border px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-cream ${
                   activeFilter === filter.id
-                    ? "border-blue-700 bg-blue-700 text-white"
-                    : "border-blue-200 bg-white text-blue-950 hover:bg-blue-50"
+                    ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                    : "border-swing-border/35 bg-swing-paper/80 text-swing-ink hover:bg-swing-cream"
                 }`}
                 aria-pressed={activeFilter === filter.id}
               >
@@ -2389,19 +2180,19 @@ function ScheduleAndApplicationSection({
         </div>
 
         {isLoading ? (
-          <div className="mt-6 rounded-3xl border border-blue-200 bg-white px-5 py-8 text-center text-sm text-blue-950/65">
+          <div className="swing-frame mt-8 rounded-sm bg-swing-paper/85 px-5 py-10 text-center text-sm text-swing-muted">
             {labels.loading}
           </div>
         ) : null}
 
         {!isLoading && error ? (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm leading-6 text-red-700">
+          <div className="swing-frame mt-8 rounded-sm border-swing-burgundy/40 bg-swing-coral/20 px-5 py-10 text-center text-sm leading-6 text-swing-burgundy">
             {labels.loadError}
           </div>
         ) : null}
 
         {!isLoading && !error && filteredItems.length > 0 ? (
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
             {filteredItems.map((item) => (
               <ApplicationCard key={item.id} item={item} language={language} labels={labels} onApply={onApply} />
             ))}
@@ -2409,7 +2200,7 @@ function ScheduleAndApplicationSection({
         ) : null}
 
         {!isLoading && !error && filteredItems.length === 0 ? (
-          <div className="mt-6 rounded-3xl border border-dashed border-blue-200 bg-white px-5 py-8 text-center text-sm text-blue-950/65">
+          <div className="swing-frame mt-8 rounded-sm bg-swing-paper/85 px-5 py-10 text-center text-sm text-swing-muted">
             {hasItems ? labels.noResults : labels.empty}
           </div>
         ) : null}
@@ -3560,9 +3351,15 @@ function MyPage({
   );
 }
 
-function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyPage }) {
+// `tone` only swaps colors. The default keeps the existing look on Corkboard
+// and member subpages, which are outside the public redesign.
+function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyPage, tone = "default" }) {
   const isAuthenticated = Boolean(authState?.authenticated);
   const labels = MY_PAGE_COPY[language] ?? MY_PAGE_COPY.ko;
+  const toneClass =
+    tone === "swing"
+      ? "border-swing-border/30 bg-swing-teal-deep/95 text-swing-paper hover:bg-swing-teal focus:ring-swing-teal disabled:text-swing-paper/50"
+      : "border-white/70 bg-white/80 text-blue-950 hover:bg-white focus:ring-blue-500 disabled:text-blue-950/45";
 
   return (
     <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] justify-end sm:right-5 sm:top-5">
@@ -3570,7 +3367,7 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
         type="button"
         onClick={isAuthenticated ? onMyPage : onLogin}
         disabled={isLoading || isPending}
-        className="wes-auth-button inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+        className={`inline-flex min-h-[36px] items-center justify-center rounded-full border px-3 text-xs font-medium shadow-sm backdrop-blur transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed sm:min-h-[38px] sm:px-4 ${toneClass}`}
       >
         {isLoading || isPending ? "..." : isAuthenticated ? labels.topButton : labels.login}
       </button>
@@ -3583,30 +3380,30 @@ function LoginConsentPage({ language, onBack, onContinue, onPrivacy }) {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl items-center px-5 py-24 text-blue-950 md:px-8">
-      <section className="w-full rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-900/45">{labels.eyebrow}</p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{labels.title}</h1>
-        <p className="mt-4 text-sm leading-7 text-blue-950/65">{labels.description}</p>
+    <main className="swing-theme swing-paper mx-auto flex min-h-screen w-full max-w-2xl items-center px-5 py-24 text-swing-ink md:px-8">
+      <section className="swing-frame w-full rounded-sm bg-swing-paper/92 p-6 sm:p-8">
+        <p className="font-display text-sm tracking-[0.16em] text-swing-teal">{labels.eyebrow}</p>
+        <h1 className="mt-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">{labels.title}</h1>
+        <p className="mt-4 text-sm leading-7 text-swing-muted">{labels.description}</p>
 
-        <div className="mt-6 space-y-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-4 text-sm leading-7 text-blue-950/70">
+        <div className="mt-6 space-y-3 rounded-sm border border-swing-border/25 bg-swing-cream/55 px-4 py-4 text-sm leading-7 text-swing-muted">
           <p>{labels.summary}</p>
           <p>{labels.noToken}</p>
           <a
             href="/privacy"
             onClick={onPrivacy}
-            className="inline-flex text-sm font-semibold text-blue-800 underline decoration-blue-800/30 underline-offset-2 transition hover:text-blue-950"
+            className="inline-flex text-sm font-medium text-swing-teal-deep underline decoration-swing-teal/30 underline-offset-2 transition hover:text-swing-ink"
           >
             {labels.privacyLink}
           </a>
         </div>
 
-        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-blue-100 bg-white px-4 py-4 text-sm leading-6 text-blue-950/75 transition hover:border-blue-200 hover:bg-blue-50/50">
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-sm border border-swing-border/25 bg-swing-paper/85 px-4 py-4 text-sm leading-6 text-swing-ink/85 transition hover:border-swing-border/40 hover:bg-swing-cream/50">
           <input
             type="checkbox"
             checked={isConfirmed}
             onChange={(event) => setIsConfirmed(event.target.checked)}
-            className="mt-1 h-4 w-4 shrink-0 rounded border-blue-300 text-blue-700 focus:ring-blue-500"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-swing-border/50 text-swing-teal-deep focus:ring-swing-teal"
           />
           <span>{labels.checkbox}</span>
         </label>
@@ -3615,7 +3412,7 @@ function LoginConsentPage({ language, onBack, onContinue, onPrivacy }) {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-swing-border/35 bg-swing-paper/85 px-5 text-sm font-medium text-swing-ink transition hover:bg-swing-cream focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper"
           >
             {labels.back}
           </button>
@@ -3623,7 +3420,7 @@ function LoginConsentPage({ language, onBack, onContinue, onPrivacy }) {
             type="button"
             onClick={onContinue}
             disabled={!isConfirmed}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-swing-teal-deep px-5 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-paper/60 disabled:shadow-none"
           >
             {labels.continue}
           </button>
@@ -3705,9 +3502,6 @@ function PublicApp() {
   const [scheduleItems, setScheduleItems] = useState([]);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
-  const [homeCorkboard, setHomeCorkboard] = useState(null);
-  const [isHomeCorkboardLoading, setIsHomeCorkboardLoading] = useState(false);
-  const [homeCorkboardError, setHomeCorkboardError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
@@ -3931,46 +3725,6 @@ function PublicApp() {
 
   useEffect(() => {
     if (!authState?.authenticated) {
-      setHomeCorkboard(null);
-      setHomeCorkboardError("");
-      setIsHomeCorkboardLoading(false);
-      return undefined;
-    }
-
-    if (currentPath !== "/") {
-      return undefined;
-    }
-
-    let isMounted = true;
-    setIsHomeCorkboardLoading(true);
-    setHomeCorkboardError("");
-
-    corkboardApi
-      .findCurrent()
-      .then((current) => {
-        if (isMounted) {
-          setHomeCorkboard(current);
-        }
-      })
-      .catch((nextError) => {
-        if (isMounted) {
-          setHomeCorkboard(null);
-          setHomeCorkboardError(nextError.message || "Corkboard preview unavailable.");
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsHomeCorkboardLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [authState?.authenticated, currentPath]);
-
-  useEffect(() => {
-    if (!authState?.authenticated) {
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
       setMemberMessageUnreadCount(0);
@@ -4051,15 +3805,6 @@ function PublicApp() {
 
   const handleCorkboardOpen = () => {
     navigateToPath("/corkboard");
-  };
-
-  const handleScheduleOpen = () => {
-    setActiveFilter("all");
-    scrollToHash("#schedule");
-  };
-
-  const handleIntroOpen = () => {
-    scrollToHash("#about");
   };
 
   const handleMyClassesOpen = () => {
@@ -4183,6 +3928,8 @@ function PublicApp() {
   const isCorkboardPath = currentPath === "/corkboard";
   const isMyClassesPath = currentPath === "/my-classes";
   const isMyPagePath = currentPath === "/me";
+  // Styling scope only: the SwingPop theme applies to the public landing page.
+  // Corkboard and member subpages keep their own existing look.
   const isMainPublicPage =
     !isSettingsPath &&
     !isMessagesPath &&
@@ -4191,6 +3938,8 @@ function PublicApp() {
     !isMyPagePath &&
     !isPrivacyPath &&
     !isLoginConsentPath;
+  // The login consent screen is public too, so it carries the same background.
+  const isSwingThemedPage = isMainPublicPage || isLoginConsentPath;
   const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
   const applicationItems = useMemo(
     () =>
@@ -4216,9 +3965,11 @@ function PublicApp() {
       ) : null}
 
       <div
-        className={`min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900 ${
-          isMainPublicPage ? "wes-page" : ""
-        }`}
+        className={
+          isSwingThemedPage
+            ? "swing-theme swing-paper min-h-screen bg-swing-paper text-swing-ink"
+            : "min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900"
+        }
       >
         {!isLoginConsentPath ? (
           <AuthControl
@@ -4228,6 +3979,7 @@ function PublicApp() {
             language={activeLanguage}
             onLogin={handleLogin}
             onMyPage={handleMyPageOpen}
+            tone={isMainPublicPage ? "swing" : "default"}
           />
         ) : null}
         {accountNotice ? (
@@ -4298,224 +4050,212 @@ function PublicApp() {
         ) : isPrivacyPath ? (
           <PrivacyPolicyPage language={activeLanguage} onBack={handleMainOpen} />
         ) : (
+        <>
+        <SiteHeader
+          nav={t.nav}
+          corkboardLabel={t.heroCorkboard}
+          onCorkboard={handleCorkboardOpen}
+        />
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
-          <SectionWrapper id="top" className="wes-section wes-section-top" contentClassName="pt-10 pb-8 md:pt-14 md:pb-12">
-            {isAuthenticated ? (
-              <MemberHomeSummary
-                labels={t.memberHome}
-                authState={authState}
-                boardData={homeCorkboard}
-                isBoardLoading={isHomeCorkboardLoading}
-                boardError={homeCorkboardError}
-                scheduleItems={applicationItems}
-                isScheduleLoading={isScheduleLoading}
-                scheduleError={scheduleError}
-                classNoticeUnreadCount={lessonNoticeUnreadCount}
-                messageUnreadCount={memberMessageUnreadCount}
-                onCorkboard={handleCorkboardOpen}
-                onMyPage={handleMyPageOpen}
-                onMyClasses={handleMyClassesOpen}
-                onSchedule={handleScheduleOpen}
-                onIntro={handleIntroOpen}
-              />
-            ) : (
-              <div className="wes-hero grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-                <div>
-                  <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-blue-950 md:text-6xl">
-                    {t.heroTitle}
-                  </h1>
-                  <p className="mt-6 max-w-2xl text-base leading-8 text-blue-950/70 md:text-lg">
-                    {t.heroDesc}
-                  </p>
-                  <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <a
-                      href="#schedule"
-                      onClick={() => setActiveFilter("all")}
-                      className="wes-button wes-button-primary inline-flex items-center justify-center rounded-2xl bg-blue-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:translate-y-[-1px]"
-                    >
-                      {t.heroPrimary}
-                    </a>
-                    <a
-                      href="#about"
-                      className="wes-button wes-button-secondary inline-flex items-center justify-center rounded-2xl border border-blue-200 bg-white px-6 py-3 text-sm font-medium text-blue-950 shadow-sm transition hover:translate-y-[-1px] hover:bg-blue-50"
-                    >
-                      {t.heroSecondary}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={handleCorkboardOpen}
-                      className="wes-button wes-button-teal inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-6 py-3 text-sm font-medium text-teal-900 shadow-sm transition hover:translate-y-[-1px] hover:bg-teal-100"
-                    >
-                      {t.heroCorkboard}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <ImagePlaceholder label="Hero Image Placeholder" height="h-[420px]" />
-                </div>
+          <SectionWrapper
+            id="top"
+            className="border-b border-swing-border/25 bg-gradient-to-b from-swing-peach/75 via-swing-cream/55 to-swing-paper"
+            contentClassName="pt-14 pb-16 md:pt-20 md:pb-24"
+          >
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="swing-rule text-swing-teal/70" aria-hidden="true">
+                <span className="text-base leading-none">✦</span>
               </div>
-            )}
+              <h1 className="mt-7 font-display text-[2.1rem] font-bold leading-[1.28] text-swing-ink md:text-6xl md:leading-[1.2]">
+                {t.heroTitle}
+              </h1>
+              <p className="mx-auto mt-7 max-w-xl text-[0.95rem] leading-8 text-swing-muted md:text-base">
+                {t.heroDesc}
+              </p>
+              <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                <a
+                  href="#schedule"
+                  onClick={() => setActiveFilter("all")}
+                  className="inline-flex min-h-[50px] items-center justify-center rounded-full bg-swing-teal-deep px-7 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:-translate-y-0.5 hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-cream"
+                >
+                  {t.heroPrimary}
+                </a>
+                <a
+                  href="#about"
+                  className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-swing-border/40 bg-swing-paper/90 px-7 text-sm font-medium tracking-wide text-swing-ink shadow-frame transition hover:-translate-y-0.5 hover:bg-swing-cream focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-cream"
+                >
+                  {t.heroSecondary}
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCorkboardOpen}
+                  className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-swing-gold/50 bg-swing-gold/25 px-7 text-sm font-medium tracking-wide text-swing-burgundy shadow-frame transition hover:-translate-y-0.5 hover:bg-swing-gold/40 focus:outline-none focus:ring-2 focus:ring-swing-gold focus:ring-offset-2 focus:ring-offset-swing-cream"
+                >
+                  {t.heroCorkboard}
+                </button>
+              </div>
+            </div>
           </SectionWrapper>
 
-          {isAuthenticated ? (
-            <SectionWrapper id="schedule" className="wes-section wes-section-schedule bg-white/75" contentClassName="pt-8 pb-20">
-              <ScheduleAndApplicationSection
-                language={activeLanguage}
-                scheduleSection={t.sections[4]}
-                labels={t.application}
-                items={applicationItems}
-                isLoading={isScheduleLoading}
-                error={scheduleError}
-                activeFilter={activeFilter}
-                onFilterChange={setActiveFilter}
-                onApply={setSelectedApplication}
-              />
-            </SectionWrapper>
-          ) : null}
-
-          <SectionWrapper id="about" className="wes-section wes-section-about" contentClassName="pt-8 pb-20">
-            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <SectionWrapper id="about" contentClassName="py-20 md:py-24">
+            <div className="grid gap-12 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:gap-16">
               <div>
-                <ImagePlaceholder label="Community Image Placeholder" />
-              </div>
-              <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
+                <p className="font-display text-sm tracking-[0.2em] text-swing-teal">
                   {t.sections[0].eyebrow}
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
+                <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
                   {t.sections[0].title}
                 </h2>
-                <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
+                <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-muted">
                   {t.sections[0].body.map((paragraph) => (
                     <p key={`${activeLanguage}-about-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
-                <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                  {t.sections[0].stats.map((stat) => (
-                    <div key={`${activeLanguage}-${stat.label}`} className="wes-card wes-stat-card rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
-                      <div className="text-xs uppercase tracking-[0.2em] text-blue-900/45">{stat.label}</div>
-                      <div className="mt-2 text-lg font-semibold text-blue-950">{stat.value}</div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {t.sections[0].stats.map((stat, index) => (
+                  <div
+                    key={`${activeLanguage}-${stat.label}`}
+                    className={`swing-frame rounded-sm px-4 py-7 text-center ${
+                      [
+                        "bg-swing-mint/70",
+                        "bg-swing-peach/45",
+                        "bg-swing-cream/80",
+                      ][index % 3]
+                    }`}
+                  >
+                    <div className="font-display text-xl font-bold text-swing-ink">{stat.label}</div>
+                    <div className="mt-2 text-[0.7rem] uppercase tracking-frame text-swing-muted">
+                      {stat.value}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="swing" className="wes-section wes-section-sage bg-white/75">
-            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-              <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
-                  {t.sections[1].eyebrow}
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
-                  {t.sections[1].title}
-                </h2>
-                <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
-                  {t.sections[1].body.map((paragraph) => (
-                    <p key={`${activeLanguage}-swing-${paragraph}`}>{paragraph}</p>
-                  ))}
-                </div>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  {t.sections[1].points.map((point) => (
-                    <span
-                      key={`${activeLanguage}-${point}`}
-                      className="wes-chip rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-950/80"
-                    >
-                      {point}
-                    </span>
-                  ))}
-                </div>
+          <SectionWrapper
+            id="swing"
+            className="border-y border-swing-border/25 bg-swing-sage/60"
+            contentClassName="py-20 md:py-24"
+          >
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="font-display text-sm tracking-[0.2em] text-swing-teal-deep">
+                {t.sections[1].eyebrow}
+              </p>
+              <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
+                {t.sections[1].title}
+              </h2>
+              <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-ink/75">
+                {t.sections[1].body.map((paragraph) => (
+                  <p key={`${activeLanguage}-swing-${paragraph}`}>{paragraph}</p>
+                ))}
               </div>
-              <div>
-                <ImagePlaceholder label="Swing Dance Image Placeholder" />
-              </div>
+            </div>
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
+              {t.sections[1].points.map((point) => (
+                <span
+                  key={`${activeLanguage}-${point}`}
+                  className="swing-frame rounded-sm bg-swing-paper/85 px-5 py-5 text-center text-sm leading-6 text-swing-ink"
+                >
+                  {point}
+                </span>
+              ))}
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="swingpop-style" className="wes-section wes-section-rose">
-            <div className="text-center">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
+          <SectionWrapper id="swingpop-style" contentClassName="py-20 md:py-24">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="font-display text-sm tracking-[0.2em] text-swing-teal">
                 {t.sections[2].eyebrow}
               </p>
-              <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
+              <h2 className="mx-auto mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
                 {t.sections[2].title}
               </h2>
-              <div className="mx-auto mt-6 max-w-3xl space-y-4 text-base leading-8 text-blue-950/70">
+              <div className="mx-auto mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-muted">
                 {t.sections[2].body.map((paragraph) => (
                   <p key={`${activeLanguage}-style-${paragraph}`}>{paragraph}</p>
                 ))}
               </div>
             </div>
 
-            <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-              <div className="grid gap-4 md:grid-cols-3">
-                {t.sections[2].cards.map((card) => (
-                  <div key={`${activeLanguage}-${card.title}`} className="wes-card rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
-                    <div className="text-lg font-semibold text-blue-950">{card.title}</div>
-                    <p className="mt-3 text-sm leading-7 text-blue-950/70">{card.desc}</p>
+            <div className="mt-14 grid gap-5 md:grid-cols-3">
+              {t.sections[2].cards.map((card, index) => (
+                <div
+                  key={`${activeLanguage}-${card.title}`}
+                  className="swing-frame flex flex-col rounded-sm bg-swing-paper/90 p-7"
+                >
+                  <div
+                    className={`mx-auto h-9 w-9 rounded-full border border-swing-border/40 ${
+                      ["bg-swing-mint", "bg-swing-peach/70", "bg-swing-gold/50"][index % 3]
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <div className="mt-5 text-center font-display text-xl font-bold text-swing-ink">
+                    {card.title}
                   </div>
+                  <p className="mt-3 text-center text-sm leading-7 text-swing-muted">{card.desc}</p>
+                </div>
+              ))}
+            </div>
+          </SectionWrapper>
+
+          <SectionWrapper
+            id="seoul-scene"
+            className="border-y border-swing-border/25 bg-swing-coral/70"
+            contentClassName="py-20 md:py-24"
+          >
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="font-display text-sm tracking-[0.2em] text-swing-paper">
+                {t.sections[3].eyebrow}
+              </p>
+              <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-paper md:text-[2.6rem]">
+                {t.sections[3].title}
+              </h2>
+              <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-paper/85">
+                {t.sections[3].body.map((paragraph) => (
+                  <p key={`${activeLanguage}-scene-${paragraph}`}>{paragraph}</p>
                 ))}
               </div>
-              <div>
-                <ImagePlaceholder label="Class / Social Dance Image Placeholder" />
+              <div className="swing-frame mx-auto mt-10 max-w-2xl rounded-sm bg-swing-paper/92 px-7 py-6 text-[0.95rem] leading-8 text-swing-ink">
+                {t.sections[3].highlight}
               </div>
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="seoul-scene" className="wes-section wes-section-sky bg-white/75" contentClassName="pt-20 pb-8">
-            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div>
-                <ImagePlaceholder label="Seoul Swing Scene Image Placeholder" />
-              </div>
-              <div>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
-                  {t.sections[3].eyebrow}
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blue-950 md:text-5xl">
-                  {t.sections[3].title}
-                </h2>
-                <div className="mt-6 space-y-4 text-base leading-8 text-blue-950/70">
-                  {t.sections[3].body.map((paragraph) => (
-                    <p key={`${activeLanguage}-scene-${paragraph}`}>{paragraph}</p>
-                  ))}
-                </div>
-                <div className="wes-highlight mt-8 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50 p-6 text-base leading-8 text-blue-950/80 shadow-sm">
-                  {t.sections[3].highlight}
-                </div>
-              </div>
-            </div>
+          <SectionWrapper id="schedule" className="bg-swing-cream/45" contentClassName="py-20 md:py-24">
+            <ScheduleAndApplicationSection
+              language={activeLanguage}
+              scheduleSection={t.sections[4]}
+              labels={t.application}
+              items={applicationItems}
+              isLoading={isScheduleLoading}
+              error={scheduleError}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              onApply={setSelectedApplication}
+            />
           </SectionWrapper>
 
-          {!isAuthenticated ? (
-            <SectionWrapper id="schedule" className="wes-section wes-section-schedule bg-white/75" contentClassName="pt-8 pb-20">
-              <ScheduleAndApplicationSection
-                language={activeLanguage}
-                scheduleSection={t.sections[4]}
-                labels={t.application}
-                items={applicationItems}
-                isLoading={isScheduleLoading}
-                error={scheduleError}
-                activeFilter={activeFilter}
-                onFilterChange={setActiveFilter}
-                onApply={setSelectedApplication}
-              />
-            </SectionWrapper>
-          ) : null}
-
-          <SectionWrapper id="visitor-guide" className="wes-section wes-section-visitor bg-sky-50/70" contentClassName="py-16">
+          <SectionWrapper id="visitor-guide" className="border-t border-swing-border/25 bg-swing-sky/35" contentClassName="py-20">
             <VisitorGuideSection language={activeLanguage} labels={t.visitorGuide} info={visitorGuideInfo} />
           </SectionWrapper>
         </main>
+        </>
         )}
 
-        {isMainPublicPage ? (
-        <footer className="wes-footer border-t border-blue-900/10">
-          <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
+        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        <footer className="bg-swing-teal-deep">
+          <div className="mx-auto max-w-6xl px-6 py-9 text-center text-sm leading-7 text-swing-paper/75 md:px-8">
+            <div className="swing-rule mb-5 text-swing-paper/35" aria-hidden="true">
+              <span className="text-sm leading-none">✦</span>
+            </div>
+            {t.footer}
+          </div>
         </footer>
         ) : null}
 
-        {isMainPublicPage ? (
+        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta

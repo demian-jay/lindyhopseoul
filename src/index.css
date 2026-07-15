@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,357 +17,55 @@ body {
   box-sizing: border-box;
 }
 
-.wes-page {
-  --wes-ink: #2e2720;
-  --wes-muted: #675748;
-  --wes-paper: #fff3d7;
-  --wes-cream: #f7dfad;
-  --wes-peach: #e9a47d;
-  --wes-coral: #c8614c;
-  --wes-gold: #c6932f;
-  --wes-sage: #a9b98f;
-  --wes-mint: #c8d7bf;
-  --wes-sky: #9fbfd0;
-  --wes-teal: #336f6a;
-  --wes-burgundy: #7d342c;
-  --wes-border: #6e4b36;
-  background:
-    repeating-linear-gradient(90deg, rgba(46, 39, 32, 0.035) 0 1px, transparent 1px 42px),
-    linear-gradient(180deg, #efc982 0%, #e8a17d 24%, #b8ccae 49%, #9fbfd0 72%, #f7dfad 100%) !important;
-  color: var(--wes-ink);
+/* ---------------------------------------------------------------------------
+   SwingPop public site theme.
+   Scoped under .swing-theme so admin and corkboard pages stay untouched.
+   --------------------------------------------------------------------------- */
+
+.swing-theme {
+  font-family: 'Noto Sans KR', Inter, system-ui, -apple-system, sans-serif;
+  color: #2e2720;
+  background-color: #fff3d7;
 }
 
-.wes-page main {
+/* Paper grain: a faint vertical rule keeps large cream areas from reading flat. */
+.swing-paper {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(46, 39, 32, 0.028) 0 1px,
+    transparent 1px 46px
+  );
+}
+
+/* Symmetric double rule used as a Wes-style frame around section headers. */
+.swing-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.swing-rule::before,
+.swing-rule::after {
+  content: '';
+  height: 1px;
+  flex: 1 1 0;
+  max-width: 4.5rem;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+/* Framed panel: double border, the recurring motif of the reference layout. */
+.swing-frame {
   position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 243, 215, 0.74), rgba(255, 243, 215, 0.25) 36%, rgba(255, 246, 226, 0.82) 100%);
+  border: 1px solid rgba(110, 75, 54, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 243, 215, 0.6), inset 0 0 0 5px rgba(110, 75, 54, 0.16);
 }
 
-.wes-page main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, rgba(46, 39, 32, 0.035) 0 1px, transparent 1px 28px),
-    linear-gradient(90deg, rgba(125, 52, 44, 0.08), transparent 18%, transparent 82%, rgba(51, 111, 106, 0.08));
-  mix-blend-mode: multiply;
-}
-
-.wes-page section,
-.wes-page footer {
-  position: relative;
-}
-
-.wes-section-top {
-  background:
-    linear-gradient(135deg, rgba(255, 243, 215, 0.9), rgba(239, 201, 130, 0.76) 34%, rgba(232, 161, 125, 0.65) 67%, rgba(159, 191, 208, 0.72));
-  border-bottom: 2px solid rgba(110, 75, 54, 0.35);
-}
-
-.wes-section-about {
-  background: linear-gradient(180deg, rgba(255, 243, 215, 0.76), rgba(248, 222, 184, 0.58));
-}
-
-.wes-section-sage {
-  background: linear-gradient(180deg, rgba(200, 215, 191, 0.82), rgba(255, 243, 215, 0.62)) !important;
-  border-block: 2px solid rgba(51, 111, 106, 0.22);
-}
-
-.wes-section-rose {
-  background: linear-gradient(180deg, rgba(232, 161, 125, 0.3), rgba(255, 243, 215, 0.72));
-}
-
-.wes-section-sky {
-  background: linear-gradient(180deg, rgba(159, 191, 208, 0.78), rgba(255, 243, 215, 0.72)) !important;
-  border-block: 2px solid rgba(125, 52, 44, 0.18);
-}
-
-.wes-section-schedule {
-  background: linear-gradient(180deg, rgba(255, 243, 215, 0.84), rgba(200, 215, 191, 0.7)) !important;
-}
-
-.wes-section-visitor {
-  background: linear-gradient(180deg, rgba(248, 222, 184, 0.88), rgba(232, 161, 125, 0.32)) !important;
-  border-top: 2px solid rgba(110, 75, 54, 0.26);
-}
-
-.wes-footer {
-  background: var(--wes-burgundy);
-  border-top-color: rgba(46, 39, 32, 0.4) !important;
-}
-
-.wes-footer div {
-  color: #fff3d7 !important;
-}
-
-.wes-page h1,
-.wes-page h2,
-.wes-page h3 {
-  color: var(--wes-ink) !important;
-  font-family: Georgia, "Times New Roman", serif;
-  letter-spacing: 0 !important;
-}
-
-.wes-page p,
-.wes-page span,
-.wes-page div,
-.wes-page button,
-.wes-page a {
-  letter-spacing: 0 !important;
-}
-
-.wes-page [class*="text-blue-950"],
-.wes-page [class*="text-neutral-900"] {
-  color: var(--wes-ink) !important;
-}
-
-.wes-page [class*="text-blue-900"],
-.wes-page [class*="text-blue-800"],
-.wes-page [class*="text-teal-900"],
-.wes-page [class*="text-rose-900"],
-.wes-page [class*="text-amber-900"] {
-  color: var(--wes-burgundy) !important;
-}
-
-.wes-page [class*="border-blue-"],
-.wes-page [class*="border-teal-"],
-.wes-page [class*="border-rose-"],
-.wes-page [class*="border-amber-"] {
-  border-color: rgba(110, 75, 54, 0.32) !important;
-}
-
-.wes-page [class*="rounded-3xl"],
-.wes-page [class*="rounded-2xl"] {
-  border-radius: 8px !important;
-}
-
-.wes-card {
-  background: rgba(255, 243, 215, 0.9) !important;
-  border: 2px solid rgba(110, 75, 54, 0.32) !important;
-  box-shadow: 8px 8px 0 rgba(46, 39, 32, 0.13) !important;
-}
-
-.wes-card:nth-child(3n + 1) {
-  background: rgba(255, 243, 215, 0.95) !important;
-}
-
-.wes-card:nth-child(3n + 2) {
-  background: rgba(200, 215, 191, 0.82) !important;
-}
-
-.wes-card:nth-child(3n) {
-  background: rgba(232, 161, 125, 0.34) !important;
-}
-
-.wes-stat-card {
-  text-align: center;
-}
-
-.wes-button {
-  border-radius: 8px !important;
-  border-width: 2px !important;
-  box-shadow: 4px 4px 0 rgba(46, 39, 32, 0.18) !important;
-  transform: translate(0, 0);
-}
-
-.wes-button:hover {
-  transform: translate(-1px, -1px) !important;
-  box-shadow: 6px 6px 0 rgba(46, 39, 32, 0.2) !important;
-}
-
-.wes-button-primary,
-.wes-page [class*="bg-blue-700"] {
-  background: var(--wes-burgundy) !important;
-  border-color: var(--wes-border) !important;
-  color: var(--wes-paper) !important;
-}
-
-.wes-button-secondary,
-.wes-page [class*="bg-white"] {
-  background: rgba(255, 243, 215, 0.92) !important;
-}
-
-.wes-button-secondary {
-  border-color: rgba(110, 75, 54, 0.42) !important;
-  color: var(--wes-ink) !important;
-}
-
-.wes-button-teal,
-.wes-page [class*="bg-teal-50"] {
-  background: var(--wes-teal) !important;
-  border-color: #244f4c !important;
-  color: var(--wes-paper) !important;
-}
-
-.wes-button-gold,
-.wes-page [class*="bg-amber-700"] {
-  background: var(--wes-gold) !important;
-  border-color: #7a5b22 !important;
-  color: var(--wes-ink) !important;
-}
-
-.wes-button-coral,
-.wes-page [class*="bg-rose-700"] {
-  background: var(--wes-coral) !important;
-  border-color: #7d342c !important;
-  color: var(--wes-paper) !important;
-}
-
-.wes-chip,
-.wes-page [class*="bg-blue-50"] {
-  background: rgba(247, 223, 173, 0.86) !important;
-  border-color: rgba(110, 75, 54, 0.36) !important;
-  color: var(--wes-ink) !important;
-}
-
-.wes-chip-gold,
-.wes-page [class*="bg-amber-50"] {
-  background: rgba(198, 147, 47, 0.22) !important;
-  color: #5d4217 !important;
-}
-
-.wes-highlight {
-  background: linear-gradient(135deg, rgba(255, 243, 215, 0.9), rgba(159, 191, 208, 0.7), rgba(200, 215, 191, 0.8)) !important;
-  border: 2px solid rgba(110, 75, 54, 0.35) !important;
-  box-shadow: 8px 8px 0 rgba(46, 39, 32, 0.11) !important;
-}
-
-.wes-auth-button {
-  background: rgba(255, 243, 215, 0.92) !important;
-  border: 2px solid rgba(110, 75, 54, 0.4) !important;
-  color: var(--wes-ink) !important;
-  box-shadow: 3px 3px 0 rgba(46, 39, 32, 0.16) !important;
-}
-
-.wes-page .focus\:ring-blue-500:focus {
-  --tw-ring-color: rgba(125, 52, 44, 0.45) !important;
-}
-
-.wes-visual {
-  min-height: 18rem;
-  background:
-    linear-gradient(90deg, rgba(125, 52, 44, 0.9) 0 9%, transparent 9% 91%, rgba(51, 111, 106, 0.9) 91% 100%),
-    linear-gradient(180deg, rgba(255, 243, 215, 0.92), rgba(239, 201, 130, 0.82) 45%, rgba(159, 191, 208, 0.72)) !important;
-  border: 3px solid rgba(110, 75, 54, 0.44) !important;
-  box-shadow: 10px 10px 0 rgba(46, 39, 32, 0.16) !important;
-}
-
-.wes-visual::before {
-  content: "";
-  position: absolute;
-  inset: 14px;
-  border: 2px solid rgba(110, 75, 54, 0.3);
-}
-
-.wes-visual-stage {
-  position: absolute;
-  inset: 0;
-}
-
-.wes-visual-stage::after {
-  content: "";
-  position: absolute;
-  inset: auto 12% 14% 12%;
-  height: 22%;
-  background:
-    repeating-linear-gradient(90deg, rgba(46, 39, 32, 0.32) 0 2px, transparent 2px 32px),
-    linear-gradient(180deg, rgba(255, 243, 215, 0.22), rgba(46, 39, 32, 0.08));
-  border: 2px solid rgba(110, 75, 54, 0.28);
-}
-
-.wes-visual-sun,
-.wes-visual-record,
-.wes-visual-card,
-.wes-visual-step {
-  position: absolute;
-  display: block;
-}
-
-.wes-visual-sun {
-  left: 12%;
-  top: 14%;
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: var(--wes-gold);
-  border: 3px solid rgba(110, 75, 54, 0.5);
-}
-
-.wes-visual-record {
-  right: 12%;
-  top: 16%;
-  width: 104px;
-  height: 104px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, var(--wes-paper) 0 12%, var(--wes-burgundy) 13% 23%, var(--wes-ink) 24% 100%);
-  border: 4px solid rgba(255, 243, 215, 0.72);
-}
-
-.wes-visual-card {
-  bottom: 28%;
-  width: 92px;
-  height: 132px;
-  border: 3px solid rgba(110, 75, 54, 0.42);
-  background: var(--wes-paper);
-}
-
-.wes-visual-card-left {
-  left: 26%;
-  transform: rotate(-4deg);
-  background: linear-gradient(180deg, var(--wes-coral) 0 32%, var(--wes-paper) 32% 100%);
-}
-
-.wes-visual-card-right {
-  right: 28%;
-  transform: rotate(5deg);
-  background: linear-gradient(180deg, var(--wes-teal) 0 32%, var(--wes-paper) 32% 100%);
-}
-
-.wes-visual-step {
-  bottom: 20%;
-  width: 38px;
-  height: 16px;
-  background: var(--wes-burgundy);
-  border: 2px solid rgba(46, 39, 32, 0.3);
-}
-
-.wes-visual-step-one {
-  left: 36%;
-}
-
-.wes-visual-step-two {
-  left: 47%;
-  background: var(--wes-gold);
-}
-
-.wes-visual-step-three {
-  left: 58%;
-  background: var(--wes-teal);
-}
-
-@media (max-width: 640px) {
-  .wes-page {
-    background:
-      repeating-linear-gradient(90deg, rgba(46, 39, 32, 0.035) 0 1px, transparent 1px 34px),
-      linear-gradient(180deg, #efc982 0%, #e8a17d 28%, #b8ccae 58%, #f7dfad 100%) !important;
-  }
-
-  .wes-visual {
-    min-height: 15rem;
-  }
-
-  .wes-visual-card {
-    width: 68px;
-    height: 104px;
-  }
-
-  .wes-visual-record {
-    width: 78px;
-    height: 78px;
-  }
+/* Ticket-style top edge for the schedule/CTA blocks. */
+.swing-notch {
+  -webkit-mask-image: radial-gradient(circle at 12px 0, transparent 11px, black 12px);
+  mask-image: radial-gradient(circle at 12px 0, transparent 11px, black 12px);
 }
 
 .operation-check-grid-header {
