@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
 import { authApi } from "./api/auth";
+import { corkboardApi } from "./api/corkboards";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
 
@@ -21,6 +22,46 @@ const CONTENT = {
     languageDesc: "Choose your preferred language to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    memberHome: {
+      eyebrow: "Member Home",
+      title: "이번 달 SwingPop에서 확인할 것",
+      description: "보드에 새 소식이 붙었는지, 내 신청과 수업 안내가 있는지 가볍게 확인해보세요.",
+      corkboard: {
+        title: "이번 달 Corkboard",
+        loading: "코르크보드를 살펴보는 중입니다.",
+        loadError: "Corkboard 미리보기를 잠시 불러오지 못했어요. 보드는 바로 열 수 있습니다.",
+        officialLabel: "운영진 공지",
+        officialEmpty: "아직 붙어 있는 운영진 공지는 없어요.",
+        noteCount: (count) => `${count}개의 스티커가 붙어 있어요.`,
+        myStickerReady: "이번 달 스티커를 붙였어요. 보드에서 수정하거나 옮길 수 있어요.",
+        myStickerEmpty: "이번 달 내 스티커를 붙여보세요.",
+        openBoard: "보드 보러가기",
+        pinSticker: "스티커 붙이러 가기",
+      },
+      activity: {
+        title: "내 활동",
+        description: "내 수업, 신청 내역, 운영진 메시지를 한곳에서 확인할 수 있어요.",
+        classNotice: (count) => (count > 0 ? `읽지 않은 수업 안내 ${count}개` : "새 수업 안내가 있으면 여기서 확인해요."),
+        messageNotice: (count) => (count > 0 ? `읽지 않은 메시지 ${count}개` : "운영진 메시지도 My Page에서 볼 수 있어요."),
+        myPage: "My Page",
+        myClasses: "내 신청 내역 보기",
+      },
+      schedule: {
+        title: "수업 & 소셜",
+        loading: "신청 가능한 일정을 불러오는 중입니다.",
+        loadError: "일정을 잠시 불러오지 못했어요.",
+        empty: "현재 공개 모집 중인 일정이 없습니다.",
+        nextLabel: "열려 있는 일정",
+        social: "토요일 소셜과 수업 안내는 공지방에서도 함께 확인해주세요.",
+        apply: "수업 신청하기",
+        details: "수업 정보 보기",
+      },
+      intro: {
+        title: "처음 오시나요?",
+        description: "SwingPop 소개와 오는 길은 아래에서 계속 확인할 수 있어요.",
+        button: "소개와 오는 길 보기",
+      },
+    },
     visitorGuide: {
       eyebrow: "처음 오시는 분",
       title: "장소 및 공지방 안내",
@@ -286,6 +327,46 @@ const CONTENT = {
     languageDesc: "Select Korean or English to continue.",
     languageBannerTitle: "Language / 언어 선택",
     languageBannerDesc: "First time here? Choose your preferred language before exploring.",
+    memberHome: {
+      eyebrow: "Member Home",
+      title: "What to check at SwingPop this month",
+      description: "See whether anything new is pinned, then jump to your classes and the next open schedule.",
+      corkboard: {
+        title: "This Month's Corkboard",
+        loading: "Checking the corkboard.",
+        loadError: "The corkboard preview is unavailable for a moment. You can still open the board.",
+        officialLabel: "Staff notice",
+        officialEmpty: "No staff notice is pinned yet.",
+        noteCount: (count) => `${count} sticker${count === 1 ? "" : "s"} pinned this month.`,
+        myStickerReady: "You have pinned your sticker this month. Edit or move it on the board.",
+        myStickerEmpty: "Pin your sticker for this month.",
+        openBoard: "Open board",
+        pinSticker: "Pin a sticker",
+      },
+      activity: {
+        title: "My Activity",
+        description: "Check your classes, applications, and messages in one place.",
+        classNotice: (count) => (count > 0 ? `${count} unread class notice${count === 1 ? "" : "s"}` : "New class notices will appear here."),
+        messageNotice: (count) => (count > 0 ? `${count} unread message${count === 1 ? "" : "s"}` : "Staff messages are available from My Page."),
+        myPage: "My Page",
+        myClasses: "My applications",
+      },
+      schedule: {
+        title: "Classes & Social",
+        loading: "Loading open schedules.",
+        loadError: "Could not load schedules for a moment.",
+        empty: "No public schedule is open right now.",
+        nextLabel: "Open schedule",
+        social: "Saturday social and class updates are also shared in the announcement chat.",
+        apply: "Apply for class",
+        details: "View class info",
+      },
+      intro: {
+        title: "First time here?",
+        description: "You can still find the SwingPop intro and directions below.",
+        button: "See intro & directions",
+      },
+    },
     visitorGuide: {
       eyebrow: "First Time Here",
       title: "Where to find us",
@@ -1164,9 +1245,20 @@ runComponentTests();
 function ImagePlaceholder({ label = "Image Placeholder", height = "h-72" }) {
   return (
     <div
-      className={`flex w-full items-center justify-center rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 text-sm text-blue-900/60 ${height}`}
+      className={`wes-visual relative flex w-full items-center justify-center overflow-hidden rounded-3xl border border-dashed border-blue-200 bg-blue-50/60 text-sm text-blue-900/60 ${height}`}
+      role="img"
+      aria-label={label}
     >
-      {label}
+      <div className="wes-visual-stage" aria-hidden="true">
+        <span className="wes-visual-sun" />
+        <span className="wes-visual-record" />
+        <span className="wes-visual-card wes-visual-card-left" />
+        <span className="wes-visual-card wes-visual-card-right" />
+        <span className="wes-visual-step wes-visual-step-one" />
+        <span className="wes-visual-step wes-visual-step-two" />
+        <span className="wes-visual-step wes-visual-step-three" />
+      </div>
+      <span className="sr-only">{label}</span>
     </div>
   );
 }
@@ -1248,7 +1340,7 @@ function MobileStickyCta({ label, onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="wes-button wes-button-primary flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         aria-label={label}
       >
         {label}
@@ -1267,7 +1359,7 @@ function VisitorGuideLink({ href, children }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="wes-button wes-button-secondary inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       {children}
     </a>
@@ -1278,7 +1370,7 @@ function VisitorGuidePanel({ panel, isOpen, onToggle, children }) {
   const contentId = `visitor-guide-${panel.id}`;
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-blue-200 bg-white/90 shadow-sm">
+    <article className="wes-card overflow-hidden rounded-3xl border border-blue-200 bg-white/90 shadow-sm">
       <button
         type="button"
         onClick={onToggle}
@@ -1351,7 +1443,7 @@ function VisitorGuideSection({ language, labels, info }) {
     <div>
       <div className="grid gap-3">
         {labels.firstVisit.items.map((item, index) => (
-          <article key={item.id} className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <article key={item.id} className="wes-card rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
             <div className="flex gap-3">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-xs font-semibold text-blue-800">
                 {String(index + 1).padStart(2, "0")}
@@ -1368,7 +1460,7 @@ function VisitorGuideSection({ language, labels, info }) {
         <button
           type="button"
           onClick={handleShowBackEntranceGuide}
-          className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+          className="wes-button wes-button-secondary mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
         >
           {labels.firstVisit.backEntranceButton}
         </button>
@@ -1393,7 +1485,7 @@ function VisitorGuideSection({ language, labels, info }) {
     <div>
       <p className="text-sm leading-7 text-blue-950/70">{labels.contact.intro}</p>
       <div className="mt-5 grid gap-4 md:grid-cols-[1fr_0.9fr]">
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+        <div className="wes-card rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
           <div className="text-sm font-semibold text-blue-950">{labels.contact.kakaoTalk}</div>
           <div className="mt-3 grid gap-2 text-sm leading-6 text-blue-950/75">
             {kakaoContacts.map((contact) => (
@@ -1404,7 +1496,7 @@ function VisitorGuideSection({ language, labels, info }) {
             ))}
           </div>
         </div>
-        <div className="rounded-2xl border border-blue-100 bg-white p-4">
+        <div className="wes-card rounded-2xl border border-blue-100 bg-white p-4">
           <div className="text-sm font-semibold text-blue-950">{labels.contact.instagram}</div>
           <div className="mt-3 flex flex-col gap-2">
             {instagramLinks.map((link) => (
@@ -1434,7 +1526,7 @@ function VisitorGuideSection({ language, labels, info }) {
             <article
               id={`visitor-guide-location-${location.anchorId}`}
               key={location.name}
-              className="scroll-mt-28 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+              className="wes-card scroll-mt-28 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
             >
               <div className="flex flex-col gap-4">
                 <div>
@@ -1458,7 +1550,7 @@ function VisitorGuideSection({ language, labels, info }) {
                     <button
                       type="button"
                       onClick={() => toggleImageLocation(location.name)}
-                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-900 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
+                      className="wes-button wes-button-secondary inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-900 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-auto"
                       aria-expanded={areImagesOpen}
                     >
                       {areImagesOpen ? labels.location.backEntranceCloseButton : labels.location.backEntranceButton}
@@ -1594,6 +1686,198 @@ function formatClassDate(value, language) {
 
 function formatClassRole(role, labels) {
   return labels.roles?.[role] || labels.noRole;
+}
+
+function corkboardSummaryNotes(boardData) {
+  return (boardData?.pages || []).flatMap((page) => page.notes || []);
+}
+
+function dateSortValue(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function latestOfficialNote(notes) {
+  return [...notes]
+    .filter((note) => note?.noteType === "OFFICIAL")
+    .sort((first, second) => dateSortValue(second.createdAt) - dateSortValue(first.createdAt))[0] || null;
+}
+
+function hasOwnVisibleMemberNote(notes) {
+  return notes.some(
+    (note) =>
+      note?.noteType === "MEMBER" &&
+      (note.positionEditable || note.contentEditable || note.deletable)
+  );
+}
+
+function previewText(value, maxLength = 96) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 1)}...`;
+}
+
+function MemberHomeSummary({
+  labels,
+  authState,
+  boardData,
+  isBoardLoading,
+  boardError,
+  scheduleItems,
+  isScheduleLoading,
+  scheduleError,
+  classNoticeUnreadCount,
+  messageUnreadCount,
+  onCorkboard,
+  onMyPage,
+  onMyClasses,
+  onSchedule,
+  onIntro,
+}) {
+  const displayName = memberApplicationName(authState);
+  const notes = corkboardSummaryNotes(boardData);
+  const noteCount = notes.length;
+  const officialNote = latestOfficialNote(notes);
+  const hasMySticker = hasOwnVisibleMemberNote(notes);
+  const openSchedule = scheduleItems.find((item) => !item.isApplied) || scheduleItems[0] || null;
+  const hasScheduleError = Boolean(scheduleError);
+
+  return (
+    <div className="grid gap-6">
+      <div className="max-w-3xl">
+        <p className="text-sm font-medium uppercase text-blue-900/60">{labels.eyebrow}</p>
+        <h1 className="mt-3 text-4xl font-semibold leading-tight text-blue-950 md:text-5xl">
+          {labels.title}
+        </h1>
+        <p className="mt-5 text-base leading-8 text-blue-950/70 md:text-lg">
+          {displayName ? `${displayName}, ` : ""}
+          {labels.description}
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-amber-200 bg-amber-50/95 p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-amber-800/65">Corkboard</p>
+              <h2 className="mt-2 text-2xl font-semibold text-amber-950">{labels.corkboard.title}</h2>
+            </div>
+            <span className="rounded-full border border-amber-300 bg-white/80 px-3 py-1 text-xs font-semibold text-amber-900">
+              {boardData?.periodKey || "Now"}
+            </span>
+          </div>
+
+          <div className="mt-5 flex-1 space-y-4 text-sm leading-6 text-amber-950/75">
+            {isBoardLoading ? <p>{labels.corkboard.loading}</p> : null}
+            {!isBoardLoading && boardError ? <p>{labels.corkboard.loadError}</p> : null}
+            {!isBoardLoading && !boardError ? (
+              <>
+                <div>
+                  <div className="text-xs font-semibold uppercase text-amber-800/60">
+                    {labels.corkboard.officialLabel}
+                  </div>
+                  <p className="mt-2">
+                    {officialNote ? previewText(officialNote.content) : labels.corkboard.officialEmpty}
+                  </p>
+                </div>
+                <p className="font-semibold text-amber-950">{labels.corkboard.noteCount(noteCount)}</p>
+                <p>{hasMySticker ? labels.corkboard.myStickerReady : labels.corkboard.myStickerEmpty}</p>
+              </>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={onCorkboard}
+            className="wes-button wes-button-gold mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-amber-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600"
+          >
+            {hasMySticker ? labels.corkboard.openBoard : labels.corkboard.pinSticker}
+          </button>
+        </article>
+
+        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-teal-200 bg-white/95 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase text-teal-700/70">Activity</p>
+          <h2 className="mt-2 text-2xl font-semibold text-blue-950">{labels.activity.title}</h2>
+          <p className="mt-4 text-sm leading-7 text-blue-950/70">{labels.activity.description}</p>
+
+          <div className="mt-5 flex-1 space-y-3 text-sm leading-6 text-blue-950/70">
+            <p className="rounded-2xl bg-teal-50 px-4 py-3">{labels.activity.classNotice(classNoticeUnreadCount)}</p>
+            <p className="rounded-2xl bg-blue-50 px-4 py-3">{labels.activity.messageNotice(messageUnreadCount)}</p>
+          </div>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <button
+              type="button"
+              onClick={onMyPage}
+              className="wes-button wes-button-primary inline-flex min-h-[46px] items-center justify-center rounded-2xl bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.activity.myPage}
+            </button>
+            <button
+              type="button"
+              onClick={onMyClasses}
+              className="wes-button wes-button-secondary inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {labels.activity.myClasses}
+            </button>
+          </div>
+        </article>
+
+        <article className="wes-card flex min-h-[320px] flex-col rounded-3xl border border-rose-200 bg-rose-50/80 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase text-rose-800/65">Classes</p>
+          <h2 className="mt-2 text-2xl font-semibold text-blue-950">{labels.schedule.title}</h2>
+
+          <div className="mt-5 flex-1 space-y-4 text-sm leading-6 text-blue-950/70">
+            {isScheduleLoading ? <p>{labels.schedule.loading}</p> : null}
+            {!isScheduleLoading && hasScheduleError ? <p>{labels.schedule.loadError}</p> : null}
+            {!isScheduleLoading && !hasScheduleError && openSchedule ? (
+              <div>
+                <div className="text-xs font-semibold uppercase text-rose-800/60">{labels.schedule.nextLabel}</div>
+                <h3 className="mt-2 text-lg font-semibold text-blue-950">{openSchedule.title}</h3>
+                <p className="mt-2">{[openSchedule.date, openSchedule.time].filter(Boolean).join(" · ")}</p>
+                <p className="mt-1">{openSchedule.location}</p>
+              </div>
+            ) : null}
+            {!isScheduleLoading && !hasScheduleError && !openSchedule ? <p>{labels.schedule.empty}</p> : null}
+            <p>{labels.schedule.social}</p>
+          </div>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <button
+              type="button"
+              onClick={onSchedule}
+              className="wes-button wes-button-coral inline-flex min-h-[46px] items-center justify-center rounded-2xl bg-rose-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            >
+              {labels.schedule.apply}
+            </button>
+            <button
+              type="button"
+              onClick={onSchedule}
+              className="wes-button wes-button-secondary inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-900 shadow-sm transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            >
+              {labels.schedule.details}
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div className="wes-card flex flex-col gap-3 rounded-3xl border border-blue-100 bg-white/80 px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-blue-950">{labels.intro.title}</h2>
+          <p className="mt-1 text-sm leading-6 text-blue-950/65">{labels.intro.description}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onIntro}
+          className="wes-button wes-button-secondary inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {labels.intro.button}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function MemoBoard({ labels }) {
@@ -1998,18 +2282,18 @@ function ApplicationCard({ item, language, labels, onApply }) {
 
   return (
     <article
-      className={`grid gap-5 rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+      className={`wes-card wes-application-card grid gap-5 rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
         item.isRecommended ? "border-amber-300 ring-2 ring-amber-100" : "border-blue-200"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+            <span className="wes-chip rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
               {item.eventType}
             </span>
             {item.isRecommended ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              <span className="wes-chip wes-chip-gold rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
                 {labels.recommended}
               </span>
             ) : null}
@@ -2041,7 +2325,7 @@ function ApplicationCard({ item, language, labels, onApply }) {
           }
         }}
         disabled={isApplyDisabled}
-        className={`inline-flex min-h-[48px] items-center justify-center rounded-2xl px-5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        className={`wes-button inline-flex min-h-[48px] items-center justify-center rounded-2xl px-5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
           isApplied
             ? "cursor-default border border-emerald-200 bg-emerald-50 text-emerald-800"
             : item.isApplyStatusLoading
@@ -3286,7 +3570,7 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
         type="button"
         onClick={isAuthenticated ? onMyPage : onLogin}
         disabled={isLoading || isPending}
-        className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
+        className="wes-auth-button inline-flex min-h-[36px] items-center justify-center rounded-full border border-white/70 bg-white/80 px-3 text-xs font-semibold text-blue-950 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:text-blue-950/45 sm:min-h-[38px] sm:px-4"
       >
         {isLoading || isPending ? "..." : isAuthenticated ? labels.topButton : labels.login}
       </button>
@@ -3421,6 +3705,9 @@ function PublicApp() {
   const [scheduleItems, setScheduleItems] = useState([]);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [homeCorkboard, setHomeCorkboard] = useState(null);
+  const [isHomeCorkboardLoading, setIsHomeCorkboardLoading] = useState(false);
+  const [homeCorkboardError, setHomeCorkboardError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
@@ -3644,6 +3931,46 @@ function PublicApp() {
 
   useEffect(() => {
     if (!authState?.authenticated) {
+      setHomeCorkboard(null);
+      setHomeCorkboardError("");
+      setIsHomeCorkboardLoading(false);
+      return undefined;
+    }
+
+    if (currentPath !== "/") {
+      return undefined;
+    }
+
+    let isMounted = true;
+    setIsHomeCorkboardLoading(true);
+    setHomeCorkboardError("");
+
+    corkboardApi
+      .findCurrent()
+      .then((current) => {
+        if (isMounted) {
+          setHomeCorkboard(current);
+        }
+      })
+      .catch((nextError) => {
+        if (isMounted) {
+          setHomeCorkboard(null);
+          setHomeCorkboardError(nextError.message || "Corkboard preview unavailable.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsHomeCorkboardLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState?.authenticated, currentPath]);
+
+  useEffect(() => {
+    if (!authState?.authenticated) {
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
       setMemberMessageUnreadCount(0);
@@ -3724,6 +4051,15 @@ function PublicApp() {
 
   const handleCorkboardOpen = () => {
     navigateToPath("/corkboard");
+  };
+
+  const handleScheduleOpen = () => {
+    setActiveFilter("all");
+    scrollToHash("#schedule");
+  };
+
+  const handleIntroOpen = () => {
+    scrollToHash("#about");
   };
 
   const handleMyClassesOpen = () => {
@@ -3847,6 +4183,14 @@ function PublicApp() {
   const isCorkboardPath = currentPath === "/corkboard";
   const isMyClassesPath = currentPath === "/my-classes";
   const isMyPagePath = currentPath === "/me";
+  const isMainPublicPage =
+    !isSettingsPath &&
+    !isMessagesPath &&
+    !isCorkboardPath &&
+    !isMyClassesPath &&
+    !isMyPagePath &&
+    !isPrivacyPath &&
+    !isLoginConsentPath;
   const appliedScheduleItemIdSet = useMemo(() => new Set(appliedScheduleItemIds), [appliedScheduleItemIds]);
   const applicationItems = useMemo(
     () =>
@@ -3871,7 +4215,11 @@ function PublicApp() {
         />
       ) : null}
 
-      <div className="min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900">
+      <div
+        className={`min-h-screen bg-gradient-to-b from-sky-200 via-blue-200/60 to-white text-neutral-900 ${
+          isMainPublicPage ? "wes-page" : ""
+        }`}
+      >
         {!isLoginConsentPath ? (
           <AuthControl
             authState={authState}
@@ -3951,45 +4299,81 @@ function PublicApp() {
           <PrivacyPolicyPage language={activeLanguage} onBack={handleMainOpen} />
         ) : (
         <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
-          <SectionWrapper id="top" contentClassName="pt-10 pb-8">
-            <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-              <div>
-                <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-blue-950 md:text-6xl">
-                  {t.heroTitle}
-                </h1>
-                <p className="mt-6 max-w-2xl text-base leading-8 text-blue-950/70 md:text-lg">
-                  {t.heroDesc}
-                </p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <a
-                    href="#schedule"
-                    onClick={() => setActiveFilter("all")}
-                    className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:translate-y-[-1px]"
-                  >
-                    {t.heroPrimary}
-                  </a>
-                  <a
-                    href="#about"
-                    className="inline-flex items-center justify-center rounded-2xl border border-blue-200 bg-white px-6 py-3 text-sm font-medium text-blue-950 shadow-sm transition hover:translate-y-[-1px] hover:bg-blue-50"
-                  >
-                    {t.heroSecondary}
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleCorkboardOpen}
-                    className="inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-6 py-3 text-sm font-medium text-teal-900 shadow-sm transition hover:translate-y-[-1px] hover:bg-teal-100"
-                  >
-                    {t.heroCorkboard}
-                  </button>
+          <SectionWrapper id="top" className="wes-section wes-section-top" contentClassName="pt-10 pb-8 md:pt-14 md:pb-12">
+            {isAuthenticated ? (
+              <MemberHomeSummary
+                labels={t.memberHome}
+                authState={authState}
+                boardData={homeCorkboard}
+                isBoardLoading={isHomeCorkboardLoading}
+                boardError={homeCorkboardError}
+                scheduleItems={applicationItems}
+                isScheduleLoading={isScheduleLoading}
+                scheduleError={scheduleError}
+                classNoticeUnreadCount={lessonNoticeUnreadCount}
+                messageUnreadCount={memberMessageUnreadCount}
+                onCorkboard={handleCorkboardOpen}
+                onMyPage={handleMyPageOpen}
+                onMyClasses={handleMyClassesOpen}
+                onSchedule={handleScheduleOpen}
+                onIntro={handleIntroOpen}
+              />
+            ) : (
+              <div className="wes-hero grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+                <div>
+                  <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-blue-950 md:text-6xl">
+                    {t.heroTitle}
+                  </h1>
+                  <p className="mt-6 max-w-2xl text-base leading-8 text-blue-950/70 md:text-lg">
+                    {t.heroDesc}
+                  </p>
+                  <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <a
+                      href="#schedule"
+                      onClick={() => setActiveFilter("all")}
+                      className="wes-button wes-button-primary inline-flex items-center justify-center rounded-2xl bg-blue-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:translate-y-[-1px]"
+                    >
+                      {t.heroPrimary}
+                    </a>
+                    <a
+                      href="#about"
+                      className="wes-button wes-button-secondary inline-flex items-center justify-center rounded-2xl border border-blue-200 bg-white px-6 py-3 text-sm font-medium text-blue-950 shadow-sm transition hover:translate-y-[-1px] hover:bg-blue-50"
+                    >
+                      {t.heroSecondary}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleCorkboardOpen}
+                      className="wes-button wes-button-teal inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-6 py-3 text-sm font-medium text-teal-900 shadow-sm transition hover:translate-y-[-1px] hover:bg-teal-100"
+                    >
+                      {t.heroCorkboard}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <ImagePlaceholder label="Hero Image Placeholder" height="h-[420px]" />
                 </div>
               </div>
-              <div>
-                <ImagePlaceholder label="Hero Image Placeholder" height="h-[420px]" />
-              </div>
-            </div>
+            )}
           </SectionWrapper>
 
-          <SectionWrapper id="about" contentClassName="pt-8 pb-20">
+          {isAuthenticated ? (
+            <SectionWrapper id="schedule" className="wes-section wes-section-schedule bg-white/75" contentClassName="pt-8 pb-20">
+              <ScheduleAndApplicationSection
+                language={activeLanguage}
+                scheduleSection={t.sections[4]}
+                labels={t.application}
+                items={applicationItems}
+                isLoading={isScheduleLoading}
+                error={scheduleError}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                onApply={setSelectedApplication}
+              />
+            </SectionWrapper>
+          ) : null}
+
+          <SectionWrapper id="about" className="wes-section wes-section-about" contentClassName="pt-8 pb-20">
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
                 <ImagePlaceholder label="Community Image Placeholder" />
@@ -4008,7 +4392,7 @@ function PublicApp() {
                 </div>
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
                   {t.sections[0].stats.map((stat) => (
-                    <div key={`${activeLanguage}-${stat.label}`} className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+                    <div key={`${activeLanguage}-${stat.label}`} className="wes-card wes-stat-card rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
                       <div className="text-xs uppercase tracking-[0.2em] text-blue-900/45">{stat.label}</div>
                       <div className="mt-2 text-lg font-semibold text-blue-950">{stat.value}</div>
                     </div>
@@ -4018,7 +4402,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="swing" className="bg-white/75">
+          <SectionWrapper id="swing" className="wes-section wes-section-sage bg-white/75">
             <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div>
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
@@ -4036,7 +4420,7 @@ function PublicApp() {
                   {t.sections[1].points.map((point) => (
                     <span
                       key={`${activeLanguage}-${point}`}
-                      className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-950/80"
+                      className="wes-chip rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-950/80"
                     >
                       {point}
                     </span>
@@ -4049,7 +4433,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="swingpop-style">
+          <SectionWrapper id="swingpop-style" className="wes-section wes-section-rose">
             <div className="text-center">
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-900/60">
                 {t.sections[2].eyebrow}
@@ -4067,7 +4451,7 @@ function PublicApp() {
             <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div className="grid gap-4 md:grid-cols-3">
                 {t.sections[2].cards.map((card) => (
-                  <div key={`${activeLanguage}-${card.title}`} className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+                  <div key={`${activeLanguage}-${card.title}`} className="wes-card rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
                     <div className="text-lg font-semibold text-blue-950">{card.title}</div>
                     <p className="mt-3 text-sm leading-7 text-blue-950/70">{card.desc}</p>
                   </div>
@@ -4079,7 +4463,7 @@ function PublicApp() {
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="seoul-scene" className="bg-white/75" contentClassName="pt-20 pb-8">
+          <SectionWrapper id="seoul-scene" className="wes-section wes-section-sky bg-white/75" contentClassName="pt-20 pb-8">
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
                 <ImagePlaceholder label="Seoul Swing Scene Image Placeholder" />
@@ -4096,40 +4480,42 @@ function PublicApp() {
                     <p key={`${activeLanguage}-scene-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
-                <div className="mt-8 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50 p-6 text-base leading-8 text-blue-950/80 shadow-sm">
+                <div className="wes-highlight mt-8 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 to-sky-50 p-6 text-base leading-8 text-blue-950/80 shadow-sm">
                   {t.sections[3].highlight}
                 </div>
               </div>
             </div>
           </SectionWrapper>
 
-          <SectionWrapper id="schedule" className="bg-white/75" contentClassName="pt-8 pb-20">
-            <ScheduleAndApplicationSection
-              language={activeLanguage}
-              scheduleSection={t.sections[4]}
-              labels={t.application}
-              items={applicationItems}
-              isLoading={isScheduleLoading}
-              error={scheduleError}
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              onApply={setSelectedApplication}
-            />
-          </SectionWrapper>
+          {!isAuthenticated ? (
+            <SectionWrapper id="schedule" className="wes-section wes-section-schedule bg-white/75" contentClassName="pt-8 pb-20">
+              <ScheduleAndApplicationSection
+                language={activeLanguage}
+                scheduleSection={t.sections[4]}
+                labels={t.application}
+                items={applicationItems}
+                isLoading={isScheduleLoading}
+                error={scheduleError}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                onApply={setSelectedApplication}
+              />
+            </SectionWrapper>
+          ) : null}
 
-          <SectionWrapper id="visitor-guide" className="bg-sky-50/70" contentClassName="py-16">
+          <SectionWrapper id="visitor-guide" className="wes-section wes-section-visitor bg-sky-50/70" contentClassName="py-16">
             <VisitorGuideSection language={activeLanguage} labels={t.visitorGuide} info={visitorGuideInfo} />
           </SectionWrapper>
         </main>
         )}
 
-        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
-        <footer className="border-t border-blue-900/10">
+        {isMainPublicPage ? (
+        <footer className="wes-footer border-t border-blue-900/10">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-blue-900/60 md:px-8">{t.footer}</div>
         </footer>
         ) : null}
 
-        {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
+        {isMainPublicPage ? (
           <>
             <div className="h-28 md:hidden" aria-hidden="true" />
             <MobileStickyCta

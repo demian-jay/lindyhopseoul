@@ -294,6 +294,7 @@ User entry point:
 
 - `/corkboard`
 - Also linked from the main hero as `담벼락` (Korean) / `Corkboard` (English).
+- Logged-in members also see a lightweight Corkboard preview card at the top of the main page. It reuses `GET /api/agora/corkboards/current` and computes the visible note count, latest public `OFFICIAL` note preview, and the current member sticker state from the existing note editability flags. The full corkboard UI remains available only on `/corkboard`.
 
 Admin entry point:
 
