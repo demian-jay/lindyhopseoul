@@ -1334,8 +1334,10 @@ function SiteHeader({ nav, corkboardLabel, onCorkboard }) {
           </ul>
         </nav>
 
-        {/* Reserves room for the fixed AuthControl button in the top-right. */}
-        <div className="ml-auto h-1 w-24 shrink-0 sm:w-28 lg:ml-0" aria-hidden="true" />
+        {/* Reserves room for the fixed AuthControl button in the top-right.
+            Must stay at least as wide as its widest label — "Sign in with
+            Google" measures 142px — or the nav runs underneath it at lg. */}
+        <div className="ml-auto h-1 w-36 shrink-0 lg:ml-0" aria-hidden="true" />
       </div>
     </header>
   );
@@ -3402,7 +3404,12 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
       : "border-swing-border/30 bg-swing-paper/80 text-swing-ink hover:bg-swing-paper focus:ring-swing-teal disabled:text-swing-muted/45";
 
   return (
-    <div className="fixed right-3 top-3 z-[80] flex max-w-[calc(100vw-24px)] justify-end sm:right-5 sm:top-5">
+    // Aligned to the header rather than the viewport. The right inset matches
+    // the header's own `px-5 md:px-8` so the button lines up with SWINGPOP
+    // opposite it, and the top insets centre it in the header band, which is
+    // 53px until the nav appears at lg and makes it 63px. The previous `top-5`
+    // pushed a 38px button to y=58, leaving it hanging below the header border.
+    <div className="fixed right-5 top-2 z-[80] flex max-w-[calc(100vw-40px)] justify-end md:right-8 lg:top-3">
       <button
         type="button"
         onClick={isAuthenticated ? onMyPage : onLogin}
