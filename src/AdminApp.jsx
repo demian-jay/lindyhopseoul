@@ -639,7 +639,7 @@ function StatusBadge({ useYn, labels }) {
     <span
       className={`inline-flex min-w-[72px] items-center justify-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
         isActive
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
           : "border-swing-border/30 bg-swing-cream/70 text-swing-muted"
       }`}
     >
@@ -655,7 +655,7 @@ function MemberStatusBadge({ status, labels }) {
     ? "border-red-200 bg-red-50 text-red-700"
     : isSuspended
       ? "border-amber-200 bg-amber-50 text-amber-800"
-    : "border-emerald-200 bg-emerald-50 text-emerald-700";
+    : "border-swing-sage bg-swing-sage/40 text-swing-teal-deep";
 
   return (
     <span className={`inline-flex min-w-[72px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold sm:min-w-[86px] sm:px-2.5 sm:py-1 sm:text-xs ${className}`}>
@@ -727,7 +727,7 @@ function Notice({ type = "error", children }) {
 
   const className =
     type === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
       : "border-red-200 bg-red-50 text-red-700";
 
   return <div className={`rounded-lg border px-3 py-2 text-sm leading-6 ${className}`}>{children}</div>;
@@ -1018,7 +1018,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[390px_1fr]">
+    <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">
@@ -1219,7 +1219,7 @@ function TeacherUsersPanel({ token, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[390px_1fr]">
+    <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">
@@ -1717,7 +1717,7 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                             <button
                               type="button"
                               onClick={() => openStatusModal("reactivate", member)}
-                              className="min-h-[32px] rounded-lg border border-emerald-200 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                              className="min-h-[32px] rounded-lg border border-swing-sage px-3 text-xs font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
                             >
                               {memberLabels.reactivate}
                             </button>
@@ -1832,7 +1832,7 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                           <button
                             type="button"
                             onClick={() => openStatusModal("reactivate", member)}
-                            className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                            className="rounded-lg border border-swing-sage px-3 py-1.5 text-xs font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
                           >
                             {memberLabels.reactivate}
                           </button>
@@ -1910,7 +1910,7 @@ function MemberMessageSendModal({
 
         <div className="mt-4 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
+            <span className="rounded-full bg-swing-sage/50 px-2.5 py-1 text-swing-teal-deep">
               {labels.activeRecipients(activeCount)}
             </span>
             {excludedCount > 0 ? (
@@ -2269,7 +2269,7 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
+    <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
       <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{messageLabels.listTitle}</h2>
@@ -2614,7 +2614,7 @@ export default function AdminApp() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
           <nav className="grid gap-1">
             {visibleMenus.map((menu) => (

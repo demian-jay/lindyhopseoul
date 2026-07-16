@@ -301,6 +301,7 @@ Admin entry point:
 - Admin menu `CORKBOARD`
 - Available to `SUPER_ADMIN` and `STAFF`.
 - The top of the panel shows current period settings, page count, note count, writable state, a super-admin settings form, a super-admin new-board form, and past board navigation.
+- The two super-admin forms (`기간 수정` / Edit Period, and `새 보드 생성 / 예약` / Create-Schedule Board) are collapsed on arrival and open one at a time. They are occasional actions, and leaving them open pushed the board itself below the fold. The period metrics above them stay visible, since those are the at-a-glance state rather than an action.
 - In the super-admin new-board form, `periodKey` is entered as six digits (`YYYYMM`) and the title is generated automatically as `Swingpop YYYY년 MM월 보드`; the client converts the key to the existing API/storage format (`YYYY-MM`) before sending.
 
 Main files:

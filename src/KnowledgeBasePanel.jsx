@@ -157,7 +157,7 @@ function Notice({ type = "error", children }) {
 
   const className =
     type === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
       : "border-red-200 bg-red-50 text-red-700";
 
   return <div className={`rounded-lg border px-3 py-2 text-sm leading-6 ${className}`}>{children}</div>;
@@ -530,7 +530,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
   return (
     <section className="grid gap-5">
       <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1fr_260px_240px]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px]">
           <Field label={kb.searchLabel}>
             <TextInput
               value={query}
@@ -571,7 +571,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[390px_1fr]">
+      <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
             <h2 className="text-lg font-bold text-swing-ink">{kb.resultsTitle}</h2>
@@ -687,7 +687,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
       </div>
 
       {canManage ? (
-        <div className="grid gap-5 xl:grid-cols-[1fr_390px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <form onSubmit={handleSubmitItem} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
               <h2 className="text-lg font-bold text-swing-ink">

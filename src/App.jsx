@@ -1881,7 +1881,7 @@ function MemoBoard({ labels }) {
             </div>
           ) : null}
           {notice ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+            <div className="rounded-2xl border border-swing-sage bg-swing-sage/40 px-4 py-3 text-sm leading-6 text-swing-teal-deep">
               {notice}
             </div>
           ) : null}
@@ -2398,61 +2398,61 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
         ) : null}
 
         {submittedApplication ? (
-          <div className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="mt-6 rounded-3xl border border-swing-sage bg-swing-sage/40 p-5">
             <section>
-              <h3 className="text-lg font-semibold text-emerald-950">{labels.successTitle}</h3>
+              <h3 className="text-lg font-semibold text-swing-teal-deep">{labels.successTitle}</h3>
             </section>
-            <section className="mt-4 border-t border-emerald-200 pt-4">
-              <div className="text-sm font-semibold text-emerald-950">{labels.noticeTitle}</div>
-              <p className="mt-2 text-sm leading-6 text-emerald-900/75">{labels.noticeBody}</p>
+            <section className="mt-4 border-t border-swing-sage pt-4">
+              <div className="text-sm font-semibold text-swing-teal-deep">{labels.noticeTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-swing-teal-deep/75">{labels.noticeBody}</p>
               <a
                 href="https://open.kakao.com/o/gdODdZIe"
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                className="mt-3 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-swing-sage bg-swing-paper px-3 text-sm font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
               >
                 {labels.announcementRoom}
               </a>
             </section>
-            <section className="mt-4 border-t border-emerald-200 pt-4">
-              <div className="text-sm font-semibold text-emerald-950">{labels.contactTitle}</div>
-              <p className="mt-2 text-sm leading-6 text-emerald-900/75">{labels.contactBody}</p>
+            <section className="mt-4 border-t border-swing-sage pt-4">
+              <div className="text-sm font-semibold text-swing-teal-deep">{labels.contactTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-swing-teal-deep/75">{labels.contactBody}</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-900/55">
+                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-swing-teal-deep/55">
                     {labels.kakaoTalk}
                   </div>
-                  <div className="mt-1 text-sm leading-6 text-emerald-950">
+                  <div className="mt-1 text-sm leading-6 text-swing-teal-deep">
                     <div>{labels.koreanContact}</div>
                     <div>{labels.englishContact}</div>
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-900/55">
+                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-swing-teal-deep/55">
                     Instagram
                   </div>
                   <a
                     href="https://www.instagram.com/swingpopseoul"
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                    className="mt-2 inline-flex min-h-[38px] items-center justify-center rounded-xl border border-swing-sage bg-swing-paper px-3 text-sm font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
                   >
                     {labels.instagramDm}
                   </a>
                 </div>
               </div>
-              <p className="mt-3 text-sm leading-6 text-emerald-900/75">{labels.announcementQuestion}</p>
+              <p className="mt-3 text-sm leading-6 text-swing-teal-deep/75">{labels.announcementQuestion}</p>
             </section>
             {shouldShowMapLinks ? (
-              <section className="mt-4 border-t border-emerald-200 pt-4">
-                <div className="text-sm font-semibold text-emerald-950">{labels.mapTitle}</div>
+              <section className="mt-4 border-t border-swing-sage pt-4">
+                <div className="text-sm font-semibold text-swing-teal-deep">{labels.mapTitle}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {item.googleMapUrl ? (
                     <a
                       href={item.googleMapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-swing-sage bg-swing-paper px-3 text-sm font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
                     >
                       {labels.googleMaps}
                     </a>
@@ -2462,7 +2462,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                       href={item.naverMapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-emerald-200 bg-swing-paper px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                      className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-swing-sage bg-swing-paper px-3 text-sm font-semibold text-swing-teal-deep transition hover:bg-swing-sage/40"
                     >
                       {labels.naverMap}
                     </a>
@@ -2473,7 +2473,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-swing-paper transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-auto"
+              className="mt-5 inline-flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:w-auto"
             >
               {labels.chooseAnother}
             </button>
@@ -2794,7 +2794,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
             </label>
 
             {notice ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <div className="rounded-2xl border border-swing-sage bg-swing-sage/40 px-4 py-3 text-sm text-swing-teal-deep">
                 {notice}
               </div>
             ) : null}
@@ -3034,7 +3034,7 @@ function MyClassesPage({ authState, isLoading, language, onLogin, onBack, onUnre
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <div className="inline-flex min-h-[28px] items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800">
+                        <div className="inline-flex min-h-[28px] items-center rounded-full border border-swing-sage bg-swing-sage/40 px-3 text-xs font-semibold text-swing-teal-deep">
                           {labels.status}
                         </div>
                         <h2 className="mt-3 text-lg font-semibold tracking-tight text-swing-ink">
@@ -3232,7 +3232,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
           />
 
           {notice ? (
-            <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div className="mt-3 rounded-2xl border border-swing-sage bg-swing-sage/40 px-4 py-3 text-sm text-swing-teal-deep">
               {notice}
             </div>
           ) : null}
@@ -4176,7 +4176,7 @@ function PublicApp() {
           />
         ) : null}
         {accountNotice ? (
-          <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-swing-paper/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
+          <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-swing-sage bg-swing-paper/95 px-4 py-3 text-center text-sm font-semibold text-swing-teal-deep shadow-lg backdrop-blur">
             {accountNotice}
           </div>
         ) : null}

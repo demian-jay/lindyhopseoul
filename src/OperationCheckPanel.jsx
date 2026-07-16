@@ -190,7 +190,7 @@ function Notice({ type = "error", children }) {
     <div
       className={`rounded-lg border px-3 py-2 text-sm leading-6 ${
         type === "success"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
           : "border-red-200 bg-red-50 text-red-700"
       }`}
     >

@@ -1006,9 +1006,9 @@
 .corkboard-form-error {
   margin-top: 12px;
   border-radius: 8px;
-  background: #ecfdf5;
+  background: #dddcba;
   padding: 10px 12px;
-  color: #047857;
+  color: #26534f;
   font-size: 12px;
   font-weight: 900;
 }
@@ -1191,8 +1191,8 @@
 }
 
 .admin-corkboard-badge.is-visible {
-  background: #ecfdf5;
-  color: #047857;
+  background: #dddcba;
+  color: #26534f;
 }
 
 .admin-corkboard-badge.is-hidden {
@@ -1428,8 +1428,8 @@
 }
 
 .admin-corkboard-note-actions button.is-unhide {
-  background: #dcfce7;
-  color: #047857;
+  background: #d5dcc2;
+  color: #26534f;
 }
 
 .admin-corkboard-empty {

@@ -842,7 +842,7 @@ function Notice({ type = "error", children }) {
   }
   const className =
     type === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
       : "border-red-200 bg-red-50 text-red-700";
   return <div className={`rounded-lg border px-3 py-2 text-sm ${className}`}>{children}</div>;
 }
@@ -1503,7 +1503,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const selectedTitle = selectedEvent ? eventTitle(selectedEvent, languageCode) : "";
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[330px_1fr]">
+    <section className="grid gap-5 xl:grid-cols-[330px_minmax(0,1fr)]">
       <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{copy.events}</h2>
@@ -1957,7 +1957,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
+    <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>

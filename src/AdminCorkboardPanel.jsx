@@ -25,6 +25,10 @@ const COPY = {
     notWritable: "읽기 전용",
     saveSettings: "기간 설정 저장",
     savingSettings: "저장 중",
+    editPeriodTitle: "기간 수정",
+    editPeriodDescription: "현재 보드의 제목과 사용 기간을 변경합니다.",
+    expandSection: "펼치기",
+    collapseSection: "접기",
     settingsSaved: "보드 설정을 저장했습니다.",
     settingsSaveError: "보드 설정을 저장하지 못했습니다.",
     archiveCurrent: "현재 보드 종료",
@@ -123,6 +127,10 @@ const COPY = {
     notWritable: "Read-only",
     saveSettings: "Save Period",
     savingSettings: "Saving",
+    editPeriodTitle: "Edit Period",
+    editPeriodDescription: "Change the current board's title and active dates.",
+    expandSection: "Expand",
+    collapseSection: "Collapse",
     settingsSaved: "Board settings saved.",
     settingsSaveError: "Could not save board settings.",
     archiveCurrent: "Archive Current Board",
@@ -430,7 +438,7 @@ function updateManagementNote(management, updatedNote) {
 
 function AdminPeriodMetric({ label, value, tone = "default" }) {
   const toneClass = tone === "positive"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+    ? "border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
     : tone === "muted"
       ? "border-swing-border/30 bg-swing-cream/50 text-swing-muted"
       : "border-swing-border/30 bg-swing-paper text-swing-ink";
@@ -439,6 +447,34 @@ function AdminPeriodMetric({ label, value, tone = "default" }) {
     <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
       <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-swing-muted">{label}</div>
       <div className="mt-1 break-words text-sm font-bold">{value ?? "-"}</div>
+    </div>
+  );
+}
+
+// Period editing and board creation are super-admin actions that are used rarely
+// but sat open permanently, pushing the board itself down the page. Collapsed by
+// default keeps the panel operations-first; the metrics above stay visible
+// because those are the at-a-glance state.
+function AdminCollapsible({ title, description, isOpen, onToggle, labels, children }) {
+  return (
+    <div className="rounded-lg border border-swing-border/30 bg-swing-paper">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="flex w-full items-start justify-between gap-3 rounded-lg px-4 py-3 text-left transition hover:bg-swing-cream/50"
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-bold text-swing-ink">{title}</span>
+          {description ? (
+            <span className="mt-1 block text-xs leading-5 text-swing-muted">{description}</span>
+          ) : null}
+        </span>
+        <span className="shrink-0 text-xs font-bold text-swing-teal-deep">
+          {isOpen ? labels.collapseSection : labels.expandSection}
+        </span>
+      </button>
+      {isOpen ? <div className="px-4 pb-4">{children}</div> : null}
     </div>
   );
 }
@@ -714,6 +750,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [selectedPeriodKey, setSelectedPeriodKey] = useState("");
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [boardViewMode, setBoardViewMode] = useState("manage");
+  // Only one period form is open at a time; null keeps both collapsed on arrival.
+  const [openForm, setOpenForm] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("official");
   const [content, setContent] = useState("");
   const [noticePlacement, setNoticePlacement] = useState(() => suggestedNoticePlacement(null));
@@ -1107,7 +1145,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       </section>
 
       {notice ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+        <div className="rounded-lg border border-swing-sage bg-swing-sage/40 px-4 py-3 text-sm font-bold text-swing-teal-deep">
           {notice}
         </div>
       ) : null}
@@ -1163,7 +1201,14 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
         {canManagePeriods ? (
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <form onSubmit={handleSaveSettings} className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <AdminCollapsible
+              title={labels.editPeriodTitle}
+              description={labels.editPeriodDescription}
+              isOpen={openForm === "settings"}
+              onToggle={() => setOpenForm((current) => (current === "settings" ? null : "settings"))}
+              labels={labels}
+            >
+            <form onSubmit={handleSaveSettings}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1 text-sm font-bold text-swing-ink/80 sm:col-span-2">
                   {labels.periodTitle}
@@ -1210,13 +1255,17 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 </button>
               </div>
             </form>
+            </AdminCollapsible>
 
-            <form onSubmit={handleCreatePeriod} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4">
-              <div>
-                <h4 className="text-sm font-bold text-swing-ink">{labels.createPeriodTitle}</h4>
-                <p className="mt-1 text-sm leading-6 text-swing-muted">{labels.createPeriodDescription}</p>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <AdminCollapsible
+              title={labels.createPeriodTitle}
+              description={labels.createPeriodDescription}
+              isOpen={openForm === "create"}
+              onToggle={() => setOpenForm((current) => (current === "create" ? null : "create"))}
+              labels={labels}
+            >
+            <form onSubmit={handleCreatePeriod}>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1 text-sm font-bold text-swing-ink/80">
                   {labels.periodKey}
                   <input
@@ -1267,6 +1316,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 </button>
               </div>
             </form>
+            </AdminCollapsible>
           </div>
         ) : null}
 
