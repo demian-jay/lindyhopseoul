@@ -81,6 +81,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-dev.
 Use project docs before changing related code:
 
 - `README.md`: overall structure, setup, broad API overview.
+- `docs/deployment.md`: production host and paths, the manual deploy procedure, cache configuration, rollback, known gaps.
 - `docs/local-dev-runtime.md`: local ports, OAuth runtime assumptions, restart checklist.
 - `docs/google-oauth-member-login.md`: Google OAuth, member session, privacy/security notes.
 - `docs/member-display-guidelines.md`: member display, withdrawal handling, `(Del)` admin badge rules.
