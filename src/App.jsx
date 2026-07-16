@@ -832,6 +832,34 @@ const MY_PAGE_COPY = {
   },
 };
 
+// Google blocks OAuth inside embedded webviews ("disallowed_useragent"), so the
+// in-app browsers of KakaoTalk, Naver and friends can never complete a login.
+// Naver Whale (`Whale/`) is a real browser and must not match.
+const IN_APP_BROWSER_PATTERN = /KAKAOTALK|NAVER\(inapp|DaumApps|Instagram|FBAN|FBAV|FB_IAB|Line\/|BAND\/|everytimeApp|KAKAOSTORY/i;
+
+function detectInAppBrowser() {
+  if (typeof navigator === "undefined") {
+    return { isInApp: false, platform: "other" };
+  }
+
+  const ua = navigator.userAgent || "";
+
+  return {
+    isInApp: IN_APP_BROWSER_PATTERN.test(ua),
+    platform: /Android/i.test(ua) ? "android" : /iPhone|iPad|iPod/i.test(ua) ? "ios" : "other",
+  };
+}
+
+// Android can hand the URL to Chrome through the intent scheme. iOS gives an
+// embedded webview no way to hand off to Safari, so that path stays manual.
+function buildChromeIntentUrl(absoluteUrl) {
+  const withoutScheme = absoluteUrl.replace(/^https?:\/\//, "");
+
+  return `intent://${withoutScheme}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(
+    absoluteUrl,
+  )};end`;
+}
+
 const LOGIN_CONSENT_COPY = {
   ko: {
     eyebrow: "Google 로그인",
@@ -846,6 +874,14 @@ const LOGIN_CONSENT_COPY = {
     privacyLink: "개인정보처리방침",
     continue: "Google로 계속",
     back: "메인으로",
+    inAppTitle: "브라우저에서 열어주세요",
+    inAppBody:
+      "카카오톡·네이버 등 앱 안의 브라우저에서는 Google 정책상 로그인이 차단됩니다. 아래 주소를 복사해 Safari나 Chrome에서 열어주세요.",
+    inAppHint: "화면 오른쪽 위 또는 아래의 메뉴에서 '다른 브라우저로 열기' 또는 'Safari로 열기'를 선택해도 됩니다.",
+    inAppCopy: "주소 복사",
+    inAppCopied: "복사했습니다",
+    inAppCopyFailed: "복사가 차단되었습니다. 위 주소를 길게 눌러 직접 복사해주세요.",
+    inAppClose: "닫기",
   },
   en: {
     eyebrow: "Google Sign-In",
@@ -860,6 +896,14 @@ const LOGIN_CONSENT_COPY = {
     privacyLink: "Privacy Policy",
     continue: "Continue with Google",
     back: "Home",
+    inAppTitle: "Open in a browser",
+    inAppBody:
+      "Google blocks sign-in inside in-app browsers such as KakaoTalk or Naver. Copy the address below and open it in Safari or Chrome.",
+    inAppHint: "You can also use the menu at the top or bottom of the screen and choose \"Open in browser\" or \"Open in Safari\".",
+    inAppCopy: "Copy address",
+    inAppCopied: "Copied",
+    inAppCopyFailed: "Copying was blocked. Long-press the address above to copy it yourself.",
+    inAppClose: "Close",
   },
 };
 
@@ -1784,7 +1828,7 @@ function MemoBoard({ labels }) {
             value={form.title}
             onChange={handleFormChange}
             placeholder={labels.titlePlaceholder}
-            className="mt-2 min-h-[48px] w-full rounded-2xl border border-swing-border/30 px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+            className="swing-field mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm outline-none transition"
           />
 
           <label className="mt-4 block text-sm font-medium text-swing-ink/75" htmlFor="memo-content">
@@ -1797,7 +1841,7 @@ function MemoBoard({ labels }) {
             onChange={handleFormChange}
             placeholder={labels.contentPlaceholder}
             rows={5}
-            className="mt-2 w-full resize-none rounded-2xl border border-swing-border/30 px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+            className="swing-field mt-2 w-full resize-none rounded-2xl border px-4 py-3 text-sm leading-6 outline-none transition"
           />
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -2463,11 +2507,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                   onChange={handleChange}
                   placeholder={labels.namePlaceholder}
                   readOnly={isAuthenticated}
-                  className={`mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:ring-2 focus:ring-swing-teal/30 ${
-                    isAuthenticated
-                      ? "border-swing-border/20 bg-swing-cream/40 text-swing-ink/70"
-                      : "border-swing-border/30 bg-swing-paper focus:border-swing-teal"
-                  }`}
+                  className="swing-field mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm outline-none transition"
                 />
                 {isAuthenticated ? (
                   <span className="mt-2 block text-xs leading-5 text-swing-ink/55">
@@ -2483,7 +2523,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                       name="danceRole"
                       value={form.danceRole}
                       onChange={handleChange}
-                      className="mt-2 min-h-[48px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+                      className="swing-field mt-2 min-h-[48px] w-full rounded-2xl border px-4 text-sm outline-none transition"
                     >
                       <option value="">{labels.danceRolePlaceholder}</option>
                       {Object.entries(labels.danceRoles).map(([value, label]) => (
@@ -2508,7 +2548,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
                   onChange={handleChange}
                   rows={4}
                   placeholder={labels.requestMemoPlaceholder}
-                  className="mt-2 w-full rounded-2xl border border-swing-border/30 px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+                  className="swing-field mt-2 w-full rounded-2xl border px-4 py-3 text-sm leading-6 outline-none transition"
                 />
                 <span className="mt-2 block text-xs leading-5 text-swing-ink/55">
                   {labels.requestMemoHelp}
@@ -2713,7 +2753,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 type="text"
                 readOnly
                 value={settings?.email || authState?.email || ""}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/20 bg-swing-cream/40 px-4 text-sm text-swing-ink/70 outline-none"
+                className="swing-field mt-2 min-h-[46px] w-full rounded-2xl border px-4 text-sm outline-none"
               />
             </label>
             <label className="block">
@@ -2722,7 +2762,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 type="text"
                 readOnly
                 value={settings?.displayName || authState?.displayName || ""}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/20 bg-swing-cream/40 px-4 text-sm text-swing-ink/70 outline-none"
+                className="swing-field mt-2 min-h-[46px] w-full rounded-2xl border px-4 text-sm outline-none"
               />
             </label>
             <label className="block">
@@ -2734,7 +2774,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 onChange={handleChange}
                 maxLength={20}
                 placeholder={labels.nicknamePlaceholder}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+                className="swing-field mt-2 min-h-[46px] w-full rounded-2xl border px-4 text-sm outline-none transition"
               />
             </label>
             <label className="block">
@@ -2743,7 +2783,7 @@ function MemberSettingsPage({ authState, isLoading, language, onLogin, onBack, o
                 name="preferredLanguage"
                 value={form.preferredLanguage}
                 onChange={handleChange}
-                className="mt-2 min-h-[46px] w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 text-sm text-swing-ink outline-none transition focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+                className="swing-field mt-2 min-h-[46px] w-full rounded-2xl border px-4 text-sm outline-none transition"
               >
                 <option value="KO">{labels.korean}</option>
                 <option value="EN">{labels.english}</option>
@@ -3185,7 +3225,7 @@ function MemberMessagesPage({ authState, isLoading, language, onLogin, onBack, o
             maxLength={2000}
             rows={4}
             placeholder={labels.placeholder}
-            className="w-full rounded-2xl border border-swing-border/30 bg-swing-paper px-4 py-3 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/30"
+            className="swing-field w-full rounded-2xl border px-4 py-3 text-sm leading-6 outline-none transition"
           />
 
           {notice ? (
@@ -3375,6 +3415,79 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
   );
 }
 
+function InAppBrowserNotice({ language, url, onClose }) {
+  const labels = LOGIN_CONSENT_COPY[language] ?? LOGIN_CONSENT_COPY.ko;
+  const [copyState, setCopyState] = useState("idle");
+
+  const handleCopy = async () => {
+    // Both paths can be refused inside a webview, so a failure has to say so
+    // rather than leave the button looking untouched.
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+      return;
+    } catch {
+      // Fall through to the legacy path.
+    }
+
+    const field = document.createElement("textarea");
+    field.value = url;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+
+    let copied = false;
+
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+
+    document.body.removeChild(field);
+    setCopyState(copied ? "copied" : "failed");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-swing-ink/45 px-4 backdrop-blur-sm">
+      <section className="swing-frame w-full max-w-md rounded-sm bg-swing-paper/95 p-6">
+        <h2 className="font-display text-xl font-bold tracking-tight text-swing-ink">{labels.inAppTitle}</h2>
+        <p className="mt-3 text-sm leading-7 text-swing-muted">{labels.inAppBody}</p>
+
+        {/* Shown as selectable text too: copying can fail silently in a webview. */}
+        <p className="mt-4 select-all break-all rounded-sm border border-swing-border/30 bg-swing-cream/50 px-3 py-2 text-xs leading-6 text-swing-ink/80">
+          {url}
+        </p>
+
+        <p className="mt-3 text-xs leading-6 text-swing-muted">{labels.inAppHint}</p>
+
+        {copyState === "failed" ? (
+          <p className="mt-3 text-xs font-semibold leading-6 text-red-700">{labels.inAppCopyFailed}</p>
+        ) : null}
+
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-swing-border/30 bg-swing-paper px-5 text-sm font-medium tracking-wide text-swing-ink/80 transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
+          >
+            {labels.inAppClose}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-swing-teal-deep px-5 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper"
+          >
+            {copyState === "copied" ? labels.inAppCopied : labels.inAppCopy}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function LoginConsentPage({ language, onBack, onContinue, onPrivacy }) {
   const labels = LOGIN_CONSENT_COPY[language] ?? LOGIN_CONSENT_COPY.ko;
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -3511,6 +3624,8 @@ function PublicApp() {
   const [authState, setAuthState] = useState({ authenticated: false });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthActionPending, setIsAuthActionPending] = useState(false);
+  // Set only when an in-app browser cannot hand the login off to a real browser.
+  const [inAppLoginUrl, setInAppLoginUrl] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
   const [currentPath, setCurrentPath] = useState(
     typeof window === "undefined" ? "/" : window.location.pathname
@@ -3647,6 +3762,31 @@ function PublicApp() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  // The application modal covers the whole screen on a phone, so the back
+  // gesture has to dismiss it. Without an entry of its own, back skips past the
+  // modal and navigates the page still sitting behind it.
+  useEffect(() => {
+    if (typeof window === "undefined" || !selectedApplication) {
+      return undefined;
+    }
+
+    window.history.pushState({ swingModal: "application" }, "");
+
+    const handleModalPop = () => setSelectedApplication(null);
+
+    window.addEventListener("popstate", handleModalPop);
+
+    return () => {
+      window.removeEventListener("popstate", handleModalPop);
+
+      // Closed from the UI instead of by going back: drop the entry we added,
+      // or the user's next back press would be spent undoing this modal.
+      if (window.history.state?.swingModal === "application") {
+        window.history.back();
+      }
+    };
+  }, [selectedApplication]);
+
   useEffect(() => {
     if (!accountNotice) {
       return undefined;
@@ -3776,9 +3916,26 @@ function PublicApp() {
   };
 
   const handleGoogleLogin = () => {
-    if (typeof window !== "undefined") {
-      window.location.href = authApi.googleLoginUrl();
+    if (typeof window === "undefined") {
+      return;
     }
+
+    const loginUrl = authApi.googleLoginUrl();
+    const { isInApp, platform } = detectInAppBrowser();
+
+    if (!isInApp) {
+      window.location.href = loginUrl;
+      return;
+    }
+
+    const absoluteUrl = new URL(loginUrl, window.location.origin).href;
+
+    if (platform === "android") {
+      window.location.href = buildChromeIntentUrl(absoluteUrl);
+      return;
+    }
+
+    setInAppLoginUrl(absoluteUrl);
   };
 
   const handleLogin = () => {
@@ -3986,6 +4143,13 @@ function PublicApp() {
           <div className="fixed left-1/2 top-16 z-[130] w-[calc(100vw-32px)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-swing-paper/95 px-4 py-3 text-center text-sm font-semibold text-emerald-800 shadow-lg backdrop-blur">
             {accountNotice}
           </div>
+        ) : null}
+        {inAppLoginUrl ? (
+          <InAppBrowserNotice
+            language={activeLanguage}
+            url={inAppLoginUrl}
+            onClose={() => setInAppLoginUrl("")}
+          />
         ) : null}
         {isCorkboardPath ? (
           <CorkboardPage
