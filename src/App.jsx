@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
@@ -2355,12 +2356,12 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-swing-ink/55 px-4 py-4 backdrop-blur-sm sm:items-center"
+      className="swing-modal-scrim fixed inset-0 z-[110] flex items-end justify-center bg-swing-ink/55 px-4 py-4 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="application-modal-title"
     >
-      <div className="max-h-[calc(100vh-32px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-7">
+      <div className="swing-modal-panel max-h-[calc(100vh-32px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-7">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-swing-muted/70">
@@ -3953,10 +3954,38 @@ function PublicApp() {
     if (typeof window === "undefined") {
       return;
     }
-    previousPathRef.current = currentPath;
-    window.history.pushState({}, "", path);
-    setCurrentPath(path);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const commit = () => {
+      previousPathRef.current = currentPath;
+      window.history.pushState({}, "", path);
+      setCurrentPath(path);
+    };
+
+    // A reduced-motion request covers scrolling as much as it covers the
+    // cross-fade, and a smooth scroll running underneath a cross-fade reads as
+    // a jolt, so only the un-animated path keeps the smooth scroll.
+    const jumpToTop = (behavior) => window.scrollTo({ top: 0, behavior });
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      commit();
+      jumpToTop("auto");
+      return;
+    }
+
+    // Decoration only: browsers without the API just swap, as before.
+    if (typeof document.startViewTransition !== "function") {
+      commit();
+      jumpToTop("smooth");
+      return;
+    }
+
+    document.startViewTransition(() => {
+      // startViewTransition snapshots the DOM once this callback returns, and
+      // React would still have the update queued by then, so it has to be
+      // flushed here or the transition captures the old screen twice.
+      flushSync(commit);
+      jumpToTop("auto");
+    });
   };
 
   const handleSettingsOpen = () => {

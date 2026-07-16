@@ -108,6 +108,90 @@ body {
   box-shadow: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Page transitions.
+
+   Driven by the View Transitions API from navigateToPath. Browsers without it
+   simply swap instantly — the animation is decoration, never a dependency.
+
+   The outgoing screen leaves faster than the incoming one arrives, so the two
+   overlap rather than showing a gap of background mid-swap.
+   --------------------------------------------------------------------------- */
+
+::view-transition-old(root) {
+  animation: swing-page-out 140ms ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: swing-page-in 220ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+@keyframes swing-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes swing-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Modal entrance.
+
+   The panel is bottom-attached on a phone and centred from `sm` up, so it gets
+   a different arrival at each: a sheet rises from the edge it is anchored to,
+   while a centred dialog has no edge to rise from and settles in place instead.
+   --------------------------------------------------------------------------- */
+
+.swing-modal-scrim {
+  animation: swing-scrim-in 180ms ease-out both;
+}
+
+.swing-modal-panel {
+  animation: swing-sheet-in 260ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@media (min-width: 640px) {
+  .swing-modal-panel {
+    animation: swing-dialog-in 200ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  }
+}
+
+@keyframes swing-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes swing-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes swing-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Motion here is decorative, and a vestibular disorder makes it a real problem
+   rather than a preference. Matches the same rule in corkboard.css. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  .swing-modal-scrim,
+  .swing-modal-panel {
+    animation: none !important;
+  }
+}
+
 /* Ticket-style top edge for the schedule/CTA blocks. */
 .swing-notch {
   -webkit-mask-image: radial-gradient(circle at 12px 0, transparent 11px, black 12px);
