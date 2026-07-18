@@ -11,9 +11,9 @@ const CONTENT = {
   ko: {
     nav: ["스윙팝", "스윙댄스", "스윙팝의 춤", "서울 씬", "일정 및 신청"],
     heroBadge: "SwingPop Community",
-    heroTitle: "서울에서 만나는 따뜻한 스윙댄스 커뮤니티",
+    heroTitle: "스윙댄스로 연결되는 커뮤니티, 스윙팝",
     heroDesc:
-      "스윙팝은 한국인과 외국인이 함께 어울리며 춤과 음악, 사람 사이의 연결을 즐기는 스윙댄스 커뮤니티입니다. 처음 온 사람도 편안하게 분위기를 느끼고, 서울의 스윙 문화를 자연스럽게 만나볼 수 있도록 구성했습니다.",
+      "춤은 사람을 연결하고, 음악은 그 시간을 특별하게 만듭니다.\nSwingPop은 한국인과 외국인이 자발적으로 함께 만들어가는 스윙댄스 커뮤니티입니다.\n음악과 춤을 통해 새로운 사람들을 만나고, 함께 배우며 성장하는 즐거움을 함께하세요.",
     heroPrimary: "일정 보고 신청하기",
     heroSecondary: "커뮤니티 소개 보기",
     heroCorkboard: "담벼락",
@@ -276,9 +276,9 @@ const CONTENT = {
   en: {
     nav: ["SwingPop", "Swing Dance", "Our Style", "Seoul Scene", "Schedule & Apply"],
     heroBadge: "SwingPop Community",
-    heroTitle: "A warm swing dance community in Seoul",
+    heroTitle: "SwingPop, a community connected through swing dance",
     heroDesc:
-      "SwingPop is a swing dance community where Koreans and internationals connect through dance, music, and shared experiences. This page is designed to help first-time visitors quickly understand who we are and why Seoul’s swing dance culture is worth exploring.",
+      "Dance connects people, and music makes the moment special.\nSwingPop is a swing dance community built voluntarily by Koreans and internationals together.\nMeet new people through music and dance, and enjoy learning and growing side by side.",
     heroPrimary: "View & Apply",
     heroSecondary: "About the Community",
     heroCorkboard: "Corkboard",
@@ -4269,7 +4269,7 @@ function PublicApp() {
               <h1 className="mt-7 font-display text-[2.1rem] font-bold leading-[1.28] text-swing-ink md:text-6xl md:leading-[1.2]">
                 {t.heroTitle}
               </h1>
-              <p className="mx-auto mt-7 max-w-xl text-[0.95rem] leading-8 text-swing-muted md:text-base">
+              <p className="mx-auto mt-7 max-w-2xl whitespace-pre-line text-[0.95rem] leading-8 text-swing-muted md:text-base">
                 {t.heroDesc}
               </p>
               <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
@@ -4339,17 +4339,29 @@ function PublicApp() {
             className="border-y border-swing-border/25 bg-swing-sage/60"
             contentClassName="py-20 md:py-24"
           >
-            <div className="mx-auto max-w-3xl text-center">
-              <p className="font-display text-sm tracking-[0.2em] text-swing-teal-deep">
-                {t.sections[1].eyebrow}
-              </p>
-              <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
-                {t.sections[1].title}
-              </h2>
-              <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-ink/75">
-                {t.sections[1].body.map((paragraph) => (
-                  <p key={`${activeLanguage}-swing-${paragraph}`}>{paragraph}</p>
-                ))}
+            <div className="grid gap-12 lg:grid-cols-[1fr_0.85fr] lg:items-center lg:gap-16">
+              <div>
+                <p className="font-display text-sm tracking-[0.2em] text-swing-teal-deep">
+                  {t.sections[1].eyebrow}
+                </p>
+                <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
+                  {t.sections[1].title}
+                </h2>
+                <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-ink/75">
+                  {t.sections[1].body.map((paragraph) => (
+                    <p key={`${activeLanguage}-swing-${paragraph}`}>{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+              {/* Community photos. Placeholder until real images land in src/assets/gallery/.
+                  To use real photos: import them at the top of this file, e.g.
+                    import swingPhoto1 from "./assets/gallery/swing-01.jpg";
+                  then replace the inner <span> with:
+                    <img src={swingPhoto1} alt="..." className="h-full w-full rounded-sm object-cover" /> */}
+              <div className="swing-frame flex aspect-[4/5] items-center justify-center rounded-sm bg-swing-paper/70">
+                <span className="font-display text-lg font-bold tracking-frame text-swing-muted">
+                  Photos
+                </span>
               </div>
             </div>
             <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -4365,17 +4377,25 @@ function PublicApp() {
           </SectionWrapper>
 
           <SectionWrapper id="swingpop-style" contentClassName="py-20 md:py-24">
-            <div className="mx-auto max-w-3xl text-center">
-              <p className="font-display text-sm tracking-[0.2em] text-swing-teal">
-                {t.sections[2].eyebrow}
-              </p>
-              <h2 className="mx-auto mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
-                {t.sections[2].title}
-              </h2>
-              <div className="mx-auto mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-muted">
-                {t.sections[2].body.map((paragraph) => (
-                  <p key={`${activeLanguage}-style-${paragraph}`}>{paragraph}</p>
-                ))}
+            <div className="grid gap-12 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-16">
+              <div className="lg:order-2">
+                <p className="font-display text-sm tracking-[0.2em] text-swing-teal">
+                  {t.sections[2].eyebrow}
+                </p>
+                <h2 className="mt-4 font-display text-[1.75rem] font-bold leading-snug text-swing-ink md:text-[2.6rem]">
+                  {t.sections[2].title}
+                </h2>
+                <div className="mt-6 space-y-4 text-[0.95rem] leading-8 text-swing-muted">
+                  {t.sections[2].body.map((paragraph) => (
+                    <p key={`${activeLanguage}-style-${paragraph}`}>{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+              {/* Community photos — placeholder (see the swap-in note in the #swing section). */}
+              <div className="swing-frame flex aspect-[4/5] items-center justify-center rounded-sm bg-swing-paper/70 lg:order-1">
+                <span className="font-display text-lg font-bold tracking-frame text-swing-muted">
+                  Photos
+                </span>
               </div>
             </div>
 
