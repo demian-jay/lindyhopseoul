@@ -2,8 +2,8 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "frontend-dev",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+      "name": "web",
+      "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
     }

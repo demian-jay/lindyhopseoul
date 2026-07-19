@@ -3,6 +3,21 @@ import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
+// Landing-page section slideshows: every jpg in the folder, sorted by filename.
+// Drop numbered files into the folder to add/reorder slides.
+const sortedGlob = (modules) =>
+  Object.entries(modules)
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(([path, src]) => ({ src, name: path.split("/").pop() }));
+
+// Section 2 (스윙댄스 소개)
+const swingIntroPhotos = sortedGlob(
+  import.meta.glob("./assets/gallery/swing-intro/*.jpg", { eager: true, import: "default" })
+);
+// Section 3 (스윙팝의 스윙댄스)
+const swingpopStylePhotos = sortedGlob(
+  import.meta.glob("./assets/gallery/swingpop-style/*.jpg", { eager: true, import: "default" })
+);
 import { authApi } from "./api/auth";
 import { memoApi } from "./api/memos";
 import { publicScheduleApi } from "./api/publicSchedules";
@@ -199,18 +214,18 @@ const CONTENT = {
         eyebrow: "2. 스윙댄스 소개",
         title: "스윙댄스는 무엇인가요?",
         body: [
-          "스윙댄스는 재즈 음악과 함께 발전해온 소셜댄스로, 파트너와 호흡을 맞추며 자유롭게 리듬을 즐기는 춤입니다.",
-          "정답을 외워서 추기보다 음악을 듣고 서로 반응하며 움직이는 재미가 크기 때문에, 처음 접하는 사람도 생각보다 빠르게 즐거움을 느낄 수 있습니다.",
+          "스윙댄스는 1920~30년대 미국의 재즈 문화 속에서 시작되어 오늘날까지 전 세계 사람들이 함께 즐기고 있는 소셜댄스입니다. 파트너와 호흡을 맞추며 자유롭게 리듬을 즐기고, 다양한 사람들과 춤을 나누는 것이 가장 큰 특징입니다.",
+          "스윙댄스에서는 실력보다 함께 춤추고 소통하는 즐거움을 중요하게 생각합니다. 음악 한 곡이 끝날 때마다 새로운 사람과 춤을 추며 자연스럽게 사람들을 만나고, 국적과 언어를 넘어 서로 연결될 수 있다는 점이 스윙댄스의 가장 큰 매력입니다.",
         ],
         points: ["재즈와 함께하는 리듬감", "사람과 연결되는 소셜댄스", "초보자도 시작 가능한 구조"],
       },
       {
         id: "swingpop-style",
         eyebrow: "3. 스윙팝의 스윙댄스",
-        title: "스윙팝에서는 어떻게 배우고 즐기나요?",
+        title: "스윙팝에서는 어떤 경험을 할 수 있나요",
         body: [
-          "스윙팝에서는 수업을 통해 기본기를 배우고, 소셜댄스 시간에는 다양한 사람들과 자유롭게 춤추며 익힌 내용을 자연스럽게 경험합니다.",
-          "단순히 기술만 배우는 것이 아니라, 함께 인사하고 어울리고 음악을 즐기는 과정 전체를 커뮤니티 경험으로 중요하게 생각합니다.",
+          "스윙팝에서는 수업을 통해 기본기를 배우고, 이어지는 소셜댄스 시간에는 다양한 사람들과 자유롭게 춤추며 배운 내용을 자연스럽게 익혀갑니다. 춤을 처음 배우는 사람도 부담 없이 여러 사람과 춤을 추며 음악과 소셜댄스의 즐거움을 경험할 수 있습니다.",
+          "우리는 춤을 잘 추는 것보다 함께 인사하고, 서로를 존중하며, 음악을 즐기는 분위기를 더 중요하게 생각합니다. 한국인과 외국인이 함께 어울리며 새로운 사람들을 만나고, 누구나 편안하게 참여할 수 있는 커뮤니티를 만들어가고 있습니다.",
         ],
         cards: [
           {
@@ -464,18 +479,18 @@ const CONTENT = {
         eyebrow: "2. About Swing Dance",
         title: "What is swing dance?",
         body: [
-          "Swing dance is a social dance that grew with jazz music. It is about sharing rhythm with a partner and enjoying music in a lively, expressive way.",
-          "Rather than memorizing fixed answers, you listen, respond, and move with another person. That is why even beginners can quickly discover its fun and charm.",
+          "Swing dance is a social dance that began in the jazz culture of 1920s–30s America and is still enjoyed by people all over the world today. Its defining feature is moving freely to the rhythm in tune with a partner and sharing dances with all kinds of people.",
+          "In swing dance, the joy of dancing and connecting together matters more than skill. Each time a song ends you dance with someone new, meeting people naturally—and its greatest charm is the way it connects people across nationalities and languages.",
         ],
         points: ["Rhythm rooted in jazz", "A social dance built on connection", "Accessible for beginners"],
       },
       {
         id: "swingpop-style",
         eyebrow: "3. Swing Dance at SwingPop",
-        title: "How do people learn and enjoy dance at SwingPop?",
+        title: "What can you experience at SwingPop?",
         body: [
-          "At SwingPop, people learn the basics in class and then experience the real joy of swing dance during social dancing with many different partners.",
-          "We care not only about technique, but also about greeting people, enjoying music, and building real connection through the full community experience.",
+          "At SwingPop, you learn the basics in class, and during the social dancing that follows, you dance freely with all kinds of people and naturally make what you learned your own. Even first-time dancers can comfortably dance with many partners and enjoy the fun of music and social dancing.",
+          "More than dancing well, we value an atmosphere of greeting one another, respecting each other, and enjoying the music together. Koreans and internationals mingle and meet new people, and we are building a community that anyone can join with ease.",
         ],
         cards: [
           {
@@ -1212,6 +1227,40 @@ function ImagePlaceholder({ label = "Image Placeholder", height = "h-72" }) {
       className={`flex w-full items-center justify-center rounded-3xl border border-dashed border-swing-border/30 bg-swing-cream/35 text-sm text-swing-muted ${height}`}
     >
       {label}
+    </div>
+  );
+}
+
+// Crossfading auto-advancing image slideshow. All images stack absolutely inside
+// a positioned parent; only the active one is opaque.
+function Slideshow({ images, alt, intervalMs = 3000, focus = {}, className = "" }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) {
+      return undefined;
+    }
+    const id = setInterval(() => {
+      setIndex((current) => (current + 1) % images.length);
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [images.length, intervalMs]);
+
+  return (
+    <div className={`absolute inset-0 ${className}`} role="img" aria-label={alt}>
+      {images.map((item, i) => (
+        <img
+          key={item.src}
+          src={item.src}
+          alt=""
+          decoding="async"
+          data-active={i === index ? "true" : undefined}
+          style={focus[item.name] ? { objectPosition: focus[item.name] } : undefined}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${
+            i === index ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ))}
     </div>
   );
 }
@@ -4312,11 +4361,11 @@ function PublicApp() {
                   ))}
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {t.sections[0].stats.map((stat, index) => (
                   <div
                     key={`${activeLanguage}-${stat.label}`}
-                    className={`swing-frame rounded-sm px-4 py-7 text-center ${
+                    className={`swing-frame rounded-sm px-1.5 py-4 text-center sm:px-4 sm:py-7 ${
                       [
                         "bg-swing-mint/70",
                         "bg-swing-peach/45",
@@ -4324,8 +4373,10 @@ function PublicApp() {
                       ][index % 3]
                     }`}
                   >
-                    <div className="font-display text-xl font-bold text-swing-ink">{stat.label}</div>
-                    <div className="mt-2 text-[0.7rem] uppercase tracking-frame text-swing-muted">
+                    <div className="font-display text-sm font-bold leading-tight text-swing-ink sm:text-lg md:text-xl">
+                      {stat.label}
+                    </div>
+                    <div className="mt-1.5 break-words text-[0.55rem] uppercase leading-tight tracking-normal text-swing-muted sm:mt-2 sm:text-[0.7rem] sm:tracking-[0.1em]">
                       {stat.value}
                     </div>
                   </div>
@@ -4353,22 +4404,24 @@ function PublicApp() {
                   ))}
                 </div>
               </div>
-              {/* Community photos. Placeholder until real images land in src/assets/gallery/.
-                  To use real photos: import them at the top of this file, e.g.
-                    import swingPhoto1 from "./assets/gallery/swing-01.jpg";
-                  then replace the inner <span> with:
-                    <img src={swingPhoto1} alt="..." className="h-full w-full rounded-sm object-cover" /> */}
-              <div className="swing-frame flex aspect-[4/5] items-center justify-center rounded-sm bg-swing-paper/70">
-                <span className="font-display text-lg font-bold tracking-frame text-swing-muted">
-                  Photos
-                </span>
+              <div className="relative rounded-2xl bg-swing-paper p-2.5 shadow-xl shadow-swing-ink/20 ring-1 ring-swing-border/20 sm:p-3">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-swing-cream">
+                  <Slideshow
+                    images={swingIntroPhotos}
+                    intervalMs={6000}
+                    focus={{ "05.jpg": "30% 50%" }}
+                    alt={activeLanguage === "en"
+                      ? "Vintage swing and Lindy Hop dancers through the decades"
+                      : "시대를 대표하는 빈티지 스윙·린디합 댄서들"}
+                  />
+                </div>
               </div>
             </div>
-            <div className="mt-12 grid gap-4 md:grid-cols-3">
+            <div className="mt-12 grid grid-cols-3 gap-2.5 sm:gap-4">
               {t.sections[1].points.map((point) => (
                 <span
                   key={`${activeLanguage}-${point}`}
-                  className="swing-frame rounded-sm bg-swing-paper/85 px-5 py-5 text-center text-sm leading-6 text-swing-ink"
+                  className="swing-frame flex items-center justify-center rounded-sm bg-swing-paper/85 px-2 py-3 text-center text-xs leading-tight text-swing-ink sm:px-5 sm:py-5 sm:text-sm sm:leading-6"
                 >
                   {point}
                 </span>
@@ -4391,30 +4444,37 @@ function PublicApp() {
                   ))}
                 </div>
               </div>
-              {/* Community photos — placeholder (see the swap-in note in the #swing section). */}
-              <div className="swing-frame flex aspect-[4/5] items-center justify-center rounded-sm bg-swing-paper/70 lg:order-1">
-                <span className="font-display text-lg font-bold tracking-frame text-swing-muted">
-                  Photos
-                </span>
+              <div className="relative rounded-2xl bg-swing-paper p-2.5 shadow-xl shadow-swing-ink/20 ring-1 ring-swing-border/20 sm:p-3 lg:order-1">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-swing-cream">
+                  <Slideshow
+                    images={swingpopStylePhotos}
+                    intervalMs={6000}
+                    alt={activeLanguage === "en"
+                      ? "SwingPop members dancing and sharing warm community moments"
+                      : "스윙팝 멤버들이 함께 춤추고 어울리는 따뜻한 순간들"}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="mt-14 grid gap-5 md:grid-cols-3">
+            <div className="mt-14 grid grid-cols-3 gap-2.5 sm:gap-4 md:gap-5">
               {t.sections[2].cards.map((card, index) => (
                 <div
                   key={`${activeLanguage}-${card.title}`}
-                  className="swing-frame flex flex-col rounded-sm bg-swing-paper/90 p-7"
+                  className="swing-frame flex flex-col rounded-sm bg-swing-paper/90 p-3 sm:p-5 md:p-7"
                 >
                   <div
-                    className={`mx-auto h-9 w-9 rounded-full border border-swing-border/40 ${
+                    className={`mx-auto h-6 w-6 sm:h-8 sm:w-8 md:h-9 md:w-9 rounded-full border border-swing-border/40 ${
                       ["bg-swing-mint", "bg-swing-peach/70", "bg-swing-gold/50"][index % 3]
                     }`}
                     aria-hidden="true"
                   />
-                  <div className="mt-5 text-center font-display text-xl font-bold text-swing-ink">
+                  <div className="mt-3 sm:mt-4 md:mt-5 text-center font-display text-sm leading-tight sm:text-lg sm:leading-snug md:text-xl font-bold text-swing-ink">
                     {card.title}
                   </div>
-                  <p className="mt-3 text-center text-sm leading-7 text-swing-muted">{card.desc}</p>
+                  <p className="mt-2 md:mt-3 text-center text-xs leading-5 sm:text-sm sm:leading-7 text-swing-muted">
+                    {card.desc}
+                  </p>
                 </div>
               ))}
             </div>
