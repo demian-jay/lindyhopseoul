@@ -36,6 +36,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         Member member = memberService.handleLogin(authentication);
         request.getSession(true)
                 .setAttribute(AuthSessionConstants.MEMBER_ID_ATTRIBUTE, member.getId());
-        redirectStrategy.sendRedirect(request, response, redirectProperties.getSuccessRedirectUri());
+        String redirectUri = OAuth2RedirectResolver.onCurrentOrigin(
+                request,
+                redirectProperties.getSuccessRedirectUri(),
+                redirectProperties.allowedRedirectHostSet()
+        );
+        redirectStrategy.sendRedirect(request, response, redirectUri);
     }
 }

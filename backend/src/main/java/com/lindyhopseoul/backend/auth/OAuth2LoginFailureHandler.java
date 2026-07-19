@@ -30,15 +30,20 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
             HttpServletResponse response,
             AuthenticationException exception
     ) throws IOException, ServletException {
-        redirectStrategy.sendRedirect(request, response, failureRedirectUri(exception));
+        redirectStrategy.sendRedirect(request, response, failureRedirectUri(request, exception));
     }
 
-    private String failureRedirectUri(AuthenticationException exception) {
+    private String failureRedirectUri(HttpServletRequest request, AuthenticationException exception) {
+        String base = OAuth2RedirectResolver.onCurrentOrigin(
+                request,
+                redirectProperties.getFailureRedirectUri(),
+                redirectProperties.allowedRedirectHostSet()
+        );
         if (exception instanceof OAuth2AuthenticationException oauth2Exception
                 && GoogleOAuth2MemberService.SUSPENDED_MEMBER_ERROR_CODE.equals(oauth2Exception.getError().getErrorCode())) {
-            return appendQueryParam(redirectProperties.getFailureRedirectUri(), "reason", "account_restricted");
+            return appendQueryParam(base, "reason", "account_restricted");
         }
-        return redirectProperties.getFailureRedirectUri();
+        return base;
     }
 
     private String appendQueryParam(String uri, String name, String value) {

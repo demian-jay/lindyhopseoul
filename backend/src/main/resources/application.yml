@@ -31,3 +31,4 @@ app:
   oauth2:
     success-redirect-uri: ${APP_OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:5173/oauth/success}
     failure-redirect-uri: ${APP_OAUTH2_FAILURE_REDIRECT_URI:http://localhost:5173/oauth/error}
+    allowed-redirect-hosts: ${APP_OAUTH2_ALLOWED_REDIRECT_HOSTS:}
