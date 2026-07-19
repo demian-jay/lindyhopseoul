@@ -61,6 +61,10 @@ public class LessonNotice {
         return notice;
     }
 
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {

@@ -72,12 +72,12 @@ const EVENT_TYPE_LABELS = {
   Kor: {
     REGULAR_CLASS: "정규수업",
     PARTY: "파티",
-    DIALOGUE_PARTY: "Dialogue 파티",
+    DIALOGUE_PARTY: "다이얼로그 모임",
   },
   Eng: {
     REGULAR_CLASS: "Regular Class",
     PARTY: "Party",
-    DIALOGUE_PARTY: "Dialogue Party",
+    DIALOGUE_PARTY: "Dialogue Social",
   },
 };
 
@@ -213,6 +213,11 @@ const COPY_TEXT = {
     noticeLoadError: "공지사항을 불러오지 못했습니다.",
     noticeRequired: "공지 내용을 입력해주세요.",
     noticeAuthorFallback: "운영진",
+    noticeEdit: "편집",
+    noticeDelete: "삭제",
+    noticeSave: "저장",
+    noticeCancel: "취소",
+    noticeConfirmDelete: "이 공지를 삭제할까요?",
     requestMemo: "질문사항 / 하고 싶은 말",
     noRequestMemo: "남긴 내용이 없습니다.",
     viewParticipantDetail: "상세 보기",
@@ -320,6 +325,11 @@ const COPY_TEXT = {
     noticeLoadError: "Could not load notices.",
     noticeRequired: "Please write a notice.",
     noticeAuthorFallback: "Staff",
+    noticeEdit: "Edit",
+    noticeDelete: "Delete",
+    noticeSave: "Save",
+    noticeCancel: "Cancel",
+    noticeConfirmDelete: "Delete this notice?",
     requestMemo: "Questions / Anything to share",
     noRequestMemo: "No memo left.",
     viewParticipantDetail: "View details",
@@ -546,14 +556,49 @@ function defaultLessonEndTime(event = null) {
   return event?.eventType === "DIALOGUE_PARTY" ? "20:00" : "";
 }
 
+function toDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Regular (PERIOD) classes run for a calendar month, so a new lesson defaults its
+// start to the first day of next month.
+function firstDayOfNextMonth() {
+  const now = new Date();
+  return toDateInputValue(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+}
+
+// Last calendar day of the month the given YYYY-MM-DD date falls in.
+function lastDayOfMonthOf(dateStr) {
+  if (!dateStr) {
+    return "";
+  }
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return toDateInputValue(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+}
+
 function emptyLessonForm(event = null, scheduleType = defaultLessonScheduleType(event)) {
+  const isPeriod = scheduleType === "PERIOD";
   const eventStartDate = event?.startDate || "";
   const eventEndDate = event?.endDate || eventStartDate;
+  // PERIOD (monthly) lessons default to next month's first→last day; single-day and
+  // party lessons keep the parent event's date.
+  const startDate = isPeriod ? firstDayOfNextMonth() : eventStartDate;
+  const endDate = isPeriod
+    ? lastDayOfMonthOf(startDate)
+    : event?.eventType === "DIALOGUE_PARTY"
+      ? eventEndDate
+      : eventStartDate;
   return {
     lessonType: "LEVEL1",
     scheduleType,
-    startDate: eventStartDate,
-    endDate: scheduleType === "PERIOD" || event?.eventType === "DIALOGUE_PARTY" ? eventEndDate : eventStartDate,
+    startDate,
+    endDate,
     startTime: defaultLessonStartTime(event),
     endTime: defaultLessonEndTime(event),
     fee: defaultLessonFee(event),
@@ -656,6 +701,9 @@ function LessonNoticePanel({ token, lessonId, copy }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [isMutating, setIsMutating] = useState(false);
 
   const loadNotices = useCallback(async () => {
     if (!token || !lessonId) {
@@ -700,6 +748,55 @@ function LessonNoticePanel({ token, lessonId, copy }) {
     }
   };
 
+  const startEdit = (notice) => {
+    setEditingId(notice.id);
+    setEditingContent(notice.content || "");
+    setError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingContent("");
+  };
+
+  const handleUpdate = async (notice) => {
+    const normalizedContent = editingContent.trim();
+    if (!normalizedContent) {
+      setError(copy.noticeRequired);
+      return;
+    }
+    setIsMutating(true);
+    setError("");
+    try {
+      await adminApi.updateLessonNotice(token, lessonId, notice.id, { content: normalizedContent });
+      cancelEdit();
+      await loadNotices();
+    } catch (nextError) {
+      setError(nextError.message || copy.noticeLoadError);
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleDelete = async (notice) => {
+    if (!window.confirm(copy.noticeConfirmDelete)) {
+      return;
+    }
+    setIsMutating(true);
+    setError("");
+    try {
+      await adminApi.deleteLessonNotice(token, lessonId, notice.id);
+      if (editingId === notice.id) {
+        cancelEdit();
+      }
+      await loadNotices();
+    } catch (nextError) {
+      setError(nextError.message || copy.noticeLoadError);
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
   return (
     <section className="mt-4 rounded-lg border border-swing-border/30 bg-swing-paper p-3">
       <div className="flex items-center justify-between gap-3">
@@ -728,10 +825,54 @@ function LessonNoticePanel({ token, lessonId, copy }) {
         <div className="mt-3 grid gap-2">
           {notices.map((notice) => (
             <article key={notice.id} className="rounded-md border border-swing-border/30 bg-swing-cream/50 px-3 py-2">
-              <div className="text-xs font-semibold text-swing-muted">
-                {noticeAuthorLabel(notice, copy)} · {formatNoticeDate(notice.createdAt)}
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-xs font-semibold text-swing-muted">
+                  {noticeAuthorLabel(notice, copy)} · {formatNoticeDate(notice.createdAt)}
+                </div>
+                {editingId !== notice.id ? (
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(notice)}
+                      disabled={isMutating}
+                      className="text-xs font-semibold text-swing-teal-deep hover:underline disabled:opacity-50"
+                    >
+                      {copy.noticeEdit}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(notice)}
+                      disabled={isMutating}
+                      className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {copy.noticeDelete}
+                    </button>
+                  </div>
+                ) : null}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-swing-ink">{notice.content}</p>
+              {editingId === notice.id ? (
+                <div className="mt-2 grid gap-2">
+                  <TextArea
+                    value={editingContent}
+                    onChange={(event) => {
+                      setEditingContent(event.target.value);
+                      setError("");
+                    }}
+                    maxLength={2000}
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <SecondaryButton type="button" onClick={cancelEdit} disabled={isMutating}>
+                      {copy.noticeCancel}
+                    </SecondaryButton>
+                    <PrimaryButton type="button" onClick={() => handleUpdate(notice)} disabled={isMutating}>
+                      {isMutating ? copy.noticeSaving : copy.noticeSave}
+                    </PrimaryButton>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-swing-ink">{notice.content}</p>
+              )}
             </article>
           ))}
         </div>
@@ -1074,12 +1215,10 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
     setForm((current) => {
       const nextValue = type === "checkbox" ? checked : value;
       if (name === "scheduleType" && !isEditing) {
-        const previousDefaults = emptyLessonForm(parentEvent, current.scheduleType);
         const nextDefaults = emptyLessonForm(parentEvent, nextValue);
-        const nextStartDate =
-          !current.startDate || current.startDate === previousDefaults.startDate ? nextDefaults.startDate : current.startDate;
+        const nextStartDate = current.startDate || nextDefaults.startDate;
         const nextEndDate =
-          !current.endDate || current.endDate === previousDefaults.endDate ? nextDefaults.endDate : current.endDate;
+          nextValue === "PERIOD" ? lastDayOfMonthOf(nextStartDate) : nextStartDate;
         return {
           ...current,
           scheduleType: nextValue,
@@ -1090,8 +1229,12 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
       if (name === "scheduleType") {
         return { ...current, scheduleType: nextValue };
       }
-      if (name === "startDate" && current.scheduleType === "SINGLE_DAY") {
-        return { ...current, startDate: nextValue, endDate: nextValue };
+      if (name === "startDate") {
+        // PERIOD: end date always snaps to the last day of the start's month (the user
+        // can still override it afterwards). SINGLE_DAY: end mirrors the start.
+        const nextEndDate =
+          current.scheduleType === "PERIOD" ? lastDayOfMonthOf(nextValue) : nextValue;
+        return { ...current, startDate: nextValue, endDate: nextEndDate };
       }
       return { ...current, [name]: nextValue };
     });
@@ -1184,11 +1327,18 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
           </span>
         </label>
         <Field label={copy.lessonStartDate}>
-          <TextInput type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+          <TextInput type="date" name="startDate" value={form.startDate} onChange={handleChange} required />
         </Field>
         {form.scheduleType === "PERIOD" ? (
           <Field label={copy.lessonEndDate}>
-            <TextInput type="date" name="endDate" value={form.endDate} onChange={handleChange} />
+            <TextInput
+              type="date"
+              name="endDate"
+              value={form.endDate}
+              min={form.startDate || undefined}
+              disabled={!form.startDate}
+              onChange={handleChange}
+            />
           </Field>
         ) : null}
         <Field label={copy.startTime}>

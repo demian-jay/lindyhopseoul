@@ -268,6 +268,19 @@ export const adminApi = {
       body: payload,
     });
   },
+  updateLessonNotice(token, lessonId, noticeId, payload) {
+    return request(`/api/admin/lessons/${lessonId}/notices/${noticeId}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
+  deleteLessonNotice(token, lessonId, noticeId) {
+    return request(`/api/admin/lessons/${lessonId}/notices/${noticeId}`, {
+      method: "DELETE",
+      token,
+    });
+  },
   removeEventApplication(token, applicationId, payload = {}) {
     return request(`/api/admin/event-applications/${applicationId}/remove`, {
       method: "PATCH",

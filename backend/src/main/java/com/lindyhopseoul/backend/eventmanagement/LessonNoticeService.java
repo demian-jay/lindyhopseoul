@@ -69,6 +69,28 @@ public class LessonNoticeService {
         return LessonNoticeResponse.from(lessonNoticeRepository.save(notice));
     }
 
+    @Transactional
+    public LessonNoticeResponse updateAdminNotice(
+            AdminPrincipal actor,
+            Long lessonId,
+            Long noticeId,
+            LessonNoticeCreateRequest request
+    ) {
+        Lesson lesson = findLesson(lessonId);
+        requireLessonNoticeManager(actor, lesson);
+        LessonNotice notice = findNoticeForLesson(noticeId, lessonId);
+        notice.updateContent(normalizeContent(request.content()));
+        return LessonNoticeResponse.from(notice);
+    }
+
+    @Transactional
+    public void deleteAdminNotice(AdminPrincipal actor, Long lessonId, Long noticeId) {
+        Lesson lesson = findLesson(lessonId);
+        requireLessonNoticeManager(actor, lesson);
+        LessonNotice notice = findNoticeForLesson(noticeId, lessonId);
+        lessonNoticeRepository.delete(notice);
+    }
+
     public List<LessonNoticeResponse> findMemberNotices(Member member, Long lessonId) {
         Lesson lesson = findLesson(lessonId);
         requireMemberLessonAccess(member, lesson);
@@ -145,6 +167,15 @@ public class LessonNoticeService {
     private Lesson findLesson(Long lessonId) {
         return lessonRepository.findDetailsById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found: " + lessonId));
+    }
+
+    private LessonNotice findNoticeForLesson(Long noticeId, Long lessonId) {
+        LessonNotice notice = lessonNoticeRepository.findById(noticeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notice not found: " + noticeId));
+        if (!notice.getLesson().getId().equals(lessonId)) {
+            throw new ResourceNotFoundException("Notice not found: " + noticeId);
+        }
+        return notice;
     }
 
     private void requireLessonNoticeManager(AdminPrincipal actor, Lesson lesson) {

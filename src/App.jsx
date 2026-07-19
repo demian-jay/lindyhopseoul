@@ -108,7 +108,7 @@ const CONTENT = {
         { id: "beginner", label: "처음 추천" },
         { id: "regular", label: "정규수업" },
         { id: "workshop", label: "워크샵" },
-        { id: "social", label: "Dialogue Party" },
+        { id: "social", label: "다이얼로그 모임" },
         { id: "event", label: "특별 이벤트" },
       ],
       recommended: "처음 추천",
@@ -258,7 +258,7 @@ const CONTENT = {
         title: "다가오는 수업과 이벤트를 보고 바로 신청하세요",
         body: [
           "날짜순으로 일정을 확인하고, 원하는 카드에서 바로 신청할 수 있습니다.",
-          "처음이라면 Level 1을 먼저 추천합니다. 기존 회원은 필터로 정규수업, 워크샵, Dialogue Party, 특별 이벤트를 빠르게 좁혀볼 수 있습니다.",
+          "처음이라면 Level 1을 먼저 추천합니다. 기존 회원은 필터로 정규수업, 워크샵, 다이얼로그 모임, 특별 이벤트를 빠르게 좁혀볼 수 있습니다.",
         ],
       },
     ],
@@ -373,7 +373,7 @@ const CONTENT = {
         { id: "beginner", label: "First-timer" },
         { id: "regular", label: "Regular Class" },
         { id: "workshop", label: "Workshop" },
-        { id: "social", label: "Dialogue Party" },
+        { id: "social", label: "Dialogue Social" },
         { id: "event", label: "Special Event" },
       ],
       recommended: "Recommended first",
@@ -523,7 +523,7 @@ const CONTENT = {
         title: "View upcoming classes and events, then apply",
         body: [
           "Check the date-based list and apply directly from the class or event card you want.",
-          "If you are new, Level 1 is the recommended starting point. Returning members can use filters for regular classes, workshops, Dialogue Party, and special events.",
+          "If you are new, Level 1 is the recommended starting point. Returning members can use filters for regular classes, workshops, Dialogue Social, and special events.",
         ],
       },
     ],
@@ -1441,15 +1441,22 @@ function VisitorGuidePanel({ panel, isOpen, onToggle, children }) {
           <span className="block font-display text-base font-bold text-swing-ink sm:text-lg">{panel.title}</span>
           <span className="mt-1 block text-sm leading-6 text-swing-muted">{panel.summary}</span>
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-swing-teal/40 bg-swing-mint/50 text-lg font-semibold text-swing-teal-deep">
-          {isOpen ? "-" : "+"}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-swing-teal/40 bg-swing-mint/50 text-lg font-semibold text-swing-teal-deep transition-transform duration-300 ease-in-out">
+          <span className={`block transition-transform duration-300 ease-in-out ${isOpen ? "rotate-45" : ""}`}>+</span>
         </span>
       </button>
-      {isOpen ? (
-        <div id={contentId} className="border-t border-swing-border/20 px-5 py-5 sm:px-6">
-          {children}
+      <div
+        id={contentId}
+        aria-hidden={!isOpen}
+        {...(isOpen ? {} : { inert: "" })}
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-swing-border/20 px-5 py-5 sm:px-6">{children}</div>
         </div>
-      ) : null}
+      </div>
     </article>
   );
 }
@@ -2009,12 +2016,24 @@ const EVENT_TYPE_LABELS = {
   ko: {
     REGULAR_CLASS: "정규수업",
     PARTY: "특별 이벤트",
-    DIALOGUE_PARTY: "Dialogue Party",
+    DIALOGUE_PARTY: "다이얼로그 모임",
   },
   en: {
     REGULAR_CLASS: "Regular Class",
     PARTY: "Special Event",
-    DIALOGUE_PARTY: "Dialogue Party",
+    DIALOGUE_PARTY: "Dialogue Social",
+  },
+};
+
+// Recurring cadence shown as a small badge next to the event type on schedule cards.
+const EVENT_RECURRENCE_LABELS = {
+  ko: {
+    REGULAR_CLASS: "매주 토요일",
+    DIALOGUE_PARTY: "격주 수요일",
+  },
+  en: {
+    REGULAR_CLASS: "Every Saturday",
+    DIALOGUE_PARTY: "Every other Wednesday",
   },
 };
 
@@ -2115,6 +2134,7 @@ function formatTeachers(teachers, labels) {
 function toApplicationItem(item, language, labels) {
   const translation = getScheduleTranslation(item, language);
   const eventTypeLabel = EVENT_TYPE_LABELS[language]?.[item.eventType] || item.eventType;
+  const recurrenceLabel = EVENT_RECURRENCE_LABELS[language]?.[item.eventType] || "";
 
   return {
     id: item.id,
@@ -2127,6 +2147,7 @@ function toApplicationItem(item, language, labels) {
     isRecommended: item.recommendedForBeginners,
     requiresLevelNotice: item.requiresLevelNotice,
     eventType: eventTypeLabel,
+    recurrence: recurrenceLabel,
     title: translation.title || translation.eventTitle || eventTypeLabel,
     date: formatDateRange(item.startDate, item.endDate, language),
     time: formatTimeRange(item.startTime, item.endTime) || labels.toBeAnnounced,
@@ -2171,6 +2192,24 @@ function ApplicationCard({ item, language, labels, onApply }) {
             <span className="rounded-full border border-swing-teal/40 bg-swing-mint/50 px-3 py-1 text-xs font-medium text-swing-teal-deep">
               {item.eventType}
             </span>
+            {item.recurrence ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-swing-teal/25 bg-swing-cream/70 px-3 py-1 text-xs font-medium text-swing-teal-deep">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+                {item.recurrence}
+              </span>
+            ) : null}
             {item.isRecommended ? (
               <span className="rounded-full border border-swing-gold/60 bg-swing-gold/30 px-3 py-1 text-xs font-medium text-swing-burgundy">
                 {labels.recommended}

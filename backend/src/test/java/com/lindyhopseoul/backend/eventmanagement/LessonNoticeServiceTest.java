@@ -22,6 +22,7 @@ import com.lindyhopseoul.backend.admin.TeacherUser;
 import com.lindyhopseoul.backend.admin.TeacherUserRepository;
 import com.lindyhopseoul.backend.admin.UserAccount;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
+import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
 import com.lindyhopseoul.backend.member.Member;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -176,6 +177,52 @@ class LessonNoticeServiceTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verify(lessonNoticeReadStateRepository, never()).save(any(LessonNoticeReadState.class));
+    }
+
+    @Test
+    void updateNoticeChangesContentForManager() {
+        Lesson lesson = lesson(event(1L), 2L);
+        LessonNotice existing = notice(lesson, 9L, Instant.parse("2026-06-24T09:00:00Z"));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+        when(lessonNoticeRepository.findById(9L)).thenReturn(Optional.of(existing));
+
+        LessonNoticeResponse response = service.updateAdminNotice(
+                manager(), 2L, 9L, new LessonNoticeCreateRequest("  수정된 공지  "));
+
+        assertThat(existing.getContent()).isEqualTo("수정된 공지");
+        assertThat(response.id()).isEqualTo(9L);
+    }
+
+    @Test
+    void deleteNoticeRemovesNoticeForManager() {
+        Lesson lesson = lesson(event(1L), 2L);
+        LessonNotice existing = notice(lesson, 9L, Instant.parse("2026-06-24T09:00:00Z"));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+        when(lessonNoticeRepository.findById(9L)).thenReturn(Optional.of(existing));
+
+        service.deleteAdminNotice(manager(), 2L, 9L);
+
+        verify(lessonNoticeRepository).delete(existing);
+    }
+
+    @Test
+    void updateNoticeRejectsNoticeFromAnotherLesson() {
+        Lesson lesson = lesson(event(1L), 2L);
+        Lesson otherLesson = lesson(event(1L), 3L);
+        LessonNotice otherNotice = notice(otherLesson, 9L, Instant.parse("2026-06-24T09:00:00Z"));
+        when(lessonRepository.findDetailsById(2L)).thenReturn(Optional.of(lesson));
+        when(lessonNoticeRepository.findById(9L)).thenReturn(Optional.of(otherNotice));
+
+        assertThatThrownBy(() -> service.updateAdminNotice(
+                manager(), 2L, 9L, new LessonNoticeCreateRequest("x")))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(lessonNoticeRepository, never()).delete(any(LessonNotice.class));
+    }
+
+    private AdminPrincipal manager() {
+        return new AdminPrincipal(
+                "S1", "Staff", "staff", AdminRole.STAFF, List.of(AdminRole.STAFF), AdminLanguage.Kor);
     }
 
     private UserAccount teacherAccount(String userId, String name) {
