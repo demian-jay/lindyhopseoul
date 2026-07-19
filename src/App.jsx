@@ -131,6 +131,11 @@ const CONTENT = {
       toBeAnnounced: "추후 안내",
       paymentNote: "현장에서 현금 또는 계좌이체로 결제해주세요. 계좌이체는 KAKAOBANK 3333-37-3073172 정대혁 계좌로 보내주시면 됩니다.",
       levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 수강 기준을 확인해주세요.",
+      viewClasses: "클래스 선택",
+      classCountLabel: (count) => `클래스 ${count}개`,
+      selectClassTitle: "클래스 선택",
+      selectClassIntro: "신청할 클래스를 선택해주세요.",
+      closeModal: "닫기",
     },
     applicationModal: {
       title: "신청 정보 입력",
@@ -396,6 +401,11 @@ const CONTENT = {
       toBeAnnounced: "TBA",
       paymentNote: "Please pay on site by cash or bank transfer. For bank transfer, please send it to KAKAOBANK 3333-37-3073172, Daehyuk Jung (정대혁).",
       levelNotice: "Level 2+ classes have recommended experience guidelines. Please check the class requirements when applying.",
+      viewClasses: "View classes",
+      classCountLabel: (count) => `${count} ${count === 1 ? "class" : "classes"}`,
+      selectClassTitle: "Select a class",
+      selectClassIntro: "Choose a class to apply for.",
+      closeModal: "Close",
     },
     applicationModal: {
       title: "Enter application details",
@@ -2149,6 +2159,10 @@ function toApplicationItem(item, language, labels) {
     eventType: eventTypeLabel,
     recurrence: recurrenceLabel,
     title: translation.title || translation.eventTitle || eventTypeLabel,
+    eventTitle: translation.eventTitle || eventTypeLabel,
+    eventDescription: translation.shortDescription || translation.description || "",
+    startDateRaw: item.startDate || "",
+    endDateRaw: item.endDate || "",
     date: formatDateRange(item.startDate, item.endDate, language),
     time: formatTimeRange(item.startTime, item.endTime) || labels.toBeAnnounced,
     location: item.location || labels.toBeAnnounced,
@@ -2161,6 +2175,51 @@ function toApplicationItem(item, language, labels) {
     description: translation.description || translation.shortDescription || "",
     roleSelectionEnabled: Boolean(item.roleSelectionEnabled),
   };
+}
+
+// The public schedule returns one row per lesson; the landing page groups those
+// lessons under their parent event so the list stays short. Each group keeps its
+// lessons (application items) for the class-selection modal, and aggregates the
+// filters / recommendation / date range for the event card.
+function groupApplicationItemsByEvent(items) {
+  const groups = new Map();
+  items.forEach((item) => {
+    const eventId = item.target?.eventId ?? item.id;
+    let group = groups.get(eventId);
+    if (!group) {
+      group = {
+        id: `event-${eventId}`,
+        eventId,
+        eventType: item.eventType,
+        recurrence: item.recurrence,
+        title: item.eventTitle,
+        description: item.eventDescription || "",
+        filterIds: new Set(),
+        isRecommended: false,
+        startDate: item.startDateRaw || "",
+        endDate: item.endDateRaw || "",
+        lessons: [],
+      };
+      groups.set(eventId, group);
+    }
+    group.lessons.push(item);
+    (item.filterIds || []).forEach((filterId) => group.filterIds.add(filterId));
+    if (!group.description && item.eventDescription) {
+      group.description = item.eventDescription;
+    }
+    if (item.isRecommended) {
+      group.isRecommended = true;
+    }
+    if (item.startDateRaw && (!group.startDate || item.startDateRaw < group.startDate)) {
+      group.startDate = item.startDateRaw;
+    }
+    if (item.endDateRaw && (!group.endDate || item.endDateRaw > group.endDate)) {
+      group.endDate = item.endDateRaw;
+    }
+  });
+  return Array.from(groups.values())
+    .map((group) => ({ ...group, filterIds: Array.from(group.filterIds) }))
+    .sort((left, right) => String(left.startDate).localeCompare(String(right.startDate)));
 }
 
 function scheduleItemIdFromApplication(application) {
@@ -2261,6 +2320,169 @@ function ApplicationCard({ item, language, labels, onApply }) {
   );
 }
 
+function RecurrenceBadge({ recurrence }) {
+  if (!recurrence) {
+    return null;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-swing-teal/25 bg-swing-cream/70 px-3 py-1 text-xs font-medium text-swing-teal-deep">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-3.5 w-3.5"
+        aria-hidden="true"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
+      {recurrence}
+    </span>
+  );
+}
+
+// One card per event. Clicking it opens EventLessonsModal to pick a class.
+function EventCard({ group, language, labels, onSelect }) {
+  const appliedCount = group.lessons.filter((lesson) => lesson.isApplied).length;
+
+  return (
+    <article
+      className={`swing-frame grid gap-5 rounded-sm bg-swing-paper/92 p-6 transition hover:-translate-y-0.5 ${
+        group.isRecommended ? "border-swing-gold/70 bg-swing-cream/70" : ""
+      }`}
+    >
+      <div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-swing-teal/40 bg-swing-mint/50 px-3 py-1 text-xs font-medium text-swing-teal-deep">
+            {group.eventType}
+          </span>
+          <RecurrenceBadge recurrence={group.recurrence} />
+          {group.isRecommended ? (
+            <span className="rounded-full border border-swing-gold/60 bg-swing-gold/30 px-3 py-1 text-xs font-medium text-swing-burgundy">
+              {labels.recommended}
+            </span>
+          ) : null}
+        </div>
+        <h3 className="mt-4 font-display text-xl font-bold text-swing-ink">{group.title}</h3>
+        {group.description ? (
+          <p className="mt-3 text-sm leading-7 text-swing-muted">{group.description}</p>
+        ) : null}
+      </div>
+
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <DetailRow tone="swing" label={labels.details.date} value={formatDateRange(group.startDate, group.endDate, language)} />
+        <DetailRow
+          tone="swing"
+          label={labels.details.event}
+          value={
+            appliedCount > 0
+              ? `${labels.classCountLabel(group.lessons.length)} · ${appliedCount}/${group.lessons.length}`
+              : labels.classCountLabel(group.lessons.length)
+          }
+        />
+      </dl>
+
+      <button
+        type="button"
+        onClick={() => onSelect(group)}
+        className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-swing-teal-deep px-5 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper"
+      >
+        {labels.viewClasses}
+      </button>
+    </article>
+  );
+}
+
+// Brief class list for a single event; picking a class hands off to the apply modal.
+function EventLessonsModal({ group, labels, onClose, onSelectLesson }) {
+  if (!group) {
+    return null;
+  }
+
+  return (
+    <div
+      className="swing-modal-scrim fixed inset-0 z-[105] flex items-end justify-center bg-swing-ink/55 px-4 py-4 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="event-lessons-title"
+    >
+      <div className="swing-modal-panel max-h-[calc(100vh-32px)] w-full max-w-xl overflow-y-auto rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-swing-muted/70">{group.eventType}</p>
+            <h2 id="event-lessons-title" className="mt-2 text-2xl font-semibold tracking-tight text-swing-ink">
+              {group.title}
+            </h2>
+            {group.description ? (
+              <p className="mt-2 text-sm leading-6 text-swing-ink/75">{group.description}</p>
+            ) : null}
+            <p className="mt-2 text-sm leading-6 text-swing-muted">{labels.selectClassIntro}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-swing-border/30 bg-swing-paper text-sm font-semibold text-swing-ink transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
+            aria-label={labels.closeModal}
+          >
+            X
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {group.lessons.map((lesson) => {
+            const isApplied = Boolean(lesson.isApplied);
+            const isDisabled = isApplied || Boolean(lesson.isApplyStatusLoading);
+            return (
+              <div
+                key={lesson.id}
+                className="swing-frame grid gap-3 rounded-sm bg-swing-paper/92 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-display text-base font-bold text-swing-ink">{lesson.title}</h3>
+                    {lesson.isRecommended ? (
+                      <span className="rounded-full border border-swing-gold/60 bg-swing-gold/30 px-2 py-0.5 text-[11px] font-medium text-swing-burgundy">
+                        {labels.recommended}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-swing-muted">
+                    <span>{lesson.date}</span>
+                    <span>{lesson.time}</span>
+                    <span><PriceValue price={lesson.price} note="" /></span>
+                    {lesson.teacher ? <span>{lesson.teacher}</span> : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isDisabled) {
+                      onSelectLesson(lesson);
+                    }
+                  }}
+                  disabled={isDisabled}
+                  className={`inline-flex min-h-[42px] items-center justify-center rounded-full px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-swing-teal ${
+                    isApplied
+                      ? "cursor-default border border-swing-sage bg-swing-sage/40 text-swing-teal-deep"
+                      : lesson.isApplyStatusLoading
+                        ? "cursor-wait border border-swing-border/25 bg-swing-cream/60 text-swing-muted/60"
+                        : "bg-swing-teal-deep text-swing-paper hover:bg-swing-teal"
+                  }`}
+                >
+                  {isApplied ? labels.appliedButton : labels.applyButton}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ScheduleAndApplicationSection({
   language,
   scheduleSection,
@@ -2270,7 +2492,7 @@ function ScheduleAndApplicationSection({
   error,
   activeFilter,
   onFilterChange,
-  onApply,
+  onSelectEvent,
 }) {
   const filteredItems =
     activeFilter === "all" ? items : items.filter((item) => item.filterIds.includes(activeFilter));
@@ -2328,8 +2550,8 @@ function ScheduleAndApplicationSection({
 
         {!isLoading && !error && filteredItems.length > 0 ? (
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
-            {filteredItems.map((item) => (
-              <ApplicationCard key={item.id} item={item} language={language} labels={labels} onApply={onApply} />
+            {filteredItems.map((group) => (
+              <EventCard key={group.id} group={group} language={language} labels={labels} onSelect={onSelectEvent} />
             ))}
           </div>
         ) : null}
@@ -3713,6 +3935,7 @@ function PublicApp() {
   const [scheduleError, setScheduleError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [appliedScheduleItemIds, setAppliedScheduleItemIds] = useState([]);
   const [isAppliedScheduleLoading, setIsAppliedScheduleLoading] = useState(false);
   const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
@@ -4234,6 +4457,10 @@ function PublicApp() {
       }),
     [activeLanguage, appliedScheduleItemIdSet, isAppliedScheduleLoading, isAuthenticated, scheduleItems, t.application]
   );
+  const applicationEventGroups = useMemo(
+    () => groupApplicationItemsByEvent(applicationItems),
+    [applicationItems]
+  );
 
   return (
     <>
@@ -4547,12 +4774,12 @@ function PublicApp() {
               language={activeLanguage}
               scheduleSection={t.sections[4]}
               labels={t.application}
-              items={applicationItems}
+              items={applicationEventGroups}
               isLoading={isScheduleLoading}
               error={scheduleError}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
-              onApply={setSelectedApplication}
+              onSelectEvent={setSelectedEvent}
             />
           </SectionWrapper>
 
@@ -4583,6 +4810,15 @@ function PublicApp() {
             />
           </>
         ) : null}
+        <EventLessonsModal
+          group={selectedEvent}
+          labels={t.application}
+          onClose={() => setSelectedEvent(null)}
+          onSelectLesson={(lesson) => {
+            setSelectedEvent(null);
+            setSelectedApplication(lesson);
+          }}
+        />
         <ApplicationModal
           item={selectedApplication}
           language={activeLanguage}
