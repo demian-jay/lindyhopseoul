@@ -579,6 +579,15 @@ function accountRestrictedMessage() {
   return ACCOUNT_RESTRICTED_MESSAGES.en;
 }
 
+const LANGUAGE_ONBOARDING_MESSAGES = {
+  ko: "선호 언어는 [내 페이지] > [내 설정]에서 변경할 수 있습니다.",
+  en: "You can change your preferred language in My Page > My Settings.",
+};
+
+function languageOnboardingMessage(language) {
+  return language === "en" ? LANGUAGE_ONBOARDING_MESSAGES.en : LANGUAGE_ONBOARDING_MESSAGES.ko;
+}
+
 const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule"];
 const LANGUAGE_STORAGE_KEYS_TO_CLEAR = [
   "swingpop-language",
@@ -3949,6 +3958,7 @@ function PublicApp() {
   // Set only when an in-app browser cannot hand the login off to a real browser.
   const [inAppLoginUrl, setInAppLoginUrl] = useState("");
   const [accountNotice, setAccountNotice] = useState("");
+  const [pendingLanguageOnboarding, setPendingLanguageOnboarding] = useState(false);
   const [currentPath, setCurrentPath] = useState(
     typeof window === "undefined" ? "/" : window.location.pathname
   );
@@ -4150,12 +4160,13 @@ function PublicApp() {
 
   useEffect(() => {
     let isMounted = true;
+    let resolvedAuth = { authenticated: false };
 
     authApi
       .me()
       .then((nextAuthState) => {
         if (isMounted) {
-          applyAuthState(nextAuthState);
+          resolvedAuth = applyAuthState(nextAuthState);
         }
       })
       .catch(() => {
@@ -4166,6 +4177,10 @@ function PublicApp() {
       .finally(() => {
         if (isMounted) {
           if (window.location.pathname === "/oauth/success") {
+            const isWelcome = new URLSearchParams(window.location.search).get("welcome") === "1";
+            if (isWelcome && resolvedAuth?.authenticated) {
+              setPendingLanguageOnboarding(true);
+            }
             window.history.replaceState({}, "", "/");
             setCurrentPath("/");
           } else if (window.location.pathname === "/oauth/error") {
@@ -4387,6 +4402,21 @@ function PublicApp() {
     });
   };
 
+  // First-time Google sign-up: save the chosen preferred language to My Settings and
+  // tell the member they can change it later.
+  const handleLanguageOnboardingSelect = async (nextLanguage) => {
+    const preferred = nextLanguage === "en" ? "EN" : "KO";
+    try {
+      const saved = await authApi.updateSettings({ preferredLanguage: preferred });
+      handleSettingsSaved(saved);
+    } catch {
+      setAuthState((currentAuthState) => ({ ...currentAuthState, preferredLanguage: preferred }));
+    } finally {
+      setPendingLanguageOnboarding(false);
+      setAccountNotice(languageOnboardingMessage(nextLanguage));
+    }
+  };
+
   const handleWithdrawComplete = (message) => {
     clearPersistedLanguagePreferences();
     setAuthState({ authenticated: false });
@@ -4472,6 +4502,14 @@ function PublicApp() {
           title={t.languageTitle}
           description={t.languageDesc}
           onSelect={handleLanguageSelect}
+        />
+      ) : null}
+
+      {pendingLanguageOnboarding && isAuthenticated ? (
+        <LanguageSelectionModal
+          title={t.languageTitle}
+          description={t.languageDesc}
+          onSelect={handleLanguageOnboardingSelect}
         />
       ) : null}
 

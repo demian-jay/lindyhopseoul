@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
@@ -70,6 +71,11 @@ public class Member {
     @Column(name = "withdrawn_at")
     private Instant withdrawnAt;
 
+    // Request-scoped only (not persisted): true when this instance was created by a
+    // fresh Google sign-up, so the login flow can trigger first-time onboarding.
+    @Transient
+    private boolean newlyRegistered;
+
     protected Member() {
     }
 
@@ -82,13 +88,19 @@ public class Member {
         member.role = MemberRole.USER;
         member.status = MemberStatus.ACTIVE;
         member.lastLoginAt = loginAt;
+        member.newlyRegistered = true;
         return member;
+    }
+
+    public boolean isNewlyRegistered() {
+        return newlyRegistered;
     }
 
     public void recordLogin(String email, String displayName, Instant loginAt) {
         this.email = normalizeEmail(email);
         this.displayName = normalizeDisplayName(displayName, this.email);
         this.lastLoginAt = loginAt;
+        this.newlyRegistered = false;
     }
 
     public void updateSettings(String nickname, MemberPreferredLanguage preferredLanguage) {

@@ -71,6 +71,7 @@ class GoogleOAuth2MemberServiceTest {
         assertThat(member.getRole()).isEqualTo(MemberRole.USER);
         assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
         assertThat(member.getLastLoginAt()).isEqualTo(LOGIN_AT);
+        assertThat(member.isNewlyRegistered()).isTrue();
         verify(memberRepository).save(any(Member.class));
     }
 
@@ -95,6 +96,7 @@ class GoogleOAuth2MemberServiceTest {
         assertThat(member.getEmail()).isEqualTo("new@example.com");
         assertThat(member.getDisplayName()).isEqualTo("New Name");
         assertThat(member.getLastLoginAt()).isEqualTo(LOGIN_AT);
+        assertThat(member.isNewlyRegistered()).isFalse();
         verify(memberRepository, never()).save(any(Member.class));
     }
 
