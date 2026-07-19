@@ -41,7 +41,7 @@ public class AdminAccountService {
 
     @Transactional
     public AdminAccountResponse createAdminUser(AdminPrincipal actor, AdminAccountCreateRequest request) {
-        requireAccountManager(actor);
+        requireSuperAdmin(actor);
         List<AdminRole> roles = normalizeRoles(request.roles(), request.role(), AdminRole.STAFF);
         requireRoleChangeAllowed(actor, roles);
         validateLoginIdAvailable(request.loginId(), Optional.empty());
@@ -68,6 +68,11 @@ public class AdminAccountService {
     ) {
         requireAccountManager(actor);
         UserAccount user = findUser(userId);
+        // Non-super admins (STAFF) may edit only their own account; everyone else's
+        // account — including any password reset — is super-admin only.
+        if (!user.getUserId().equals(actor.userCd()) && !actor.hasRole(AdminRole.SUPER_ADMIN)) {
+            throw new ForbiddenException("Only a super administrator can edit other accounts.");
+        }
         List<AdminRole> roles = normalizeRoles(request.roles(), request.role(), AdminRole.STAFF);
         requireRoleChangeAllowed(actor, user.getRoleCodes(), roles);
         validateSelfProtection(actor, user, roles, request.useYn());
@@ -93,7 +98,7 @@ public class AdminAccountService {
 
     @Transactional
     public AdminAccountResponse deactivateAdminUser(AdminPrincipal actor, String userId) {
-        requireAccountManager(actor);
+        requireSuperAdmin(actor);
         UserAccount user = findUser(userId);
 
         if (user.getUserId().equals(actor.userCd())) {
@@ -264,6 +269,12 @@ public class AdminAccountService {
     private void requireAccountManager(AdminPrincipal actor) {
         if (!actor.canManageAccounts()) {
             throw new ForbiddenException("This account cannot manage users.");
+        }
+    }
+
+    private void requireSuperAdmin(AdminPrincipal actor) {
+        if (!actor.hasRole(AdminRole.SUPER_ADMIN)) {
+            throw new ForbiddenException("Only a super administrator can perform this action.");
         }
     }
 

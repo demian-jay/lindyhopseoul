@@ -3,6 +3,8 @@ package com.lindyhopseoul.backend.eventmanagement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,6 +57,12 @@ class EventManagementServiceTest {
     @Mock
     private AdminMemberActionLogRepository adminMemberActionLogRepository;
 
+    @Mock
+    private LessonNoticeRepository lessonNoticeRepository;
+
+    @Mock
+    private LessonNoticeReadStateRepository lessonNoticeReadStateRepository;
+
     private EventManagementService service;
     private AdminPrincipal superAdmin;
 
@@ -65,7 +74,9 @@ class EventManagementServiceTest {
                 messageTemplateRepository,
                 teacherUserRepository,
                 eventApplicationRepository,
-                adminMemberActionLogRepository
+                adminMemberActionLogRepository,
+                lessonNoticeRepository,
+                lessonNoticeReadStateRepository
         );
         superAdmin = new AdminPrincipal(
                 "A1",
@@ -75,6 +86,31 @@ class EventManagementServiceTest {
                 List.of(AdminRole.SUPER_ADMIN),
                 AdminLanguage.Kor
         );
+    }
+
+    @Test
+    void deleteEventClearsDependentsBeforeDeletingEvent() {
+        Lesson lesson1 = mock(Lesson.class);
+        Lesson lesson2 = mock(Lesson.class);
+        when(lesson1.getId()).thenReturn(3L);
+        when(lesson2.getId()).thenReturn(4L);
+        Event event = mock(Event.class);
+        when(event.getLessons()).thenReturn(new java.util.LinkedHashSet<>(List.of(lesson1, lesson2)));
+        when(eventRepository.findById(2L)).thenReturn(Optional.of(event));
+
+        service.deleteEvent(superAdmin, 2L);
+
+        // Notices/read-states/applications FK to the lessons, so they must be removed
+        // before the event (and its cascaded lessons) is deleted.
+        InOrder order = inOrder(
+                lessonNoticeReadStateRepository,
+                lessonNoticeRepository,
+                eventApplicationRepository,
+                eventRepository);
+        order.verify(lessonNoticeReadStateRepository).deleteByLessonIdIn(List.of(3L, 4L));
+        order.verify(lessonNoticeRepository).deleteByLessonIdIn(List.of(3L, 4L));
+        order.verify(eventApplicationRepository).deleteByEventId(2L);
+        order.verify(eventRepository).delete(event);
     }
 
     @Test

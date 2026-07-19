@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { adminApi } from "./api/admin";
 import { CorkboardBoard, OFFICIAL_CORKBOARD_TEMPLATES } from "./CorkboardPage";
@@ -256,6 +256,24 @@ function createPeriodTitleFromKey(value) {
 function periodKeyForApi(value) {
   const normalized = sanitizeCreatePeriodKey(value);
   return `${normalized.slice(0, 4)}-${normalized.slice(4, 6)}`;
+}
+
+// Once a YYYYMM key is valid, the board almost always runs the whole month, so
+// default the range to the first and last day of that month. The admin can
+// still override either date afterwards.
+function monthRangeFromKey(value) {
+  const normalized = sanitizeCreatePeriodKey(value);
+  if (!isValidCreatePeriodKey(normalized)) {
+    return null;
+  }
+  const year = Number(normalized.slice(0, 4));
+  const month = Number(normalized.slice(4, 6)); // 1-12
+  const lastDay = new Date(year, month, 0).getDate(); // day 0 of next month = last day of this one
+  const mm = String(month).padStart(2, "0");
+  return {
+    periodStart: `${normalized.slice(0, 4)}-${mm}-01`,
+    periodEnd: `${normalized.slice(0, 4)}-${mm}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
 
 function seoulTodayKey() {
@@ -750,8 +768,17 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [selectedPeriodKey, setSelectedPeriodKey] = useState("");
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [boardViewMode, setBoardViewMode] = useState("manage");
-  // Only one period form is open at a time; null keeps both collapsed on arrival.
-  const [openForm, setOpenForm] = useState(null);
+  // Each period form collapses independently; both start collapsed on arrival.
+  const [openForms, setOpenForms] = useState({ settings: false, create: false });
+  const toggleForm = (key) => setOpenForms((current) => ({ ...current, [key]: !current[key] }));
+  // Period actions surface success/error in the banner at the top of the panel;
+  // scroll it into view so the feedback isn't missed from the form below.
+  const statusRef = useRef(null);
+  const scrollToStatus = () => {
+    window.setTimeout(() => {
+      statusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+  };
   const [selectedTemplate, setSelectedTemplate] = useState("official");
   const [content, setContent] = useState("");
   const [noticePlacement, setNoticePlacement] = useState(() => suggestedNoticePlacement(null));
@@ -880,10 +907,13 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const handleCreatePeriodChange = (field, value) => {
     if (field === "periodKey") {
       const periodKey = sanitizeCreatePeriodKey(value);
+      const range = monthRangeFromKey(periodKey);
       setCreatePeriodForm((current) => ({
         ...current,
         periodKey,
         title: createPeriodTitleFromKey(periodKey),
+        // Auto-fill the month range once the key is valid; keep prior dates otherwise.
+        ...(range ? { periodStart: range.periodStart, periodEnd: range.periodEnd } : {}),
       }));
       return;
     }
@@ -901,6 +931,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
     const validationMessage = validatePeriodForm(settingsForm, labels);
     if (validationMessage) {
       setError(validationMessage);
+      scrollToStatus();
       return;
     }
 
@@ -917,6 +948,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       setError(nextError.message || labels.settingsSaveError);
     } finally {
       setIsSavingSettings(false);
+      scrollToStatus();
     }
   };
 
@@ -931,6 +963,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
     const validationMessage = validatePeriodForm(createPeriodForm, labels, { requirePeriodKey: true });
     if (validationMessage) {
       setError(validationMessage);
+      scrollToStatus();
       return;
     }
 
@@ -952,6 +985,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       setError(nextError.message || labels.periodCreateError);
     } finally {
       setIsCreatingPeriod(false);
+      scrollToStatus();
     }
   };
 
@@ -974,6 +1008,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
       setError(nextError.message || labels.archiveError);
     } finally {
       setIsArchivingPeriod(false);
+      scrollToStatus();
     }
   };
 
@@ -1144,6 +1179,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
         </div>
       </section>
 
+      <div ref={statusRef} aria-hidden="true" className="scroll-mt-4" />
       {notice ? (
         <div className="rounded-lg border border-swing-sage bg-swing-sage/40 px-4 py-3 text-sm font-bold text-swing-teal-deep">
           {notice}
@@ -1204,8 +1240,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
             <AdminCollapsible
               title={labels.editPeriodTitle}
               description={labels.editPeriodDescription}
-              isOpen={openForm === "settings"}
-              onToggle={() => setOpenForm((current) => (current === "settings" ? null : "settings"))}
+              isOpen={openForms.settings}
+              onToggle={() => toggleForm("settings")}
               labels={labels}
             >
             <form onSubmit={handleSaveSettings}>
@@ -1232,6 +1268,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                   <input
                     type="date"
                     value={settingsForm.periodEnd}
+                    min={settingsForm.periodStart || undefined}
                     onChange={(event) => handleSettingsChange("periodEnd", event.target.value)}
                     className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />
@@ -1260,8 +1297,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
             <AdminCollapsible
               title={labels.createPeriodTitle}
               description={labels.createPeriodDescription}
-              isOpen={openForm === "create"}
-              onToggle={() => setOpenForm((current) => (current === "create" ? null : "create"))}
+              isOpen={openForms.create}
+              onToggle={() => toggleForm("create")}
               labels={labels}
             >
             <form onSubmit={handleCreatePeriod}>
@@ -1301,6 +1338,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                   <input
                     type="date"
                     value={createPeriodForm.periodEnd}
+                    min={createPeriodForm.periodStart || undefined}
                     onChange={(event) => handleCreatePeriodChange("periodEnd", event.target.value)}
                     className="rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm font-semibold text-swing-ink outline-none transition focus:border-swing-teal focus:ring-4 focus:ring-swing-teal/40"
                   />

@@ -170,6 +170,7 @@ const I18N = {
       updated: "관리자 계정이 수정되었습니다.",
       deactivated: "관리자 계정이 비활성화되었습니다.",
       confirmDeactivate: (name) => `${name} 계정을 비활성화할까요?`,
+      viewerHint: "계정 생성과 다른 계정 수정·비밀번호 초기화는 수퍼관리자만 가능합니다. 아래 목록에서 본인 계정만 수정할 수 있습니다.",
     },
     adminMembers: {
       filtersTitle: "회원 검색",
@@ -423,6 +424,7 @@ const I18N = {
       updated: "Admin account has been updated.",
       deactivated: "Admin account has been deactivated.",
       confirmDeactivate: (name) => `Deactivate ${name}?`,
+      viewerHint: "Only a super administrator can create accounts, edit other accounts, or reset passwords. You can edit only your own account from the list.",
     },
     adminMembers: {
       filtersTitle: "Member Search",
@@ -892,6 +894,11 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
 
   const isEditing = editingId !== null;
   const canManageSuperAdmin = hasRole(currentUser, "SUPER_ADMIN");
+  // Non-super admins (STAFF) view the list but may edit only their own account;
+  // creating accounts, editing others, and resetting passwords are super-admin only.
+  const currentUserKey = currentUser?.userId || currentUser?.userCd;
+  const isSelf = (item) => (item?.userId || item?.adminUserCd) === currentUserKey;
+  const restrictedEditor = isEditing && !canManageSuperAdmin;
 
   const roleOptions = useMemo(() => {
     if (canManageSuperAdmin || form.roles.includes("SUPER_ADMIN")) {
@@ -1019,6 +1026,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
 
   return (
     <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
+      {canManageSuperAdmin || isEditing ? (
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">
@@ -1055,7 +1063,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
                     type="checkbox"
                     checked={form.roles.includes(role)}
                     onChange={() => handleRoleToggle(role)}
-                    disabled={!canManageSuperAdmin && role === "SUPER_ADMIN"}
+                    disabled={restrictedEditor || (!canManageSuperAdmin && role === "SUPER_ADMIN")}
                     className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                   />
                   {labels.roles[role]}
@@ -1091,6 +1099,12 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
           {isSaving ? labels.common.saving : isEditing ? labels.common.save : labels.common.create}
         </button>
       </form>
+      ) : (
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-swing-ink">{labels.adminUsers.listTitle}</h2>
+          <p className="mt-3 text-sm leading-6 text-swing-muted">{labels.adminUsers.viewerHint}</p>
+        </div>
+      )}
 
       <AccountTable
         title={labels.adminUsers.listTitle}
@@ -1103,10 +1117,10 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
         getCode={(item) => item.adminUserCd}
         onEdit={handleEdit}
         onDeactivate={handleDeactivate}
-        canEdit={(item) => canManageSuperAdmin || !hasRole(item, "SUPER_ADMIN")}
+        canEdit={(item) => canManageSuperAdmin || isSelf(item)}
         canDeactivate={(item) =>
-          (canManageSuperAdmin || !hasRole(item, "SUPER_ADMIN")) &&
-          (item.userId || item.adminUserCd) !== (currentUser.userId || currentUser.userCd) &&
+          canManageSuperAdmin &&
+          !isSelf(item) &&
           item.useYn !== "N"
         }
       />

@@ -4,10 +4,21 @@ import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
+
+    // Applications reference lesson/event by FK but are not cascade children, so they
+    // must be cleared before an event or lesson is deleted (otherwise FK 1451 fails).
+    @Modifying
+    @Query("delete from EventApplication application where application.event.id = :eventId")
+    void deleteByEventId(@Param("eventId") Long eventId);
+
+    @Modifying
+    @Query("delete from EventApplication application where application.lesson.id in :lessonIds")
+    void deleteByLessonIdIn(@Param("lessonIds") Collection<Long> lessonIds);
 
     @Query("""
             select application

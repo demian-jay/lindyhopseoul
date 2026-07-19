@@ -47,6 +47,8 @@ public class EventManagementService {
     private final TeacherUserRepository teacherUserRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final AdminMemberActionLogRepository adminMemberActionLogRepository;
+    private final LessonNoticeRepository lessonNoticeRepository;
+    private final LessonNoticeReadStateRepository lessonNoticeReadStateRepository;
 
     public EventManagementService(
             EventRepository eventRepository,
@@ -54,7 +56,9 @@ public class EventManagementService {
             MessageTemplateRepository messageTemplateRepository,
             TeacherUserRepository teacherUserRepository,
             EventApplicationRepository eventApplicationRepository,
-            AdminMemberActionLogRepository adminMemberActionLogRepository
+            AdminMemberActionLogRepository adminMemberActionLogRepository,
+            LessonNoticeRepository lessonNoticeRepository,
+            LessonNoticeReadStateRepository lessonNoticeReadStateRepository
     ) {
         this.eventRepository = eventRepository;
         this.lessonRepository = lessonRepository;
@@ -62,6 +66,8 @@ public class EventManagementService {
         this.teacherUserRepository = teacherUserRepository;
         this.eventApplicationRepository = eventApplicationRepository;
         this.adminMemberActionLogRepository = adminMemberActionLogRepository;
+        this.lessonNoticeRepository = lessonNoticeRepository;
+        this.lessonNoticeReadStateRepository = lessonNoticeReadStateRepository;
     }
 
     public List<EventResponse> findEvents(
@@ -133,7 +139,17 @@ public class EventManagementService {
     @Transactional
     public void deleteEvent(AdminPrincipal actor, Long eventId) {
         requireEventDeleter(actor);
-        eventRepository.delete(findEventEntity(eventId));
+        Event event = findEventEntity(eventId);
+        List<Long> lessonIds = event.getLessons().stream().map(Lesson::getId).toList();
+        // Applications, notices and read states FK to the lessons/event but are not
+        // cascade children, so clear them first or the delete fails with a foreign-key
+        // constraint (MariaDB error 1451).
+        if (!lessonIds.isEmpty()) {
+            lessonNoticeReadStateRepository.deleteByLessonIdIn(lessonIds);
+            lessonNoticeRepository.deleteByLessonIdIn(lessonIds);
+        }
+        eventApplicationRepository.deleteByEventId(eventId);
+        eventRepository.delete(event);
     }
 
     public List<LessonResponse> findLessons(AdminPrincipal actor, Long eventId) {
@@ -202,7 +218,13 @@ public class EventManagementService {
     @Transactional
     public void deleteLesson(AdminPrincipal actor, Long lessonId) {
         requireEventDeleter(actor);
-        lessonRepository.delete(findLessonEntity(lessonId));
+        Lesson lesson = findLessonEntity(lessonId);
+        List<Long> lessonIds = List.of(lessonId);
+        // Same FK cleanup as deleteEvent, scoped to the single lesson.
+        lessonNoticeReadStateRepository.deleteByLessonIdIn(lessonIds);
+        lessonNoticeRepository.deleteByLessonIdIn(lessonIds);
+        eventApplicationRepository.deleteByLessonIdIn(lessonIds);
+        lessonRepository.delete(lesson);
     }
 
     @Transactional

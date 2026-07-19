@@ -4,12 +4,17 @@ import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface LessonNoticeRepository extends JpaRepository<LessonNotice, Long> {
 
     List<LessonNotice> findByLesson_IdOrderByCreatedAtAscIdAsc(Long lessonId);
+
+    @Modifying
+    @Query("delete from LessonNotice notice where notice.lesson.id in :lessonIds")
+    void deleteByLessonIdIn(@Param("lessonIds") Collection<Long> lessonIds);
 
     @Query("""
             select notice
