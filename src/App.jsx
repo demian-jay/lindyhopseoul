@@ -130,6 +130,7 @@ const CONTENT = {
       free: "무료",
       toBeAnnounced: "추후 안내",
       paymentNote: "현장에서 현금 또는 계좌이체로 결제해주세요. 계좌이체는 KAKAOBANK 3333-37-3073172 정대혁 계좌로 보내주시면 됩니다.",
+      entranceFeeNote: "입장료 10,000원은 별도입니다.",
       levelNotice: "Level 2 이상 수업은 권장 경험 기준이 있습니다. 신청 시 수강 기준을 확인해주세요.",
       viewClasses: "클래스 선택",
       classCountLabel: (count) => `클래스 ${count}개`,
@@ -400,6 +401,7 @@ const CONTENT = {
       free: "Free",
       toBeAnnounced: "TBA",
       paymentNote: "Please pay on site by cash or bank transfer. For bank transfer, please send it to KAKAOBANK 3333-37-3073172, Daehyuk Jung (정대혁).",
+      entranceFeeNote: "A separate 10,000 KRW entrance fee applies.",
       levelNotice: "Level 2+ classes have recommended experience guidelines. Please check the class requirements when applying.",
       viewClasses: "View classes",
       classCountLabel: (count) => `${count} ${count === 1 ? "class" : "classes"}`,
@@ -2171,6 +2173,7 @@ function toApplicationItem(item, language, labels) {
     naverMapUrl: item.naverMapUrl || "",
     price: formatPrice(item.fee, item.currency, labels, language),
     paymentNote: item.fee !== null && item.fee !== undefined && Number(item.fee) > 0 ? labels.paymentNote : "",
+    entranceFeeNote: item.eventType === "REGULAR_CLASS" ? labels.entranceFeeNote : "",
     teacher: formatTeachers(item.teachers, labels),
     description: translation.description || translation.shortDescription || "",
     roleSelectionEnabled: Boolean(item.roleSelectionEnabled),
@@ -2287,7 +2290,7 @@ function ApplicationCard({ item, language, labels, onApply }) {
         <DetailRow
           tone="swing"
           label={labels.details.price}
-          value={<PriceValue price={item.price} note={item.paymentNote} />}
+          value={<PriceValue price={item.price} note={[item.entranceFeeNote, item.paymentNote].filter(Boolean).join(" ")} />}
         />
         <DetailRow tone="swing" label={labels.details.teacher} value={item.teacher} />
       </dl>
@@ -2452,7 +2455,7 @@ function EventLessonsModal({ group, labels, onClose, onSelectLesson }) {
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-swing-muted">
                     <span>{lesson.date}</span>
                     <span>{lesson.time}</span>
-                    <span><PriceValue price={lesson.price} note="" /></span>
+                    <span><PriceValue price={lesson.price} note={lesson.entranceFeeNote} /></span>
                     {lesson.teacher ? <span>{lesson.teacher}</span> : null}
                   </div>
                 </div>
@@ -2695,7 +2698,7 @@ function ApplicationModal({ item, language, labels, detailLabels, authState, onC
           <DetailRow label={detailLabels.details.date} value={item.date} />
           <DetailRow label={detailLabels.details.time} value={item.time} />
           <DetailRow label={detailLabels.details.location} value={item.location} />
-          <DetailRow label={detailLabels.details.price} value={<PriceValue price={item.price} note={item.paymentNote} />} />
+          <DetailRow label={detailLabels.details.price} value={<PriceValue price={item.price} note={[item.entranceFeeNote, item.paymentNote].filter(Boolean).join(" ")} />} />
           <DetailRow label={detailLabels.details.teacher} value={item.teacher} />
         </dl>
 
