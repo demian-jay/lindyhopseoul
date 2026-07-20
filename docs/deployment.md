@@ -1,6 +1,6 @@
 # Production Deployment
 
-This file is the note to check before deploying to `lindyhopseoul.com`.
+This file is the note to check before deploying to `swingpopseoul.com`.
 
 Last updated: 2026-07-20
 
@@ -9,8 +9,9 @@ repository; every step below is run by hand.
 
 ## Current Production
 
-- Site: `https://lindyhopseoul.com` and `https://swingpopseoul.com` (both with
-  `www.`), all four served from the same host
+- Site: `https://swingpopseoul.com` is the one in use; `https://lindyhopseoul.com`
+  still resolves and serves the same thing. Both answer on `www.` too, and all
+  four names come off the same host, so a deploy covers them together.
 - Host: `ec2-user@52.78.185.32`, Amazon Linux 2023, `ap-northeast-2`
 - `sudo` on the host is `NOPASSWD`
 - HTTPS via Certbot (`/etc/letsencrypt/live/lindyhopseoul.com/`)
@@ -60,10 +61,25 @@ nginx serves everything as a SPA (`try_files $uri $uri/ /index.html`) and
 proxies only `/api/`, `/oauth2/`, and `/login/oauth2/` to `127.0.0.1:8080`.
 The backend does not serve the frontend.
 
-The backend env sets `SPRING_PROFILES_ACTIVE=prod`,
-`APP_CORS_ALLOWED_ORIGINS=https://lindyhopseoul.com`, `SESSION_COOKIE_SECURE=true`,
+The backend env sets `SPRING_PROFILES_ACTIVE=prod`, `SESSION_COOKIE_SECURE=true`,
 and `SERVER_FORWARD_HEADERS_STRATEGY=framework` (needed because it sits behind
 nginx).
+
+`APP_CORS_ALLOWED_ORIGINS` is set to `https://lindyhopseoul.com` only, which
+looks wrong for `swingpopseoul.com` but is not: the page and the API share an
+origin here, because the build ships an empty `VITE_API_BASE_URL` and nginx
+proxies `/api/` on the same host, so the browser never makes a cross-origin
+request and the value is never consulted. It matters for local dev, where Vite
+on 5173 does call another port. Confirmed 2026-07-20 — no
+`Access-Control-Allow-Origin` comes back for either domain.
+
+`APP_OAUTH2_ALLOWED_REDIRECT_HOSTS` is the one that does list both domains, and
+that is what returns a Google sign-in to whichever host it started from. The
+`APP_OAUTH2_*_REDIRECT_URI` pair is only the fallback.
+
+`ADMIN_INITIAL_PASSWORD` is optional and read only when seeding the `admin`
+account into an empty database. Unset, the seeder generates a random password
+and logs it once. Production is long past that point, so it is absent there.
 
 ## Frontend Deploy
 
@@ -133,13 +149,13 @@ in place.
 ### 3. Verify
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://lindyhopseoul.com/
-curl -s -o /dev/null -w "%{http_code}\n" https://lindyhopseoul.com/api/agora/corkboards/current
-curl -s https://lindyhopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|css)'
+curl -s -o /dev/null -w "%{http_code}\n" https://swingpopseoul.com/
+curl -s -o /dev/null -w "%{http_code}\n" https://swingpopseoul.com/api/agora/corkboards/current
+curl -s https://swingpopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|css)'
 
 # The installable app: sw.js must stay no-cache or new workers never land.
-curl -sI https://lindyhopseoul.com/sw.js | grep -i cache-control
-curl -sI https://lindyhopseoul.com/manifest.webmanifest | grep -iE 'content-type|cache-control'
+curl -sI https://swingpopseoul.com/sw.js | grep -i cache-control
+curl -sI https://swingpopseoul.com/manifest.webmanifest | grep -iE 'content-type|cache-control'
 ```
 
 Then load the site and confirm the bundle filename matches the one you just
@@ -148,17 +164,65 @@ you the old build and make a good deploy look broken.
 
 ## Backend Deploy
 
-**Not yet exercised.** Nothing in this repository has needed it, and the
-procedure below has not been run, so treat it as a starting point rather than a
-checklist.
+Exercised; `/opt/lindyhop-backup/backend-*.jar` is the record of past runs.
 
 The unit runs `/usr/bin/java -Xms128m -Xmx384m -jar /opt/lindyhop/backend.jar`
-as user `lindyhop`, reading `/etc/lindyhop/backend.env`. A deploy would mean
-building the jar (`mvn -f backend/pom.xml package`), backing up the current one,
-copying the new jar in, and `sudo systemctl restart lindyhop-backend.service`.
+as user `lindyhop`, reading `/etc/lindyhop/backend.env`.
 
-Run `mvn test` first. Note the prod profile uses `ddl-auto: update`, so starting
-a new jar can alter the production schema on its own — see Known Gaps.
+```bash
+mvn -f backend/pom.xml package     # runs the tests; do not skip them
+TS=$(date +%Y%m%d-%H%M%S)
+ssh ec2-user@52.78.185.32 "sudo cp -a /opt/lindyhop/backend.jar /opt/lindyhop-backup/backend-$TS.jar"
+ssh ec2-user@52.78.185.32 "rm -rf ~/jar-staging && mkdir -p ~/jar-staging"
+scp backend/target/backend-0.1.0-SNAPSHOT.jar ec2-user@52.78.185.32:~/jar-staging/backend.jar
+ssh ec2-user@52.78.185.32 '
+  sudo cp ~/jar-staging/backend.jar /opt/lindyhop/backend.jar
+  sudo chown lindyhop:lindyhop /opt/lindyhop/backend.jar
+  sudo chmod 644 /opt/lindyhop/backend.jar
+  sudo systemctl restart lindyhop-backend.service
+  rm -rf ~/jar-staging'
+```
+
+The host runs Corretto 21 and `pom.xml` sets `<java.version>21</java.version>`,
+so a jar built on a newer JDK still targets 21. Worth confirming when the
+toolchain changes:
+
+```bash
+unzip -p backend/target/backend-0.1.0-SNAPSHOT.jar \
+  BOOT-INF/classes/com/lindyhopseoul/backend/BackendApplication.class |
+  od -An -t u1 -N8   # 7th and 8th bytes are the major version; 65 is Java 21
+```
+
+Startup takes about 15 seconds, and `/api/` answers 502 until it finishes.
+Check it came up rather than assuming:
+
+```bash
+ssh ec2-user@52.78.185.32 'systemctl is-active lindyhop-backend.service
+  sudo systemctl show lindyhop-backend.service -p NRestarts
+  sudo journalctl -u lindyhop-backend.service --since "3 minutes ago" --no-pager | tail -20'
+```
+
+`NRestarts` above 0 means it is crash-looping on `Restart=on-failure`. A
+`NoClassDefFoundError` from `SpringApplicationShutdownHook` in the log is the
+*old* process dying after its jar was replaced underneath it, not the new one
+failing; check the PID before chasing it.
+
+Sessions live in a `ConcurrentHashMap`, so a restart signs everyone out.
+
+The prod profile uses `ddl-auto: update`, so the new jar can alter the schema
+as it starts — see Known Gaps.
+
+### Order matters when both sides change
+
+Deploy whichever side tolerates the other being old, and deploy the second one
+immediately. A backend that starts refusing requests the current frontend
+cannot handle leaves the admin area unusable in a way nobody can click out of.
+
+That was live for a few minutes on 2026-07-20: the backend began answering
+`403 PASSWORD_CHANGE_REQUIRED` on every admin route while the deployed frontend
+still had no screen for setting a password. Sign-in worked and nothing else
+did. If a change has that shape, deploy the frontend first — it can carry a
+screen the backend does not demand yet, but not the reverse.
 
 ## Caching
 
@@ -257,3 +321,7 @@ These are real and unaddressed. `README.md` lists several under Future Work.
   production schema at startup. `README.md` proposes Flyway.
 - **`main` is far behind production.** Anyone treating `main` as the deployed
   code will be wrong.
+- **Nothing sequences a paired frontend and backend deploy.** The two are
+  separate hand-run procedures, so the window where one is new and the other is
+  old is however long the operator takes. See "Order matters" above for the
+  time that bit.
