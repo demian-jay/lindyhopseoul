@@ -2311,7 +2311,11 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5">
+    // min-w-0 on both the grid and its items: the 1100px log table sits inside a
+    // card, so the card is the grid item whose automatic minimum size holds the
+    // table's width. Without both, the page widens to 1162px on a 375px screen
+    // instead of the table scrolling inside its own container.
+    <section className="grid min-w-0 gap-5 [&>*]:min-w-0">
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{logLabels.filtersTitle}</h2>
