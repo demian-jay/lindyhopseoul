@@ -1428,7 +1428,9 @@ function TeacherUsersPanel({ token, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
+    // Same min-w-0 as the admin panel: the account table below is 860px wide
+    // and would otherwise stretch the page rather than scroll inside its box.
+    <section className="grid min-w-0 gap-5 [&>*]:min-w-0 xl:grid-cols-[390px_minmax(0,1fr)]">
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">
@@ -1441,7 +1443,9 @@ function TeacherUsersPanel({ token, langCd, labels }) {
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-4">
+        {/* Two to a row, matching the admin account form: these are all short
+            single-line values and one per row made the form needlessly tall. */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <Field label={labels.fields.name}>
             <TextInput name="teacherUserNm" value={form.teacherUserNm} onChange={handleChange} />
           </Field>
