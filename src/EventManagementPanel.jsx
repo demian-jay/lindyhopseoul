@@ -2017,6 +2017,9 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const [form, setForm] = useState(emptyTemplateForm());
   const [activeTemplateLanguage, setActiveTemplateLanguage] = useState(toManualLanguage(langCd));
   const [editingId, setEditingId] = useState(null);
+  // Collapsed on arrival; editing a template opens it, so the edit button is
+  // not a no-op.
+  const [showForm, setShowForm] = useState(false);
   const [preview, setPreview] = useState({
     templateId: "",
     eventId: "",
@@ -2086,6 +2089,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
 
   const editTemplate = (template) => {
     setEditingId(template.id);
+    setShowForm(true);
     setForm({
       templateName: template.templateName,
       templateType: template.templateType,
@@ -2136,20 +2140,26 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
-          {editingId ? (
-            <SecondaryButton
-              type="button"
-              onClick={() => {
-                setEditingId(null);
-                setForm(emptyTemplateForm());
-                setActiveTemplateLanguage(toManualLanguage(langCd));
-              }}
-            >
-              {copy.cancel}
+          <div className="flex items-center gap-2">
+            {editingId ? (
+              <SecondaryButton
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm(emptyTemplateForm());
+                  setActiveTemplateLanguage(toManualLanguage(langCd));
+                }}
+              >
+                {copy.cancel}
+              </SecondaryButton>
+            ) : null}
+            <SecondaryButton type="button" onClick={() => setShowForm((current) => !current)}>
+              {showForm ? copy.hideFilters : copy.showFilters}
             </SecondaryButton>
-          ) : null}
+          </div>
         </div>
-        <div className="mt-4 grid gap-4">
+        {/* Hidden, not unmounted, so a half-written template survives a collapse. */}
+        <div className={`mt-4 gap-4 ${showForm ? "grid" : "hidden"}`}>
           <Field label={copy.templateName}>
             <TextInput name="templateName" value={form.templateName} onChange={handleChange} disabled={!canManage} />
           </Field>
@@ -2177,7 +2187,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
         </div>
         <Notice>{error}</Notice>
         <Notice type="success">{notice}</Notice>
-        {canManage ? (
+        {canManage && showForm ? (
           <PrimaryButton type="submit" disabled={isSaving} className="mt-4 w-full">
             {editingId ? copy.save : copy.create}
           </PrimaryButton>

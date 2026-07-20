@@ -224,6 +224,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("ALL");
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [activeItemFormLanguage, setActiveItemFormLanguage] = useState(preferredLanguage);
   const [activeCategoryFormLanguage, setActiveCategoryFormLanguage] = useState(preferredLanguage);
@@ -530,7 +531,19 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
   return (
     <section className="grid gap-5">
       <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-swing-ink">{kb.searchLabel}</h2>
+          <button
+            type="button"
+            onClick={() => setShowFilters((current) => !current)}
+            className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+          >
+            {showFilters ? labels.common.hideFilters : labels.common.showFilters}
+          </button>
+        </div>
+        <div
+          className={`mt-4 gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px] ${showFilters ? "grid" : "hidden"}`}
+        >
           <Field label={kb.searchLabel}>
             <TextInput
               value={query}

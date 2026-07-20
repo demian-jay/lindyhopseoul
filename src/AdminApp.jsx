@@ -72,6 +72,10 @@ const I18N = {
       delete: "삭제",
       deactivate: "비활성화",
       logout: "로그아웃",
+      showFilters: "검색 조건",
+      hideFilters: "검색 조건 닫기",
+      showForm: "입력 열기",
+      hideForm: "입력 닫기",
       loading: "불러오는 중",
       count: (count) => `${count}개`,
       empty: "-",
@@ -360,6 +364,10 @@ const I18N = {
       delete: "Delete",
       deactivate: "Deactivate",
       logout: "Log Out",
+      showFilters: "Filters",
+      hideFilters: "Hide Filters",
+      showForm: "Show Form",
+      hideForm: "Hide Form",
       loading: "Loading",
       count: (count) => `${count} items`,
       empty: "-",
@@ -1073,6 +1081,9 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(() => ({ ...createAdminForm(), langCd }));
   const [editingId, setEditingId] = useState(null);
+  // Collapsed on arrival so the account list is what you land on. Editing a row
+  // opens it, otherwise the edit button would look like it did nothing.
+  const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -1139,6 +1150,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
 
   const handleEdit = (item) => {
     setEditingId(item.adminUserCd);
+    setShowForm(true);
     const roles = normalizeRoles(item);
     setForm({
       adminUserNm: item.adminUserNm,
@@ -1222,17 +1234,27 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
           <h2 className="text-lg font-bold text-swing-ink">
             {isEditing ? labels.adminUsers.editTitle : labels.adminUsers.createTitle}
           </h2>
-          {isEditing ? (
-            <button type="button" onClick={resetForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
-              {labels.common.cancel}
+          <div className="flex items-center gap-3">
+            {isEditing ? (
+              <button type="button" onClick={resetForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
+                {labels.common.cancel}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowForm((current) => !current)}
+              className="text-sm font-semibold text-swing-muted hover:text-swing-ink"
+            >
+              {showForm ? labels.common.hideForm : labels.common.showForm}
             </button>
-          ) : null}
+          </div>
         </div>
 
-        {/* The short single-line fields pair up two to a row. One per row left
-            the form taller than a phone screen for what is a handful of short
-            values. Role keeps a row of its own because it is a checkbox list. */}
-        <div className="mt-4 grid gap-4">
+        {/* Hidden rather than unmounted so a half-typed entry survives a collapse.
+            The short single-line fields pair up two to a row: one per row left the
+            form taller than a phone screen for what is a handful of short values.
+            Role keeps a row of its own because it is a checkbox list. */}
+        <div className={`mt-4 grid gap-4 ${showForm ? "" : "hidden"}`}>
           <div className="grid grid-cols-2 gap-3">
             <Field label={labels.fields.name}>
               <TextInput name="adminUserNm" value={form.adminUserNm} onChange={handleChange} />
@@ -1289,7 +1311,9 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
+          className={`mt-5 min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70 ${
+            showForm ? "inline-flex" : "hidden"
+          }`}
         >
           {isSaving ? labels.common.saving : isEditing ? labels.common.save : labels.common.create}
         </button>
@@ -1586,6 +1610,9 @@ function AccountTable({
 
 function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   const [filters, setFilters] = useState(() => createMemberFilters());
+  // Collapsed by default, matching the events screen: the list is what people
+  // come here for, and the filters push it off a phone screen.
+  const [showFilters, setShowFilters] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(() => createMemberFilters());
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1781,21 +1808,32 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
           <div className="flex gap-1.5 sm:gap-2">
             <button
               type="button"
-              onClick={handleReset}
+              onClick={() => setShowFilters((current) => !current)}
               className="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 sm:min-h-[38px] sm:text-sm"
             >
-              {memberLabels.reset}
+              {showFilters ? labels.common.hideFilters : labels.common.showFilters}
             </button>
-            <button
-              type="submit"
-              className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-swing-teal-deep px-3 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal sm:min-h-[38px] sm:px-4 sm:text-sm"
-            >
-              {memberLabels.search}
-            </button>
+            {showFilters ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 sm:min-h-[38px] sm:text-sm"
+                >
+                  {memberLabels.reset}
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-swing-teal-deep px-3 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal sm:min-h-[38px] sm:px-4 sm:text-sm"
+                >
+                  {memberLabels.search}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-3 grid gap-2.5 sm:mt-4 sm:gap-3">
+        <div className={`mt-3 grid gap-2.5 sm:mt-4 sm:gap-3 ${showFilters ? "" : "hidden"}`}>
           <div className="grid gap-2">
             <Field label={memberLabels.keywordSearch}>
               <TextInput
@@ -2237,6 +2275,7 @@ function MemberStatusChangeModal({
 function AdminMemberActionLogsPanel({ token, langCd, labels }) {
   const logLabels = labels.memberActionLogs;
   const [filters, setFilters] = useState(() => createMemberActionLogFilters());
+  const [showFilters, setShowFilters] = useState(false);
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -2277,13 +2316,20 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{logLabels.filtersTitle}</h2>
           <div className="flex gap-2">
-            <SecondaryButton type="button" onClick={handleReset}>
-              {logLabels.reset}
+            <SecondaryButton type="button" onClick={() => setShowFilters((current) => !current)}>
+              {showFilters ? labels.common.hideFilters : labels.common.showFilters}
             </SecondaryButton>
-            <PrimaryButton type="submit">{logLabels.search}</PrimaryButton>
+            {showFilters ? (
+              <>
+                <SecondaryButton type="button" onClick={handleReset}>
+                  {logLabels.reset}
+                </SecondaryButton>
+                <PrimaryButton type="submit">{logLabels.search}</PrimaryButton>
+              </>
+            ) : null}
           </div>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className={`mt-4 grid gap-4 md:grid-cols-3 ${showFilters ? "" : "hidden"}`}>
           <Field label={logLabels.from}>
             <TextInput type="date" name="from" value={filters.from} onChange={handleChange} />
           </Field>
