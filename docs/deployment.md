@@ -9,18 +9,36 @@ repository; every step below is run by hand.
 
 ## Current Production
 
-- Site: `https://lindyhopseoul.com` (also `www.lindyhopseoul.com`)
+- Site: `https://lindyhopseoul.com` and `https://swingpopseoul.com` (both with
+  `www.`), all four served from the same host
 - Host: `ec2-user@52.78.185.32`, Amazon Linux 2023, `ap-northeast-2`
 - `sudo` on the host is `NOPASSWD`
 - HTTPS via Certbot (`/etc/letsencrypt/live/lindyhopseoul.com/`)
 
-The host address changed on 2026-07-20; it was previously `54.116.169.23`,
-which no longer answers on port 22. If SSH times out, check the `A` record for
-`lindyhopseoul.com` before assuming the host is down.
+SSH accepts `publickey` only, so you need this instance's EC2 keypair. A
+generic `~/.ssh/id_ed25519` is rejected unless it was added to
+`~ec2-user/.ssh/authorized_keys`.
 
-SSH accepts `publickey` only — password auth is disabled — so you need the EC2
-keypair for this instance. A generic `~/.ssh/id_ed25519` is rejected unless it
-was added to `~ec2-user/.ssh/authorized_keys`.
+### Host address, verified 2026-07-20
+
+The address moved to `52.78.185.32` from `54.116.169.23`, which is now
+unreachable. Checked on the new address:
+
+| Check | Result |
+| --- | --- |
+| `A` record for both domains | `52.78.185.32` |
+| Reverse DNS | `ec2-52-78-185-32.ap-northeast-2.compute.amazonaws.com` |
+| `/` and `/api/agora/corkboards/current` (via `curl --resolve`, so DNS is not trusted) | `200` from `52.78.185.32` |
+| TLS certificate | `CN=lindyhopseoul.com`, Let's Encrypt, SAN covers all four names, expires 2026-10-17 |
+| SSH port 22 | Open, daemon responds |
+
+Not verified: an actual SSH login, because the keypair is not on the machine
+this was checked from. Reaching a shell may still fail.
+
+The SSH host key differs from the one `known_hosts` recorded for the old
+address, so this is a new instance rather than a moved Elastic IP. Expect
+`REMOTE HOST IDENTIFICATION HAS CHANGED` on a machine that used the old one,
+and drop the stale `known_hosts` line rather than working around the warning.
 
 Production is built from `codex/monolith-redesign`, not `main`. `main` is far
 behind and does not contain the backend or the Corkboard.
