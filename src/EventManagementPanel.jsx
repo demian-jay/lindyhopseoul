@@ -1423,7 +1423,14 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
     try {
       const data = await adminApi.findEvents(token, filters);
       setEvents(data);
-      setSelectedEventId((currentId) => currentId || data[0]?.id || null);
+      // Keep the current selection only while it is still in the list. Filtering
+      // it away used to leave it selected, and since the detail pane fetches by
+      // id rather than reading the list, the panel below went on showing the
+      // lessons of an event the results no longer contained.
+      setSelectedEventId((currentId) => {
+        const stillListed = currentId !== null && data.some((event) => event.id === currentId);
+        return stillListed ? currentId : data[0]?.id ?? null;
+      });
     } catch (nextError) {
       setError(nextError.message);
     } finally {
