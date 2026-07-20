@@ -89,11 +89,24 @@ public class AdminAccountService {
         user.replaceRoles(roles);
 
         if (request.password() != null && !request.password().isBlank()) {
-            user.changePassword(passwordHasher.hash(request.password()));
+            applyPassword(actor, user, request.password());
         }
         syncTeacherProfile(user, roles.contains(AdminRole.TEACHER) && user.isActive(), actor.userCd());
 
         return AdminAccountResponse.from(user);
+    }
+
+    /**
+     * A password the holder typed for themselves counts as chosen; one an admin
+     * typed for somebody else does not, and leaves that account owing a change.
+     */
+    private void applyPassword(AdminPrincipal actor, UserAccount user, String rawPassword) {
+        String hash = passwordHasher.hash(rawPassword);
+        if (user.getUserId().equals(actor.userCd())) {
+            user.changePassword(hash);
+        } else {
+            user.resetPassword(hash);
+        }
     }
 
     @Transactional
@@ -158,7 +171,7 @@ public class AdminAccountService {
 
         teacherUser.updateProfile(clean(request.teacherUserNm()), user, request.useYn(), actor.userCd());
         if (request.password() != null && !request.password().isBlank()) {
-            user.changePassword(passwordHasher.hash(request.password()));
+            applyPassword(actor, user, request.password());
         }
 
         return TeacherAccountResponse.from(teacherUser);

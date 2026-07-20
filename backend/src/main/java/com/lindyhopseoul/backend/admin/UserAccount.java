@@ -51,6 +51,15 @@ public class UserAccount {
     @Column(name = "LANG_CD", length = 3)
     private AdminLanguage langCd;
 
+    /**
+     * When the account holder last set their own password. Null means they never
+     * have — the password is whatever a super admin handed them — so they are made
+     * to change it before they can do anything else. A timestamp rather than a
+     * flag so it also answers "how old is this password".
+     */
+    @Column(name = "PWD_CHANGED_AT")
+    private Instant pwdChangedAt;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -92,8 +101,25 @@ public class UserAccount {
         this.useYn = useYn;
     }
 
+    /**
+     * The account holder setting their own password. Clears the pending change.
+     */
     public void changePassword(String password) {
         this.password = password;
+        this.pwdChangedAt = Instant.now();
+    }
+
+    /**
+     * Someone else setting this account's password. The holder did not choose it,
+     * so leave it pending: they must replace it before the account is usable.
+     */
+    public void resetPassword(String password) {
+        this.password = password;
+        this.pwdChangedAt = null;
+    }
+
+    public boolean mustChangePassword() {
+        return pwdChangedAt == null;
     }
 
     public void deactivate() {
@@ -176,6 +202,10 @@ public class UserAccount {
 
     public AdminLanguage getLangCd() {
         return langCd == null ? AdminLanguage.Kor : langCd;
+    }
+
+    public Instant getPwdChangedAt() {
+        return pwdChangedAt;
     }
 
     public Instant getCreatedAt() {

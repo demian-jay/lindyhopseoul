@@ -35,6 +35,19 @@ public class AdminAuthController {
         return AdminMeResponse.from(adminSessionService.requirePrincipal(authorization));
     }
 
+    @PostMapping("/me/password")
+    public AdminMeResponse changeOwnPassword(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Valid @RequestBody AdminPasswordChangeRequest request
+    ) {
+        AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
+        AdminPrincipal updated = adminAuthService.changeOwnPassword(actor, request);
+        // The session holds a snapshot, so push the cleared flag back into it;
+        // otherwise the interceptor keeps blocking until the session expires.
+        adminSessionService.refreshPrincipal(authorization, updated);
+        return AdminMeResponse.from(updated);
+    }
+
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@RequestHeader(value = "Authorization", required = false) String authorization) {

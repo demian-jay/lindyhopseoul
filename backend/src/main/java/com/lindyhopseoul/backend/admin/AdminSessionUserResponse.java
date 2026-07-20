@@ -10,7 +10,8 @@ public record AdminSessionUserResponse(
         String loginId,
         AdminRole role,
         List<AdminRole> roles,
-        AdminLanguage langCd
+        AdminLanguage langCd,
+        boolean mustChangePassword
 ) {
 
     public static AdminSessionUserResponse from(AdminPrincipal principal) {
@@ -22,7 +23,8 @@ public record AdminSessionUserResponse(
                 principal.loginId(),
                 principal.role(),
                 principal.roles(),
-                principal.langCd()
+                principal.langCd(),
+                principal.mustChangePassword()
         );
     }
 }

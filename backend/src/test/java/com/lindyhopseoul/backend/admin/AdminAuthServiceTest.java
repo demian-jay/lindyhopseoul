@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
+import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,6 +113,79 @@ class AdminAuthServiceTest {
                 AdminMenu.KNOWLEDGE_BASE,
                 AdminMenu.ADMIN_USERS,
                 AdminMenu.MEMBERS
+        );
+    }
+
+    @Test
+    void loginFlagsAnAccountThatHasNeverSetItsOwnPassword() {
+        UserAccount user = newUser("pass1234");
+        when(userAccountRepository.findByLoginId("admin")).thenReturn(Optional.of(user));
+
+        AdminAuthResponse response = adminAuthService.login(new AdminLoginRequest("admin", "pass1234"));
+
+        assertThat(response.user().mustChangePassword()).isTrue();
+    }
+
+    @Test
+    void changingOwnPasswordClearsTheFlag() {
+        UserAccount user = newUser("pass1234");
+        when(userAccountRepository.findById("A1")).thenReturn(Optional.of(user));
+
+        AdminPrincipal updated = adminAuthService.changeOwnPassword(
+                AdminPrincipal.from(user),
+                new AdminPasswordChangeRequest("pass1234", "brandnewpass")
+        );
+
+        assertThat(updated.mustChangePassword()).isFalse();
+        assertThat(passwordHasher.matches("brandnewpass", user.getPassword())).isTrue();
+    }
+
+    @Test
+    void changingOwnPasswordRequiresTheCurrentOne() {
+        UserAccount user = newUser("pass1234");
+        when(userAccountRepository.findById("A1")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> adminAuthService.changeOwnPassword(
+                AdminPrincipal.from(user),
+                new AdminPasswordChangeRequest("wrong", "brandnewpass")
+        )).isInstanceOf(UnauthorizedException.class);
+
+        assertThat(user.mustChangePassword()).isTrue();
+    }
+
+    @Test
+    void changingOwnPasswordRejectsReusingTheSameOne() {
+        UserAccount user = newUser("pass1234");
+        when(userAccountRepository.findById("A1")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> adminAuthService.changeOwnPassword(
+                AdminPrincipal.from(user),
+                new AdminPasswordChangeRequest("pass1234", "pass1234")
+        )).isInstanceOf(ConflictException.class);
+
+        assertThat(user.mustChangePassword()).isTrue();
+    }
+
+    @Test
+    void anAdminResettingSomeoneElsesPasswordLeavesItPending() {
+        UserAccount user = newUser("pass1234");
+        user.changePassword(passwordHasher.hash("chosenbyme"));
+        assertThat(user.mustChangePassword()).isFalse();
+
+        user.resetPassword(passwordHasher.hash("handedout"));
+
+        assertThat(user.mustChangePassword()).isTrue();
+    }
+
+    private UserAccount newUser(String rawPassword) {
+        return UserAccount.create(
+                "A1",
+                "Super Administrator",
+                "admin",
+                null,
+                passwordHasher.hash(rawPassword),
+                AdminLanguage.Kor,
+                java.util.List.of(AdminRole.SUPER_ADMIN)
         );
     }
 

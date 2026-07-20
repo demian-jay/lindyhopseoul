@@ -9,8 +9,25 @@ public record AdminPrincipal(
         String loginId,
         AdminRole role,
         List<AdminRole> roles,
-        AdminLanguage langCd
+        AdminLanguage langCd,
+        boolean mustChangePassword
 ) {
+
+    /**
+     * For callers that do not model password state — chiefly tests of unrelated
+     * services. The real sign-in path goes through {@link #from(UserAccount)},
+     * which reads the flag off the account.
+     */
+    public AdminPrincipal(
+            String userCd,
+            String userNm,
+            String loginId,
+            AdminRole role,
+            List<AdminRole> roles,
+            AdminLanguage langCd
+    ) {
+        this(userCd, userNm, loginId, role, roles, langCd, false);
+    }
 
     public static AdminPrincipal from(UserAccount user) {
         List<AdminRole> roles = normalizeRoles(user.getRoleCodes());
@@ -20,7 +37,8 @@ public record AdminPrincipal(
                 user.getLoginId(),
                 primaryRole(roles),
                 roles,
-                user.getLangCd()
+                user.getLangCd(),
+                user.mustChangePassword()
         );
     }
 
@@ -32,7 +50,8 @@ public record AdminPrincipal(
                 adminUser.getLoginId(),
                 primaryRole(roles),
                 roles,
-                adminUser.getLangCd()
+                adminUser.getLangCd(),
+                false
         );
     }
 
@@ -47,7 +66,8 @@ public record AdminPrincipal(
                 teacherUser.getLoginId(),
                 AdminRole.TEACHER,
                 roles,
-                teacherUser.getLangCd()
+                teacherUser.getLangCd(),
+                false
         );
     }
 

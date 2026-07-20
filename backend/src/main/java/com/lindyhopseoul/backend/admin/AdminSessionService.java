@@ -47,6 +47,17 @@ public class AdminSessionService {
         sessions.remove(token);
     }
 
+    /**
+     * Sessions hold a snapshot of the principal, so anything that changes the
+     * underlying account has to push the new one in. Without this, clearing the
+     * pending password change would not take effect until the session expired.
+     */
+    public void refreshPrincipal(String authorizationHeader, AdminPrincipal principal) {
+        String token = extractToken(authorizationHeader);
+        sessions.computeIfPresent(token, (key, session) ->
+                new StoredSession(principal, session.expiresAt()));
+    }
+
     private String generateToken() {
         byte[] token = new byte[TOKEN_BYTES];
         secureRandom.nextBytes(token);
