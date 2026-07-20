@@ -1,9 +1,14 @@
 package com.lindyhopseoul.backend.admin;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,9 +18,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Configuration
 public class AdminBootstrap {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminBootstrap.class);
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private static final String INITIAL_ADMIN_CD = "SUPER_ADMIN";
     private static final String INITIAL_ADMIN_LOGIN_ID = "admin";
-    private static final String INITIAL_ADMIN_PASSWORD = "1234";
 
     @Bean
     ApplicationRunner seedInitialSuperAdmin(
@@ -24,7 +31,8 @@ public class AdminBootstrap {
             UserAccountRepository userAccountRepository,
             PasswordHasher passwordHasher,
             JdbcTemplate jdbcTemplate,
-            TransactionTemplate transactionTemplate
+            TransactionTemplate transactionTemplate,
+            @Value("${app.admin.initial-password:}") String configuredInitialPassword
     ) {
         return args -> transactionTemplate.executeWithoutResult(status -> {
             migrateLegacyAdminUsers(adminUserRepository, userAccountRepository);
@@ -37,7 +45,9 @@ public class AdminBootstrap {
                             "Super Administrator",
                             INITIAL_ADMIN_LOGIN_ID,
                             null,
-                            passwordHasher.hash(INITIAL_ADMIN_PASSWORD),
+                            // Resolved inside the supplier so nothing is generated or
+                            // logged on the usual startup, where the account exists.
+                            passwordHasher.hash(resolveInitialPassword(configuredInitialPassword)),
                             AdminLanguage.Kor,
                             List.of(AdminRole.SUPER_ADMIN)
                     )));
@@ -101,7 +111,13 @@ public class AdminBootstrap {
                             teacherUserNm,
                             loginId,
                             null,
-                            loginPwHash == null || loginPwHash.isBlank() ? passwordHasher.hash("1234") : loginPwHash,
+                            // A legacy row with no hash gets an unusable random password
+                            // rather than a shared known one. The teacher cannot sign in
+                            // until a super admin sets a password for them, which is the
+                            // intended path anyway.
+                            loginPwHash == null || loginPwHash.isBlank()
+                                    ? passwordHasher.hash(randomPassword())
+                                    : loginPwHash,
                             langCd,
                             List.of(AdminRole.TEACHER)
                     )));
@@ -222,6 +238,33 @@ public class AdminBootstrap {
         if (!columns.isEmpty()) {
             jdbcTemplate.execute("alter table `" + tableName + "` drop column `" + columns.get(0).get("column_name") + "`");
         }
+    }
+
+    /**
+     * The seed password for a brand new database. It is never a constant in this
+     * file: this repository is public, so anything written here would be a
+     * published credential for whatever instance is running it.
+     */
+    private String resolveInitialPassword(String configured) {
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+
+        String generated = randomPassword();
+        // Only reached while creating the account, so this prints once on a fresh
+        // database and never again. Set app.admin.initial-password to avoid it.
+        log.warn(
+                "Seeded the '{}' account with a generated password: {} — change it after signing in.",
+                INITIAL_ADMIN_LOGIN_ID,
+                generated
+        );
+        return generated;
+    }
+
+    private static String randomPassword() {
+        byte[] bytes = new byte[24];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private String asString(Object value) {

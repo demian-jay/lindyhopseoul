@@ -1,8 +1,10 @@
 package com.lindyhopseoul.backend.eventmanagement;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @Configuration
 public class EventManagementBootstrap {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static String randomPassword() {
+        byte[] bytes = new byte[24];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 
     @Bean
     ApplicationRunner seedEventManagement(
@@ -211,7 +221,12 @@ public class EventManagementBootstrap {
                         teacherName,
                         loginId,
                         null,
-                        passwordHasher.hash("1234"),
+                        // These placeholder teachers exist so seeded events have someone
+                        // to point at; nobody is meant to sign in as them. A shared
+                        // constant here would be a published credential, since this
+                        // seeding runs in every environment, so make it unusable and let
+                        // a super admin set a real password if the account is ever wanted.
+                        passwordHasher.hash(randomPassword()),
                         langCd,
                         List.of(AdminRole.TEACHER)
                 )));
