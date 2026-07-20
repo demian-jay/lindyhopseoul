@@ -206,6 +206,9 @@ const COPY_TEXT = {
       BOTH: "리더/팔로워 모두 가능",
     },
     templates: "메시지 템플릿",
+    templateCreateTitle: "템플릿 등록",
+    templateEditTitle: "템플릿 수정",
+    templateNew: "템플릿 등록",
     templateName: "템플릿명",
     templateType: "템플릿 유형",
     useYn: "사용 여부",
@@ -318,6 +321,9 @@ const COPY_TEXT = {
       BOTH: "Leader / Follower both ok",
     },
     templates: "Message Templates",
+    templateCreateTitle: "New Template",
+    templateEditTitle: "Edit Template",
+    templateNew: "New Template",
     templateName: "Template Name",
     templateType: "Template Type",
     useYn: "Use",
@@ -2010,6 +2016,18 @@ function ConfirmDialog({
   );
 }
 
+function TemplateVariableList({ className = "" }) {
+  return (
+    <div className={`flex flex-wrap gap-2 ${className}`}>
+      {TEMPLATE_VARIABLES.map((variable) => (
+        <code key={variable} className="rounded-md border border-swing-border/30 bg-swing-cream/50 px-2 py-1 text-xs text-swing-ink/80">
+          {variable}
+        </code>
+      ))}
+    </div>
+  );
+}
+
 export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const copy = t(langCd);
   const [templates, setTemplates] = useState([]);
@@ -2017,9 +2035,9 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const [form, setForm] = useState(emptyTemplateForm());
   const [activeTemplateLanguage, setActiveTemplateLanguage] = useState(toManualLanguage(langCd));
   const [editingId, setEditingId] = useState(null);
-  // Collapsed on arrival; editing a template opens it, so the edit button is
-  // not a no-op.
-  const [showForm, setShowForm] = useState(false);
+  // The form lives in a modal: templates are a short, rarely-touched list, so a
+  // permanent form column earned less than the space it took.
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [preview, setPreview] = useState({
     templateId: "",
     eventId: "",
@@ -2078,6 +2096,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
       setForm(emptyTemplateForm());
       setActiveTemplateLanguage(toManualLanguage(langCd));
       setEditingId(null);
+      setIsFormOpen(false);
       setNotice(copy.templateSaved);
       await load();
     } catch (nextError) {
@@ -2087,9 +2106,27 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
     }
   };
 
+  const openCreateForm = () => {
+    setEditingId(null);
+    setForm(emptyTemplateForm());
+    setActiveTemplateLanguage(toManualLanguage(langCd));
+    setError("");
+    setNotice("");
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingId(null);
+    setForm(emptyTemplateForm());
+    setActiveTemplateLanguage(toManualLanguage(langCd));
+  };
+
   const editTemplate = (template) => {
     setEditingId(template.id);
-    setShowForm(true);
+    setIsFormOpen(true);
+    setError("");
+    setNotice("");
     setForm({
       templateName: template.templateName,
       templateType: template.templateType,
@@ -2136,67 +2173,20 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
-          <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
-          <div className="flex items-center gap-2">
-            {editingId ? (
-              <SecondaryButton
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setForm(emptyTemplateForm());
-                  setActiveTemplateLanguage(toManualLanguage(langCd));
-                }}
-              >
-                {copy.cancel}
-              </SecondaryButton>
-            ) : null}
-            <SecondaryButton type="button" onClick={() => setShowForm((current) => !current)}>
-              {showForm ? copy.hideFilters : copy.showFilters}
-            </SecondaryButton>
-          </div>
-        </div>
-        {/* Hidden, not unmounted, so a half-written template survives a collapse. */}
-        <div className={`mt-4 gap-4 ${showForm ? "grid" : "hidden"}`}>
-          <Field label={copy.templateName}>
-            <TextInput name="templateName" value={form.templateName} onChange={handleChange} disabled={!canManage} />
-          </Field>
-          <Field label={copy.templateType}>
-            <SelectInput name="templateType" value={form.templateType} onChange={handleChange} disabled={!canManage}>
-              {TEMPLATE_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-          <Field label={copy.useYn}>
-            <SelectInput name="useYn" value={form.useYn} onChange={handleChange} disabled={!canManage}>
-              <option value="Y">Y</option>
-              <option value="N">N</option>
-            </SelectInput>
-          </Field>
-          <Field label={copy.content}>
-            <div className="grid gap-3">
-              <LanguageTabs activeLanguage={activeTemplateLanguage} onChange={setActiveTemplateLanguage} />
-              <TextArea value={activeTemplateContent} onChange={handleContentChange} rows={10} disabled={!canManage} />
-            </div>
-          </Field>
-        </div>
-        <Notice>{error}</Notice>
-        <Notice type="success">{notice}</Notice>
-        {canManage && showForm ? (
-          <PrimaryButton type="submit" disabled={isSaving} className="mt-4 w-full">
-            {editingId ? copy.save : copy.create}
-          </PrimaryButton>
-        ) : null}
-      </form>
+    <section className="grid min-w-0 gap-5">
+      <Notice>{error}</Notice>
+      <Notice type="success">{notice}</Notice>
 
       <div className="grid gap-5">
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
+            {canManage ? (
+              <PrimaryButton type="button" onClick={openCreateForm}>
+                {copy.templateNew}
+              </PrimaryButton>
+            ) : null}
+          </div>
           <div className="mt-4 grid gap-2">
             {templates.map((template) => (
               <div key={template.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-swing-border/30 p-3">
@@ -2279,15 +2269,68 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
 
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <h2 className="text-lg font-bold text-swing-ink">{copy.variables}</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {TEMPLATE_VARIABLES.map((variable) => (
-              <code key={variable} className="rounded-md border border-swing-border/30 bg-swing-cream/50 px-2 py-1 text-xs text-swing-ink/80">
-                {variable}
-              </code>
-            ))}
-          </div>
+          <TemplateVariableList className="mt-4" />
         </div>
       </div>
+
+      {isFormOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+          <form
+            onSubmit={handleSubmit}
+            className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5"
+          >
+            <h2 className="text-lg font-bold text-swing-ink">
+              {editingId ? copy.templateEditTitle : copy.templateCreateTitle}
+            </h2>
+            <div className="mt-4 grid gap-4">
+              <Field label={copy.templateName}>
+                <TextInput name="templateName" value={form.templateName} onChange={handleChange} disabled={!canManage} />
+              </Field>
+              <Field label={copy.templateType}>
+                <SelectInput name="templateType" value={form.templateType} onChange={handleChange} disabled={!canManage}>
+                  {TEMPLATE_TYPES.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={copy.useYn}>
+                <SelectInput name="useYn" value={form.useYn} onChange={handleChange} disabled={!canManage}>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                </SelectInput>
+              </Field>
+              <Field label={copy.content}>
+                <div className="grid gap-3">
+                  <LanguageTabs activeLanguage={activeTemplateLanguage} onChange={setActiveTemplateLanguage} />
+                  <TextArea value={activeTemplateContent} onChange={handleContentChange} rows={10} disabled={!canManage} />
+                </div>
+              </Field>
+            </div>
+
+            {/* Kept next to the body field: the variables are what you reach for
+                while writing it, not something to go looking for afterwards. */}
+            <div className="mt-4 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
+              <div className="text-xs font-semibold text-swing-muted">{copy.variables}</div>
+              <TemplateVariableList className="mt-2" />
+            </div>
+
+            <Notice>{error}</Notice>
+
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <SecondaryButton type="button" onClick={closeForm} disabled={isSaving} className="w-full sm:w-auto">
+                {copy.cancel}
+              </SecondaryButton>
+              {canManage ? (
+                <PrimaryButton type="submit" disabled={isSaving} className="w-full sm:w-auto">
+                  {editingId ? copy.save : copy.create}
+                </PrimaryButton>
+              ) : null}
+            </div>
+          </form>
+        </div>
+      ) : null}
     </section>
   );
 }
