@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "backend",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": ["-f", "backend/pom.xml", "spring-boot:run"],
+      "port": 18080
+    },
+    {
       "name": "preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--", "--port", "4173"],
