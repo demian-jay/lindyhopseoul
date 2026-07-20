@@ -104,10 +104,15 @@ grep -rE 'localhost:(8080|18080)' dist/assets/*.js   # must find nothing
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
 ssh ec2-user@52.78.185.32 "sudo tar czf /opt/lindyhop-backup/www-lindyhop-$TS.tar.gz -C /var/www lindyhop"
-ssh ec2-user@52.78.185.32 "mkdir -p ~/deploy-staging"
-scp -r dist/index.html dist/404.html dist/CNAME dist/assets ec2-user@52.78.185.32:~/deploy-staging/
+ssh ec2-user@52.78.185.32 "rm -rf ~/deploy-staging && mkdir -p ~/deploy-staging"
+scp -r dist/index.html dist/404.html dist/CNAME dist/assets \
+       dist/icons dist/manifest.webmanifest dist/sw.js \
+       ec2-user@52.78.185.32:~/deploy-staging/
 ssh ec2-user@52.78.185.32 '
   sudo cp -a ~/deploy-staging/assets/. /var/www/lindyhop/assets/
+  sudo mkdir -p /var/www/lindyhop/icons
+  sudo cp -a ~/deploy-staging/icons/. /var/www/lindyhop/icons/
+  sudo cp -a ~/deploy-staging/manifest.webmanifest ~/deploy-staging/sw.js /var/www/lindyhop/
   sudo cp -a ~/deploy-staging/index.html ~/deploy-staging/404.html ~/deploy-staging/CNAME /var/www/lindyhop/
   sudo chown -R nginx:nginx /var/www/lindyhop
   sudo chmod -R a+rX /var/www/lindyhop
@@ -118,6 +123,10 @@ ssh ec2-user@52.78.185.32 '
 Copy the new assets in **before** replacing `index.html`, so a request landing
 mid-deploy always finds the file its `index.html` points at.
 
+Everything after `dist/assets` on the `scp` line belongs to the installable
+app (`pwa.md`). Leaving it out does not fail the deploy — the site keeps
+working and the old worker keeps running, so a stale `sw.js` is easy to miss.
+
 `dist/` already contains `CNAME` and `404.html` from `public/`; both must stay
 in place.
 
@@ -127,6 +136,10 @@ in place.
 curl -s -o /dev/null -w "%{http_code}\n" https://lindyhopseoul.com/
 curl -s -o /dev/null -w "%{http_code}\n" https://lindyhopseoul.com/api/agora/corkboards/current
 curl -s https://lindyhopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|css)'
+
+# The installable app: sw.js must stay no-cache or new workers never land.
+curl -sI https://lindyhopseoul.com/sw.js | grep -i cache-control
+curl -sI https://lindyhopseoul.com/manifest.webmanifest | grep -iE 'content-type|cache-control'
 ```
 
 Then load the site and confirm the bundle filename matches the one you just
@@ -161,7 +174,23 @@ location /assets/ {
     add_header Cache-Control "public, max-age=31536000, immutable";
     try_files $uri =404;
 }
+
+location = /manifest.webmanifest {
+    default_type application/manifest+json;
+    add_header Cache-Control "no-cache";
+}
 ```
+
+The `manifest.webmanifest` block was added 2026-07-20. nginx ships no
+`mime.types` entry for the extension, so the manifest went out as
+`application/octet-stream`; browsers parsed it anyway, but the type was wrong.
+Its `Cache-Control` is repeated rather than inherited — see the `add_header`
+note at the end of this section.
+
+`sw.js`, `manifest.webmanifest` and `icons/` all sit at the site root, so they
+fall through to `location /` and get `no-cache`. That is what the service
+worker needs: a worker cached long would never be replaced. Do not move any of
+them under `/assets/`, which would hand them the immutable header.
 
 `index.html` is the pointer to the current content-hashed bundle, so it must
 never be stale. `no-cache` still caches it and only forces a revalidation, which
