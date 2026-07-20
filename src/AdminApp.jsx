@@ -1229,24 +1229,42 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
           ) : null}
         </div>
 
+        {/* The short single-line fields pair up two to a row. One per row left
+            the form taller than a phone screen for what is a handful of short
+            values. Role keeps a row of its own because it is a checkbox list. */}
         <div className="mt-4 grid gap-4">
-          <Field label={labels.fields.name}>
-            <TextInput name="adminUserNm" value={form.adminUserNm} onChange={handleChange} />
-          </Field>
-          <Field label={labels.fields.loginId}>
-            <TextInput name="loginId" value={form.loginId} onChange={handleChange} />
-          </Field>
-          <Field label={isEditing ? labels.fields.newPassword : labels.fields.password}>
-            <TextInput
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={labels.fields.name}>
+              <TextInput name="adminUserNm" value={form.adminUserNm} onChange={handleChange} />
+            </Field>
+            <Field label={labels.fields.loginId}>
+              <TextInput name="loginId" value={form.loginId} onChange={handleChange} />
+            </Field>
+            <Field label={isEditing ? labels.fields.newPassword : labels.fields.password}>
+              <TextInput
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+              />
+            </Field>
+            <Field label={labels.fields.language}>
+              <SelectInput name="langCd" value={form.langCd} onChange={handleChange}>
+                <LanguageOptions labels={labels} />
+              </SelectInput>
+            </Field>
+            {isEditing ? (
+              <Field label={labels.fields.status}>
+                <SelectInput name="useYn" value={form.useYn} onChange={handleChange}>
+                  <option value="Y">{labels.statuses.Y}</option>
+                  <option value="N">{labels.statuses.N}</option>
+                </SelectInput>
+              </Field>
+            ) : null}
+          </div>
           <Field label={labels.fields.role}>
-            <div className="grid gap-2 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-swing-border/30 bg-swing-cream/50 p-3">
               {roleOptions.map((role) => (
                 <label key={role} className="flex items-center gap-2 text-sm font-semibold text-swing-ink/80">
                   <input
@@ -1261,19 +1279,6 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
               ))}
             </div>
           </Field>
-          <Field label={labels.fields.language}>
-            <SelectInput name="langCd" value={form.langCd} onChange={handleChange}>
-              <LanguageOptions labels={labels} />
-            </SelectInput>
-          </Field>
-          {isEditing ? (
-            <Field label={labels.fields.status}>
-              <SelectInput name="useYn" value={form.useYn} onChange={handleChange}>
-                <option value="Y">{labels.statuses.Y}</option>
-                <option value="N">{labels.statuses.N}</option>
-              </SelectInput>
-            </Field>
-          ) : null}
         </div>
 
         <div className="mt-5 grid gap-2" aria-live="polite">
