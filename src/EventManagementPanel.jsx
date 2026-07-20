@@ -10,8 +10,18 @@ const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPER
 const LESSON_STATUSES = ["PUBLISHED", "FINISHED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
 const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
-const REGULAR_CLASS_GOOGLE_MAP_URL = "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96";
-const REGULAR_CLASS_NAVER_MAP_URL = "https://naver.me/x2jQH2Tt";
+// Named by venue, not by event type: regular classes and parties both run at KP.
+const KP_GOOGLE_MAP_URL = "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96";
+const KP_NAVER_MAP_URL = "https://naver.me/x2jQH2Tt";
+const KP_LOCATION = "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층 B호";
+const DIALOGUE_GOOGLE_MAP_URL = "https://maps.app.goo.gl/zw1a5deEpgU6t2CH9";
+const DIALOGUE_NAVER_MAP_URL = "https://naver.me/GYC9bsWA";
+const DIALOGUE_LOCATION = "Dialogue, 서울 용산구 신흥로 31 지하1층";
+// Events repeat on a fixed weekday: regular classes on Saturdays, Dialogue
+// meetups on Wednesdays. A new event defaults to next month's first and last
+// occurrence of that weekday. Values are JS getDay() numbers. Declared here
+// because EVENT_TYPE_DEFAULTS below reads it at module evaluation time.
+const WEEKDAY = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 };
 const TEMPLATE_VARIABLES = [
   "{{event.title.ko}}",
   "{{event.title.en}}",
@@ -93,41 +103,56 @@ const EVENT_STATUS_LABELS = {
   },
 };
 
+// One block per event type: everything the registration form pre-fills lives
+// here, so changing an operational value is a single-place edit. weekday is the
+// recurring day the event falls on; the form turns it into next month's first
+// and last occurrence. Types without one (parties are one-offs) leave the dates
+// empty. Address display is switched on for every type, matching how the venues
+// are actually published.
 const EVENT_TYPE_DEFAULTS = {
   REGULAR_CLASS: {
-    startTime: "16:00",
+    weekday: WEEKDAY.SATURDAY,
+    displayOrder: 2,
+    startTime: "17:30",
     endTime: "22:00",
-    location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
+    location: KP_LOCATION,
     addressInfoEnabled: true,
-    googleMapUrl: REGULAR_CLASS_GOOGLE_MAP_URL,
-    naverMapUrl: REGULAR_CLASS_NAVER_MAP_URL,
+    googleMapUrl: KP_GOOGLE_MAP_URL,
+    naverMapUrl: KP_NAVER_MAP_URL,
     translations: {
       ko: {
-        title: "스윙팝 정규수업",
-        shortDescription: "학동역 KP 댄스홀에서 음악에 맞춰 즐겁게 배우는 스윙댄스 정규수업을 진행합니다.",
+        title: "스윙팝 토요일 정규수업",
+        shortDescription: "토요일에 진행되는 스윙팝 정규 수업입니다.",
         description:
-          "학동역 KP 댄스홀에서 스윙댄스 정규수업을 진행합니다. 기본 스텝부터 파트너와 함께 추는 연결 동작까지, 음악에 맞춰 자연스럽게 움직이며 스윙댄스의 즐거움을 배워가는 수업입니다. 수업은 4주간 매주 토요일에 진행되며, 자세한 수업 시간은 각 수업별 정보를 확인해주세요.",
+          "스윙팝 토요일 정규수업은 Level 1, Level 2, Level 3 강습으로 구성됩니다. 처음 시작하는 분과 기본기를 다지는 분 모두 참여할 수 있으며 수업이 끝난 후에는 소셜댄스가 이어집니다.",
       },
       en: {
-        title: "SwingPop Regular Class",
-        shortDescription:
-          "Join our regular swing dance class at KP Dance Hall near Hakdong Station and learn to dance with the music.",
+        title: "SwingPop Saturday Regular Classes",
+        shortDescription: "SwingPop's regular Saturday swing dance classes.",
         description:
-          "SwingPop regular swing dance classes are held at KP Dance Hall near Hakdong Station. From basic steps to partner connection, you'll learn how to move naturally with the music and enjoy the fun of swing dancing. The class runs every Saturday for 4 weeks. Please check each class listing for the detailed schedule.",
+          "SwingPop Saturday Regular Classes consist of Level 1, Level 2, and Level 3 courses. Whether you're taking your first steps in swing dancing or looking to strengthen your fundamentals, there's a class for you. After the lessons, everyone is welcome to stay and enjoy social dancing.",
       },
     },
   },
   PARTY: {
-    startTime: "16:00",
+    displayOrder: 1,
+    startTime: "16:30",
     endTime: "22:00",
-    location: "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층",
-    addressInfoEnabled: false,
+    location: KP_LOCATION,
+    addressInfoEnabled: true,
+    googleMapUrl: KP_GOOGLE_MAP_URL,
+    naverMapUrl: KP_NAVER_MAP_URL,
+    // No text defaults on purpose: every party is written from scratch.
   },
   DIALOGUE_PARTY: {
+    weekday: WEEKDAY.WEDNESDAY,
+    displayOrder: 3,
     startTime: "19:30",
     endTime: "22:00",
-    location: "Dialogue, 서울 용산구 신흥로 31 지하1층",
-    addressInfoEnabled: false,
+    location: DIALOGUE_LOCATION,
+    addressInfoEnabled: true,
+    googleMapUrl: DIALOGUE_GOOGLE_MAP_URL,
+    naverMapUrl: DIALOGUE_NAVER_MAP_URL,
     translations: {
       ko: {
         title: "Dialogue 소셜댄스",
@@ -461,104 +486,58 @@ function emptyEventForm() {
       ko: { title: "", shortDescription: "", description: "" },
       en: { title: "", shortDescription: "", description: "" },
     },
-  }, "REGULAR_CLASS", eventDefaultFieldKeys("REGULAR_CLASS"));
+  }, "REGULAR_CLASS");
 }
 
-function eventDefaultFieldKeys(eventType) {
+// Resets the form to a type's defaults rather than merging into it. Called only
+// when a blank form is built or the admin confirms the "load defaults" prompt,
+// so "this type, from scratch" is the intent both times.
+//
+// Fields the type leaves undefined are cleared, not kept. A party defines no
+// dates or text, and carrying the previous type's over meant picking 파티 could
+// silently inherit Dialogue's title and its Wednesday dates. Declining the
+// prompt still preserves everything — see applyEventTypeAddressDefaults.
+function applyEventTypeDefaults(form, eventType) {
   const defaults = EVENT_TYPE_DEFAULTS[eventType] || {};
-  const keys = [];
-  if (defaults.startTime !== undefined) {
-    keys.push("startTime");
-  }
-  if (defaults.endTime !== undefined) {
-    keys.push("endTime");
-  }
-  if (defaults.location !== undefined) {
-    keys.push("location");
-  }
-  if (defaults.addressInfoEnabled !== undefined) {
-    keys.push("addressInfoEnabled");
-  }
-  if (defaults.googleMapUrl !== undefined) {
-    keys.push("googleMapUrl");
-  }
-  if (defaults.naverMapUrl !== undefined) {
-    keys.push("naverMapUrl");
-  }
-  SUPPORTED_LANGUAGES.forEach((languageCode) => {
-    const translation = defaults.translations?.[languageCode];
-    if (translation?.title !== undefined) {
-      keys.push(`translations.${languageCode}.title`);
-    }
-    if (translation?.shortDescription !== undefined) {
-      keys.push(`translations.${languageCode}.shortDescription`);
-    }
-    if (translation?.description !== undefined) {
-      keys.push(`translations.${languageCode}.description`);
-    }
-  });
-  return new Set(keys);
-}
-
-function applyEventTypeDefaults(form, eventType, autoDefaultFields = new Set()) {
-  const defaults = EVENT_TYPE_DEFAULTS[eventType] || {};
-  const applyTextDefault = (fieldKey, currentValue, nextValue) => {
-    if (!currentValue || autoDefaultFields.has(fieldKey)) {
-      return nextValue || "";
-    }
-    return currentValue;
-  };
+  const reset = (nextValue) => nextValue || "";
 
   return {
     ...form,
     eventType,
-    startTime: applyTextDefault("startTime", form.startTime, defaults.startTime),
-    endTime: applyTextDefault("endTime", form.endTime, defaults.endTime),
-    location: applyTextDefault("location", form.location, defaults.location),
-    addressInfoEnabled:
-      eventType === "REGULAR_CLASS"
-        ? true
-        : autoDefaultFields.has("addressInfoEnabled")
-          ? Boolean(defaults.addressInfoEnabled)
-          : Boolean(form.addressInfoEnabled),
-    googleMapUrl: form.googleMapUrl || defaults.googleMapUrl || "",
-    naverMapUrl: form.naverMapUrl || defaults.naverMapUrl || "",
+    // Recurring types land on next month's first and last matching weekday.
+    startDate: reset(defaults.weekday === undefined ? "" : firstWeekdayOfNextMonth(defaults.weekday)),
+    endDate: reset(defaults.weekday === undefined ? "" : lastWeekdayOfNextMonth(defaults.weekday)),
+    displayOrder: defaults.displayOrder ?? form.displayOrder,
+    startTime: reset(defaults.startTime),
+    endTime: reset(defaults.endTime),
+    location: reset(defaults.location),
+    // Every venue is published with its address, so this is on for all types.
+    addressInfoEnabled: true,
+    googleMapUrl: reset(defaults.googleMapUrl),
+    naverMapUrl: reset(defaults.naverMapUrl),
     translations: SUPPORTED_LANGUAGES.reduce((translations, languageCode) => {
-      const currentTranslation = form.translations?.[languageCode] || {};
       const defaultTranslation = defaults.translations?.[languageCode] || {};
       translations[languageCode] = {
-        title: applyTextDefault(
-          `translations.${languageCode}.title`,
-          currentTranslation.title,
-          defaultTranslation.title
-        ),
-        shortDescription: applyTextDefault(
-          `translations.${languageCode}.shortDescription`,
-          currentTranslation.shortDescription,
-          defaultTranslation.shortDescription
-        ),
-        description: applyTextDefault(
-          `translations.${languageCode}.description`,
-          currentTranslation.description,
-          defaultTranslation.description
-        ),
+        title: reset(defaultTranslation.title),
+        shortDescription: reset(defaultTranslation.shortDescription),
+        description: reset(defaultTranslation.description),
       };
       return translations;
     }, {}),
   };
 }
 
-function applyRegularClassAddressDefaults(form, eventType) {
-  if (eventType !== "REGULAR_CLASS") {
-    return { ...form, eventType };
-  }
-
+// Used when the admin declines the "load defaults" prompt on a type change: the
+// address block still follows the new type, since it describes the venue rather
+// than anything the admin wrote.
+function applyEventTypeAddressDefaults(form, eventType) {
+  const defaults = EVENT_TYPE_DEFAULTS[eventType] || {};
   return {
     ...form,
     eventType,
     addressInfoEnabled: true,
-    googleMapUrl: form.googleMapUrl || REGULAR_CLASS_GOOGLE_MAP_URL,
-    naverMapUrl: form.naverMapUrl || REGULAR_CLASS_NAVER_MAP_URL,
+    googleMapUrl: form.googleMapUrl || defaults.googleMapUrl || "",
+    naverMapUrl: form.naverMapUrl || defaults.naverMapUrl || "",
   };
 }
 
@@ -583,6 +562,22 @@ function toDateInputValue(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function firstWeekdayOfNextMonth(weekday) {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  // How many days past the 1st the first matching weekday falls.
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return toDateInputValue(new Date(first.getFullYear(), first.getMonth(), 1 + offset));
+}
+
+function lastWeekdayOfNextMonth(weekday) {
+  const now = new Date();
+  // Day 0 of the month after next is the last day of next month.
+  const last = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  return toDateInputValue(new Date(last.getFullYear(), last.getMonth(), last.getDate() - offset));
 }
 
 // Regular (PERIOD) classes run for a calendar month, so a new lesson defaults its
@@ -1079,8 +1074,8 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
       const shouldApplyDefaults = window.confirm(copy.confirmLoadEventDefaults);
       setForm((current) =>
         shouldApplyDefaults
-          ? applyEventTypeDefaults(current, value, eventDefaultFieldKeys(value))
-          : applyRegularClassAddressDefaults(current, value)
+          ? applyEventTypeDefaults(current, value)
+          : applyEventTypeAddressDefaults(current, value)
       );
       return;
     }
@@ -1089,12 +1084,12 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
         ...current,
         addressInfoEnabled: checked,
         googleMapUrl:
-          checked && current.eventType === "REGULAR_CLASS" && !current.googleMapUrl
-            ? REGULAR_CLASS_GOOGLE_MAP_URL
+          checked && !current.googleMapUrl
+            ? EVENT_TYPE_DEFAULTS[current.eventType]?.googleMapUrl || ""
             : current.googleMapUrl,
         naverMapUrl:
-          checked && current.eventType === "REGULAR_CLASS" && !current.naverMapUrl
-            ? REGULAR_CLASS_NAVER_MAP_URL
+          checked && !current.naverMapUrl
+            ? EVENT_TYPE_DEFAULTS[current.eventType]?.naverMapUrl || ""
             : current.naverMapUrl,
       }));
       return;
