@@ -7,7 +7,7 @@
 //
 // Bump CACHE when the caching rules below change. Everything not matching the
 // current name is dropped on activate.
-const CACHE = "swingpop-v1";
+const CACHE = "swingpop-v2";
 
 // The SPA shell. nginx answers every route with index.html, so one entry is
 // enough to render any client-side route while offline.
@@ -51,10 +51,23 @@ self.addEventListener("fetch", (event) => {
   if (BYPASS.some((prefix) => url.pathname.startsWith(prefix))) return;
 
   // Navigations go to the network first so a deploy is picked up immediately.
-  // The cached shell is a fallback for genuine offline, not a fast path.
+  // The cached shell is a fallback for genuine offline, not a fast path. On
+  // every successful load, refresh it, so the fallback is the last version the
+  // user actually saw rather than whatever was current when the worker first
+  // installed. Without this a single offline moment could pin a phone to a
+  // months-old build — which is exactly how a stale admin UI ended up fighting
+  // a newer backend.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match(SHELL).then((hit) => hit || Response.error()))
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(SHELL, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(SHELL).then((hit) => hit || Response.error()))
     );
     return;
   }

@@ -1211,7 +1211,11 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
+    // min-w-0 on the grid items: without it a grid child keeps its content's
+    // intrinsic width, so the 860px account table below refuses to shrink and
+    // pushes the whole page wider than a phone screen instead of scrolling
+    // inside its own container.
+    <section className="grid min-w-0 gap-5 [&>*]:min-w-0 xl:grid-cols-[390px_minmax(0,1fr)]">
       {canManageSuperAdmin || isEditing ? (
       <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
@@ -2643,6 +2647,10 @@ export default function AdminApp() {
   const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
   const [operationCheckRefreshKey, setOperationCheckRefreshKey] = useState(0);
   const [isMyAccountOpen, setIsMyAccountOpen] = useState(false);
+  // Set when any admin call comes back with PASSWORD_CHANGE_REQUIRED, so a
+  // session whose flag is out of date still lands on the change screen instead
+  // of showing a raw error. The login flag below is the usual trigger.
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
 
   const applySession = useCallback((nextSession) => {
     const nextMenus = filterVisibleMenus(nextSession.menus || []);
@@ -2671,6 +2679,16 @@ export default function AdminApp() {
     setSession(null);
     setActiveMenu("DASHBOARD");
     setMemberMessageUnreadCount(0);
+    setPasswordChangeRequired(false);
+  }, []);
+
+  // Any admin call that reports the account still owes a password change flips
+  // the app to the change screen, wherever it was. adminApi raises this from a
+  // 403 PASSWORD_CHANGE_REQUIRED.
+  useEffect(() => {
+    const handle = () => setPasswordChangeRequired(true);
+    window.addEventListener("swingpop:password-change-required", handle);
+    return () => window.removeEventListener("swingpop:password-change-required", handle);
   }, []);
 
   useEffect(() => {
@@ -2725,8 +2743,13 @@ export default function AdminApp() {
   const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
-  const canUseOperationCheck = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
-  const canUseMemberMessages = session ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+  // While a change is owed the whole admin area is off limits, so the sidebar
+  // count fetches below would only draw a 403 each. Fold it into their guards.
+  const pendingPasswordChange = Boolean(session?.user?.mustChangePassword) || passwordChangeRequired;
+  const canUseOperationCheck =
+    session && !pendingPasswordChange ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+  const canUseMemberMessages =
+    session && !pendingPasswordChange ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
   const shouldShowOperationCheckQuickInput =
     canUseOperationCheck && (safeActiveMenu === "DASHBOARD" || safeActiveMenu === "OPERATION_CHECK");
 
@@ -2796,13 +2819,16 @@ export default function AdminApp() {
   // Checked before anything else renders, so the admin area is not merely
   // covered up while a pending change is outstanding. The API refuses these
   // calls regardless; this is what makes that refusal legible.
-  if (session.user.mustChangePassword) {
+  if (pendingPasswordChange) {
     return (
       <PasswordChangeRequiredScreen
         token={token}
         labels={labels.myAccount}
         commonLabels={labels.common}
-        onChanged={applySession}
+        onChanged={(nextSession) => {
+          setPasswordChangeRequired(false);
+          applySession(nextSession);
+        }}
         onLogout={handleLogout}
       />
     );
@@ -2875,7 +2901,7 @@ export default function AdminApp() {
           </nav>
         </aside>
 
-        <main className="grid gap-5">
+        <main className="grid min-w-0 gap-5">
           {shouldShowOperationCheckQuickInput ? (
             <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged} />
           ) : null}

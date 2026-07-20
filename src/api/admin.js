@@ -28,7 +28,24 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.message || `API request failed with status ${response.status}.`);
+
+    // The backend uses this code, not a sentence, when an account still owes a
+    // password change. Announce it so the app can switch to the change screen,
+    // and never let the bare code surface as if it were a message a person
+    // should read. This is a safety net; the normal path is the login response
+    // flagging the account before any other call is made.
+    if (response.status === 403 && error?.message === "PASSWORD_CHANGE_REQUIRED") {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("swingpop:password-change-required"));
+      }
+      const guardError = new Error("PASSWORD_CHANGE_REQUIRED");
+      guardError.code = "PASSWORD_CHANGE_REQUIRED";
+      throw guardError;
+    }
+
+    const requestError = new Error(error?.message || `API request failed with status ${response.status}.`);
+    requestError.status = response.status;
+    throw requestError;
   }
 
   if (response.status === 204) {
