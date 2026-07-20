@@ -9,8 +9,8 @@ const COPY = {
     title: "담벼락",
     description: "운영진 공지와 회원 메모가 섞여 보이는 커뮤니티 코르크보드를 관리합니다.",
     boardSettingsTitle: "보드 운영 설정",
-    boardSettingsDescription: "현재 보드의 사용 기간을 확인하고, 다음 코르크보드를 예약합니다.",
-    currentBoardInfo: "현재 활성 보드 정보",
+    boardSettingsDescription: "선택한 보드의 사용 기간을 확인하고, 다음 코르크보드를 예약합니다.",
+    currentBoardInfo: "선택한 보드 정보",
     current: "현재 보드",
     periods: "기간",
     periodArchiveTitle: "지난 보드 목록",
@@ -26,7 +26,7 @@ const COPY = {
     saveSettings: "기간 설정 저장",
     savingSettings: "저장 중",
     editPeriodTitle: "기간 수정",
-    editPeriodDescription: "현재 보드의 제목과 사용 기간을 변경합니다.",
+    editPeriodDescription: "선택한 보드의 제목과 사용 기간을 변경합니다.",
     expandSection: "펼치기",
     collapseSection: "접기",
     settingsSaved: "보드 설정을 저장했습니다.",
@@ -111,8 +111,8 @@ const COPY = {
     title: "Corkboard",
     description: "Manage the community corkboard where staff notices and member notes live together.",
     boardSettingsTitle: "Board Settings",
-    boardSettingsDescription: "Review the current board period and schedule the next corkboard.",
-    currentBoardInfo: "Current board info",
+    boardSettingsDescription: "Review the selected board period and schedule the next corkboard.",
+    currentBoardInfo: "Selected board info",
     current: "Current board",
     periods: "Periods",
     periodArchiveTitle: "Past boards",
@@ -128,7 +128,7 @@ const COPY = {
     saveSettings: "Save Period",
     savingSettings: "Saving",
     editPeriodTitle: "Edit Period",
-    editPeriodDescription: "Change the current board's title and active dates.",
+    editPeriodDescription: "Change the selected board's title and active dates.",
     expandSection: "Expand",
     collapseSection: "Collapse",
     settingsSaved: "Board settings saved.",
@@ -807,6 +807,16 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const selected = management?.selected || null;
   const currentPeriod = management?.current || null;
   const periods = management?.periods || [];
+  // The board the settings below act on. `current` is whichever period contains
+  // today, which is not what the period picker above changes: editing a future
+  // month used to write today's board instead, and the server then rejected it
+  // for overlapping the month actually being edited. Follow the selection, and
+  // fall back to today's board only when nothing is picked. Read from `periods`
+  // rather than `selected` because only the summary carries page and note counts.
+  const editingPeriod = useMemo(() => {
+    const key = selected?.periodKey || currentPeriod?.periodKey;
+    return periods.find((period) => period.periodKey === key) || currentPeriod;
+  }, [periods, selected?.periodKey, currentPeriod]);
   const todayKey = useMemo(() => seoulTodayKey(), []);
   const archivePeriods = useMemo(
     () => periods.filter((period) => isArchivePeriod(period, todayKey)),
@@ -838,16 +848,16 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   }, [loadCorkboards]);
 
   useEffect(() => {
-    if (!currentPeriod) {
+    if (!editingPeriod) {
       setSettingsForm({ title: "", periodStart: "", periodEnd: "" });
       return;
     }
     setSettingsForm({
-      title: currentPeriod.title || "",
-      periodStart: dateInputValue(currentPeriod.periodStart),
-      periodEnd: dateInputValue(currentPeriod.periodEnd),
+      title: editingPeriod.title || "",
+      periodStart: dateInputValue(editingPeriod.periodStart),
+      periodEnd: dateInputValue(editingPeriod.periodEnd),
     });
-  }, [currentPeriod?.periodEnd, currentPeriod?.periodKey, currentPeriod?.periodStart, currentPeriod?.title]);
+  }, [editingPeriod?.periodEnd, editingPeriod?.periodKey, editingPeriod?.periodStart, editingPeriod?.title]);
 
   useEffect(() => {
     if (!notice) {
@@ -922,7 +932,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
   const handleSaveSettings = async (event) => {
     event.preventDefault();
-    if (!canManagePeriods || !currentPeriod?.periodKey) {
+    if (!canManagePeriods || !editingPeriod?.periodKey) {
       return;
     }
 
@@ -937,12 +947,12 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
     setIsSavingSettings(true);
     try {
-      const nextManagement = await adminApi.updateCorkboardPeriod(token, currentPeriod.periodKey, {
+      const nextManagement = await adminApi.updateCorkboardPeriod(token, editingPeriod.periodKey, {
         title: settingsForm.title.trim(),
         periodStart: settingsForm.periodStart,
         periodEnd: settingsForm.periodEnd,
       });
-      acceptManagementResponse(nextManagement, currentPeriod.periodKey);
+      acceptManagementResponse(nextManagement, editingPeriod.periodKey);
       setNotice(labels.settingsSaved);
     } catch (nextError) {
       setError(nextError.message || labels.settingsSaveError);
@@ -990,10 +1000,12 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   };
 
   const handleArchiveCurrent = async () => {
-    if (!canManagePeriods || !currentPeriod?.periodKey || isArchivingPeriod) {
+    if (!canManagePeriods || !editingPeriod?.periodKey || isArchivingPeriod) {
       return;
     }
-    if (!window.confirm(labels.archiveConfirm(currentPeriod.periodKey))) {
+    // Archives whichever board is on screen, matching the picker. The confirm
+    // names the key so it is clear which one is about to become read-only.
+    if (!window.confirm(labels.archiveConfirm(editingPeriod.periodKey))) {
       return;
     }
 
@@ -1001,8 +1013,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
     setNotice("");
     setIsArchivingPeriod(true);
     try {
-      const nextManagement = await adminApi.archiveCorkboardPeriod(token, currentPeriod.periodKey);
-      acceptManagementResponse(nextManagement, currentPeriod.periodKey);
+      const nextManagement = await adminApi.archiveCorkboardPeriod(token, editingPeriod.periodKey);
+      acceptManagementResponse(nextManagement, editingPeriod.periodKey);
       setNotice(labels.archiveSaved);
     } catch (nextError) {
       setError(nextError.message || labels.archiveError);
@@ -1198,7 +1210,7 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               {labels.boardSettingsTitle}
             </p>
             <h3 className="mt-1 text-xl font-bold text-swing-ink">
-              {currentPeriod?.title || labels.noCurrentBoard}
+              {editingPeriod?.title || labels.noCurrentBoard}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-swing-muted">
               {labels.boardSettingsDescription}
@@ -1214,24 +1226,24 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
         <div className="mt-4">
           <h4 className="text-sm font-bold text-swing-ink">{labels.currentBoardInfo}</h4>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <AdminPeriodMetric label={labels.periodKey} value={currentPeriod?.periodKey} />
+            <AdminPeriodMetric label={labels.periodKey} value={editingPeriod?.periodKey} />
             <AdminPeriodMetric
               label={labels.periodStart}
-              value={formatPeriodDate(currentPeriod?.periodStart, langCd)}
+              value={formatPeriodDate(editingPeriod?.periodStart, langCd)}
             />
             <AdminPeriodMetric
               label={labels.periodEnd}
-              value={formatPeriodDate(currentPeriod?.periodEnd, langCd)}
+              value={formatPeriodDate(editingPeriod?.periodEnd, langCd)}
             />
             <AdminPeriodMetric
               label={labels.status}
-              value={currentPeriod?.writable ? labels.writable : labels.notWritable}
-              tone={currentPeriod?.writable ? "positive" : "muted"}
+              value={editingPeriod?.writable ? labels.writable : labels.notWritable}
+              tone={editingPeriod?.writable ? "positive" : "muted"}
             />
-            <AdminPeriodMetric label={labels.pageCount} value={currentPeriod?.pageCount ?? 0} />
-            <AdminPeriodMetric label={labels.noteCount} value={currentPeriod?.noteCount ?? 0} />
-            <AdminPeriodMetric label={labels.periodTitle} value={currentPeriod?.title} />
-            <AdminPeriodMetric label={labels.status} value={currentPeriod?.status} />
+            <AdminPeriodMetric label={labels.pageCount} value={editingPeriod?.pageCount ?? 0} />
+            <AdminPeriodMetric label={labels.noteCount} value={editingPeriod?.noteCount ?? 0} />
+            <AdminPeriodMetric label={labels.periodTitle} value={editingPeriod?.title} />
+            <AdminPeriodMetric label={labels.status} value={editingPeriod?.status} />
           </div>
         </div>
 
@@ -1278,14 +1290,14 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 <button
                   type="button"
                   onClick={handleArchiveCurrent}
-                  disabled={!currentPeriod?.periodKey || isArchivingPeriod}
+                  disabled={!editingPeriod?.periodKey || isArchivingPeriod}
                   className="rounded-lg border border-red-200 bg-swing-paper px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isArchivingPeriod ? labels.archivingCurrent : labels.archiveCurrent}
                 </button>
                 <button
                   type="submit"
-                  disabled={!currentPeriod?.periodKey || isSavingSettings}
+                  disabled={!editingPeriod?.periodKey || isSavingSettings}
                   className="rounded-lg bg-swing-teal-deep px-4 py-2 text-sm font-bold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSavingSettings ? labels.savingSettings : labels.saveSettings}
