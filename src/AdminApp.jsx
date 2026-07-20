@@ -2367,7 +2367,13 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
         {!isLoading && logs.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-[1100px] w-full divide-y divide-swing-border/30 text-left text-sm">
-              <thead className="bg-swing-cream/50 text-xs font-semibold uppercase tracking-wide text-swing-muted">
+              {/* whitespace-nowrap on the headers: twelve columns inside a 1100px
+                  floor left the short-label ones about 39px of content width, so
+                  "처리자 역할" broke to one character per line. The table already
+                  scrolls in its own container, so letting the headers set the
+                  column width costs nothing. The sentence-length columns get a
+                  floor too, otherwise their text wraps every few characters. */}
+              <thead className="whitespace-nowrap bg-swing-cream/50 text-xs font-semibold uppercase tracking-wide text-swing-muted">
                 <tr>
                   <th className="px-3 py-3">{logLabels.actionAt}</th>
                   <th className="px-3 py-3">{logLabels.actor}</th>
@@ -2376,11 +2382,11 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                   <th className="px-3 py-3">{logLabels.targetEmail}</th>
                   <th className="px-3 py-3">{logLabels.lessonTitle}</th>
                   <th className="px-3 py-3">{logLabels.lessonDate}</th>
-                  <th className="px-3 py-3">{logLabels.actionType}</th>
+                  <th className="min-w-[150px] px-3 py-3">{logLabels.actionType}</th>
                   <th className="px-3 py-3">{logLabels.previousStatus}</th>
                   <th className="px-3 py-3">{logLabels.nextStatus}</th>
-                  <th className="px-3 py-3">{logLabels.summary}</th>
-                  <th className="px-3 py-3">{logLabels.reason}</th>
+                  <th className="min-w-[150px] px-3 py-3">{logLabels.summary}</th>
+                  <th className="min-w-[150px] px-3 py-3">{logLabels.reason}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-swing-border/20">
