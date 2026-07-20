@@ -81,6 +81,18 @@ const EVENT_TYPE_LABELS = {
   },
 };
 
+// Shared by events and lessons: both carry the same two status codes.
+const EVENT_STATUS_LABELS = {
+  Kor: {
+    PUBLISHED: "진행중",
+    FINISHED: "종료됨",
+  },
+  Eng: {
+    PUBLISHED: "Published",
+    FINISHED: "Finished",
+  },
+};
+
 const EVENT_TYPE_DEFAULTS = {
   REGULAR_CLASS: {
     startTime: "16:00",
@@ -366,6 +378,10 @@ function t(langCd) {
 
 function eventTypeLabel(eventType, langCd) {
   return EVENT_TYPE_LABELS[langCd]?.[eventType] || eventType;
+}
+
+function eventStatusLabel(status, langCd) {
+  return EVENT_STATUS_LABELS[langCd]?.[status] || status;
 }
 
 function toManualLanguage(langCd) {
@@ -1127,7 +1143,7 @@ function EventForm({ langCd, initialValue, onSubmit, onCancel, isSaving }) {
           <SelectInput name="status" value={form.status} onChange={handleChange}>
             {EVENT_STATUSES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {eventStatusLabel(value, langCd)}
               </option>
             ))}
           </SelectInput>
@@ -1308,7 +1324,7 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
           <SelectInput name="status" value={form.status} onChange={handleChange}>
             {LESSON_STATUSES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {eventStatusLabel(value, langCd)}
               </option>
             ))}
           </SelectInput>
@@ -1696,7 +1712,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
                 <option value="">{copy.all}</option>
                 {EVENT_STATUSES.map((value) => (
                   <option key={value} value={value}>
-                    {value}
+                    {eventStatusLabel(value, langCd)}
                   </option>
                 ))}
               </SelectInput>
@@ -1725,7 +1741,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
                 {formatDateRange(event.startDate, event.endDate)} / {eventTypeLabel(event.eventType, langCd)}
               </div>
               <div className="mt-2">
-                <Badge>{event.status}</Badge>
+                <Badge>{eventStatusLabel(event.status, langCd)}</Badge>
               </div>
             </button>
           ))}
@@ -1811,6 +1827,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             token={token}
             copy={copy}
             event={selectedEvent}
+            langCd={langCd}
             languageCode={languageCode}
             canDelete={canDelete}
             onEditEvent={startEditEvent}
@@ -1843,6 +1860,7 @@ function EventDetail({
   token,
   copy,
   event,
+  langCd,
   languageCode,
   canDelete,
   onEditEvent,
@@ -1869,7 +1887,7 @@ function EventDetail({
           <h2 className="text-xl font-bold text-swing-ink">{eventTitle(event, languageCode)}</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge>{eventTypeLabel(event.eventType, languageCode === "en" ? "Eng" : "Kor")}</Badge>
-            <Badge>{event.status}</Badge>
+            <Badge>{eventStatusLabel(event.status, langCd)}</Badge>
             <Badge>{formatDateRange(event.startDate, event.endDate)}</Badge>
             <Badge>
               {toTimeInput(event.startTime)}-{toTimeInput(event.endTime)}
@@ -1923,7 +1941,7 @@ function EventDetail({
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge>{lesson.lessonType}</Badge>
                     <Badge>{lesson.scheduleType}</Badge>
-                    <Badge>{lesson.status}</Badge>
+                    <Badge>{eventStatusLabel(lesson.status, langCd)}</Badge>
                     {lesson.roleSelectionEnabled ? <Badge>{copy.roleSelectionEnabled}</Badge> : null}
                     <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
                     <Badge>
@@ -2310,7 +2328,7 @@ export function TeacherDashboardPanel({ token, langCd }) {
                 <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
                   {LESSON_STATUSES.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {eventStatusLabel(value, langCd)}
                     </option>
                   ))}
                 </SelectInput>
@@ -2329,14 +2347,14 @@ export function TeacherDashboardPanel({ token, langCd }) {
           </div>
         </div>
         <div className="mt-4">
-          <LessonDashboardRows lessons={lessons} copy={copy} languageCode={languageCode} token={token} />
+          <LessonDashboardRows lessons={lessons} copy={copy} langCd={langCd} languageCode={languageCode} token={token} />
         </div>
       </div>
     </section>
   );
 }
 
-function LessonDashboardRows({ lessons, copy, languageCode, token }) {
+function LessonDashboardRows({ lessons, copy, langCd, languageCode, token }) {
   if (lessons.length === 0) {
     return <div className="text-sm text-swing-muted">{copy.noLessons}</div>;
   }
@@ -2351,7 +2369,7 @@ function LessonDashboardRows({ lessons, copy, languageCode, token }) {
               <div className="mt-1 text-sm text-swing-muted">{localizedTitle(lesson.eventTitle, languageCode)}</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
-                <Badge>{lesson.status}</Badge>
+                <Badge>{eventStatusLabel(lesson.status, langCd)}</Badge>
                 <Badge>{lesson.lessonDisplayStatus}</Badge>
                 <Badge>{lesson.scheduleType}</Badge>
                 <Badge>{lesson.lessonType}</Badge>
