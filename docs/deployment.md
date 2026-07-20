@@ -15,9 +15,10 @@ repository; every step below is run by hand.
 - `sudo` on the host is `NOPASSWD`
 - HTTPS via Certbot (`/etc/letsencrypt/live/lindyhopseoul.com/`)
 
-SSH accepts `publickey` only, so you need this instance's EC2 keypair. A
-generic `~/.ssh/id_ed25519` is rejected unless it was added to
-`~ec2-user/.ssh/authorized_keys`.
+SSH accepts `publickey` only. Any key works once it is in
+`~ec2-user/.ssh/authorized_keys`; a key the host has never seen fails with
+`Permission denied (publickey,...)`, which means the key is not authorised, not
+that the host is down.
 
 ### Host address, verified 2026-07-20
 
@@ -31,9 +32,10 @@ unreachable. Checked on the new address:
 | `/` and `/api/agora/corkboards/current` (via `curl --resolve`, so DNS is not trusted) | `200` from `52.78.185.32` |
 | TLS certificate | `CN=lindyhopseoul.com`, Let's Encrypt, SAN covers all four names, expires 2026-10-17 |
 | SSH port 22 | Open, daemon responds |
+| `ssh ec2-user@52.78.185.32` | Shell reached, `sudo` works, a full frontend deploy ran end to end |
 
-Not verified: an actual SSH login, because the keypair is not on the machine
-this was checked from. Reaching a shell may still fail.
+Everything on this page has now been exercised against this address except the
+Backend Deploy section, which stays untested.
 
 The SSH host key differs from the one `known_hosts` recorded for the old
 address, so this is a new instance rather than a moved Elastic IP. Expect
