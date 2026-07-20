@@ -16,3 +16,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 );
+
+// Production only: a worker controlling the dev server would sit in front of
+// HMR and serve confusing results. Verify it with `npm run preview`, which
+// serves the real build over localhost and so counts as a secure context.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      // Registration failing costs installability, not the site itself, so log
+      // and carry on rather than surfacing anything to the visitor.
+      console.error('Service worker registration failed', error);
+    });
+  });
+}
