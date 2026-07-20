@@ -2,7 +2,7 @@
 
 This file is the note to check before deploying to `lindyhopseoul.com`.
 
-Last updated: 2026-07-16
+Last updated: 2026-07-20
 
 Deployment is manual. There is no CI/CD, `Dockerfile`, or deploy script in this
 repository; every step below is run by hand.
@@ -10,9 +10,17 @@ repository; every step below is run by hand.
 ## Current Production
 
 - Site: `https://lindyhopseoul.com` (also `www.lindyhopseoul.com`)
-- Host: `ec2-user@54.116.169.23`, Amazon Linux 2023, `ap-northeast-2`
+- Host: `ec2-user@52.78.185.32`, Amazon Linux 2023, `ap-northeast-2`
 - `sudo` on the host is `NOPASSWD`
 - HTTPS via Certbot (`/etc/letsencrypt/live/lindyhopseoul.com/`)
+
+The host address changed on 2026-07-20; it was previously `54.116.169.23`,
+which no longer answers on port 22. If SSH times out, check the `A` record for
+`lindyhopseoul.com` before assuming the host is down.
+
+SSH accepts `publickey` only — password auth is disabled — so you need the EC2
+keypair for this instance. A generic `~/.ssh/id_ed25519` is rejected unless it
+was added to `~ec2-user/.ssh/authorized_keys`.
 
 Production is built from `codex/monolith-redesign`, not `main`. `main` is far
 behind and does not contain the backend or the Corkboard.
@@ -75,10 +83,10 @@ grep -rE 'localhost:(8080|18080)' dist/assets/*.js   # must find nothing
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
-ssh ec2-user@54.116.169.23 "sudo tar czf /opt/lindyhop-backup/www-lindyhop-$TS.tar.gz -C /var/www lindyhop"
-ssh ec2-user@54.116.169.23 "mkdir -p ~/deploy-staging"
-scp -r dist/index.html dist/404.html dist/CNAME dist/assets ec2-user@54.116.169.23:~/deploy-staging/
-ssh ec2-user@54.116.169.23 '
+ssh ec2-user@52.78.185.32 "sudo tar czf /opt/lindyhop-backup/www-lindyhop-$TS.tar.gz -C /var/www lindyhop"
+ssh ec2-user@52.78.185.32 "mkdir -p ~/deploy-staging"
+scp -r dist/index.html dist/404.html dist/CNAME dist/assets ec2-user@52.78.185.32:~/deploy-staging/
+ssh ec2-user@52.78.185.32 '
   sudo cp -a ~/deploy-staging/assets/. /var/www/lindyhop/assets/
   sudo cp -a ~/deploy-staging/index.html ~/deploy-staging/404.html ~/deploy-staging/CNAME /var/www/lindyhop/
   sudo chown -R nginx:nginx /var/www/lindyhop
@@ -167,7 +175,7 @@ removed. Once those caches have aged out, prune to the last generation or two.
 Frontend:
 
 ```bash
-ssh ec2-user@54.116.169.23 '
+ssh ec2-user@52.78.185.32 '
   sudo rm -rf /var/www/lindyhop
   sudo tar xzf /opt/lindyhop-backup/www-lindyhop-<TIMESTAMP>.tar.gz -C /var/www
   sudo chown -R nginx:nginx /var/www/lindyhop'
@@ -176,7 +184,7 @@ ssh ec2-user@54.116.169.23 '
 nginx config:
 
 ```bash
-ssh ec2-user@54.116.169.23 '
+ssh ec2-user@52.78.185.32 '
   sudo cp /opt/lindyhop-backup/nginx/lindyhop.conf.<TIMESTAMP> /etc/nginx/default.d/lindyhop.conf
   sudo nginx -t && sudo systemctl reload nginx'
 ```
