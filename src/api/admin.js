@@ -54,6 +54,13 @@ export const adminApi = {
       token,
     });
   },
+  changeOwnPassword(token, payload) {
+    return request("/api/admin/auth/me/password", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
   findAdmins(token) {
     return request("/api/admin/users/admins", { token });
   },

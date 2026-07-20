@@ -76,6 +76,23 @@ const I18N = {
       count: (count) => `${count}개`,
       empty: "-",
     },
+    myAccount: {
+      openButton: "내 정보",
+      title: "비밀번호 변경",
+      requiredTitle: "비밀번호를 변경해주세요",
+      requiredBody:
+        "지금 쓰고 계신 비밀번호는 관리자가 지정해 전달한 것이라 본인만 아는 값이 아닙니다. 새 비밀번호를 정하기 전까지 다른 화면을 이용할 수 없습니다.",
+      currentPassword: "현재 비밀번호",
+      newPassword: "새 비밀번호",
+      confirmPassword: "새 비밀번호 확인",
+      submit: "변경하기",
+      submitting: "변경 중",
+      hint: "8자 이상, 지금 쓰는 비밀번호와 다르게 정해주세요.",
+      mismatch: "새 비밀번호가 서로 다릅니다.",
+      tooShort: "새 비밀번호는 8자 이상이어야 합니다.",
+      sameAsCurrent: "현재 비밀번호와 다른 값으로 정해주세요.",
+      success: "비밀번호를 변경했습니다.",
+    },
     fields: {
       name: "이름",
       loginId: "아이디",
@@ -316,6 +333,23 @@ const I18N = {
       password: "Password",
       submit: "Log In",
       submitting: "Logging in",
+    },
+    myAccount: {
+      openButton: "My Account",
+      title: "Change Password",
+      requiredTitle: "Choose your own password",
+      requiredBody:
+        "Your current password was set by an administrator and handed to you, so it is not yours alone. The rest of the admin area stays locked until you replace it.",
+      currentPassword: "Current password",
+      newPassword: "New password",
+      confirmPassword: "Confirm new password",
+      submit: "Change password",
+      submitting: "Changing",
+      hint: "At least 8 characters, and different from the one you have now.",
+      mismatch: "The two new passwords do not match.",
+      tooShort: "The new password must be at least 8 characters.",
+      sameAsCurrent: "Choose something different from your current password.",
+      success: "Password changed.",
     },
     common: {
       cancel: "Cancel",
@@ -843,6 +877,158 @@ function LoginScreen({ onLogin }) {
           </button>
         </form>
       </main>
+    </div>
+  );
+}
+
+const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Shared by the modal an admin opens themselves and the screen they are held on
+ * until they have set a password of their own. Validates locally only to save a
+ * round trip; the same rules are enforced server-side, which is what actually
+ * counts.
+ */
+function PasswordChangeForm({ token, labels, commonLabels, onChanged, onCancel }) {
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const update = (key) => (event) => {
+    setForm((current) => ({ ...current, [key]: event.target.value }));
+    setError("");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (form.newPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(labels.tooShort);
+      return;
+    }
+    if (form.newPassword !== form.confirmPassword) {
+      setError(labels.mismatch);
+      return;
+    }
+    if (form.newPassword === form.currentPassword) {
+      setError(labels.sameAsCurrent);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const nextSession = await adminApi.changeOwnPassword(token, {
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
+      });
+      onChanged(nextSession);
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-3">
+      <Field label={labels.currentPassword}>
+        <TextInput
+          type="password"
+          value={form.currentPassword}
+          onChange={update("currentPassword")}
+          autoComplete="current-password"
+          required
+        />
+      </Field>
+      <Field label={labels.newPassword}>
+        <TextInput
+          type="password"
+          value={form.newPassword}
+          onChange={update("newPassword")}
+          autoComplete="new-password"
+          required
+        />
+      </Field>
+      <Field label={labels.confirmPassword}>
+        <TextInput
+          type="password"
+          value={form.confirmPassword}
+          onChange={update("confirmPassword")}
+          autoComplete="new-password"
+          required
+        />
+      </Field>
+      <p className="text-xs leading-5 text-swing-muted">{labels.hint}</p>
+      {error ? <Notice type="error">{error}</Notice> : null}
+      <div className="mt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {onCancel ? (
+          <SecondaryButton type="button" onClick={onCancel} disabled={isSubmitting} className="w-full sm:w-auto">
+            {commonLabels.cancel}
+          </SecondaryButton>
+        ) : null}
+        <PrimaryButton type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+          {isSubmitting ? labels.submitting : labels.submit}
+        </PrimaryButton>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Stands in for the whole admin area rather than overlaying it. An overlay could
+ * be removed from the DOM; this way there is nothing rendered behind it to reach.
+ */
+function PasswordChangeRequiredScreen({ token, labels, commonLabels, onChanged, onLogout }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-swing-cream px-4 py-8">
+      <div className="w-full max-w-md rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-xl">
+        <h1 className="text-lg font-bold text-swing-ink">{labels.requiredTitle}</h1>
+        <p className="mt-2 text-sm leading-6 text-swing-muted">{labels.requiredBody}</p>
+        <div className="mt-5">
+          <PasswordChangeForm
+            token={token}
+            labels={labels}
+            commonLabels={commonLabels}
+            onChanged={onChanged}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mt-4 w-full text-center text-xs font-semibold text-swing-muted underline underline-offset-4 transition hover:text-swing-ink"
+        >
+          {commonLabels.logout}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MyAccountModal({ token, labels, commonLabels, onChanged, onClose }) {
+  const [message, setMessage] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+      <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
+        <h2 className="text-lg font-bold text-swing-ink">{labels.title}</h2>
+        {message ? (
+          <div className="mt-3">
+            <Notice type="success">{message}</Notice>
+          </div>
+        ) : null}
+        <div className="mt-4">
+          <PasswordChangeForm
+            token={token}
+            labels={labels}
+            commonLabels={commonLabels}
+            onCancel={onClose}
+            onChanged={(nextSession) => {
+              setMessage(labels.success);
+              onChanged(nextSession);
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -2456,6 +2642,7 @@ export default function AdminApp() {
   const [operationCheckSummary, setOperationCheckSummary] = useState({ openTotalCount: 0, openAssignedCount: 0 });
   const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
   const [operationCheckRefreshKey, setOperationCheckRefreshKey] = useState(0);
+  const [isMyAccountOpen, setIsMyAccountOpen] = useState(false);
 
   const applySession = useCallback((nextSession) => {
     const nextMenus = filterVisibleMenus(nextSession.menus || []);
@@ -2606,6 +2793,21 @@ export default function AdminApp() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
+  // Checked before anything else renders, so the admin area is not merely
+  // covered up while a pending change is outstanding. The API refuses these
+  // calls regardless; this is what makes that refusal legible.
+  if (session.user.mustChangePassword) {
+    return (
+      <PasswordChangeRequiredScreen
+        token={token}
+        labels={labels.myAccount}
+        commonLabels={labels.common}
+        onChanged={applySession}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-swing-cream text-swing-ink">
       <header className="border-b border-swing-border/30 bg-swing-paper">
@@ -2617,6 +2819,13 @@ export default function AdminApp() {
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
             <span className="text-sm font-semibold text-swing-ink/80">{session.user.userNm}</span>
+            <button
+              type="button"
+              onClick={() => setIsMyAccountOpen(true)}
+              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+            >
+              {labels.myAccount.openButton}
+            </button>
             <button
               type="button"
               onClick={handleLogout}
@@ -2717,6 +2926,16 @@ export default function AdminApp() {
           ) : null}
         </main>
       </div>
+
+      {isMyAccountOpen ? (
+        <MyAccountModal
+          token={token}
+          labels={labels.myAccount}
+          commonLabels={labels.common}
+          onChanged={applySession}
+          onClose={() => setIsMyAccountOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
