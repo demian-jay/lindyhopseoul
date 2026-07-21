@@ -5,7 +5,7 @@ import { adminApi } from "./api/admin";
 import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
 import MemberNameLabel from "./MemberNameLabel";
-import OperationCheckPanel, { OperationCheckQuickInput } from "./OperationCheckPanel";
+import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 
@@ -824,6 +824,33 @@ function DateTimeLines({ value, langCd, fallback }) {
       <div>{parts.date}</div>
       <div className="text-xs">{parts.time}</div>
     </>
+  );
+}
+
+// One implementation for both navs: the sidebar renders every category at once,
+// the phone layout renders one category at a time, but a menu row is the same
+// row either way.
+function AdminMenuButton({ label, isActive, badgeCount = 0, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-current={isActive ? "page" : undefined}
+      className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
+        isActive ? "bg-swing-teal-deep text-swing-paper" : "text-swing-muted hover:bg-swing-cream/60 hover:text-swing-ink"
+      }`}
+    >
+      <span>{label}</span>
+      {badgeCount > 0 ? (
+        <span
+          className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+            isActive ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
+          }`}
+        >
+          {badgeCount}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -2934,6 +2961,18 @@ export default function AdminApp() {
   const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
   const menuCategories = useMemo(() => groupMenusByCategory(visibleMenus), [visibleMenus]);
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
+  // Which category the phone layout has open. It follows the active menu so the
+  // list you navigated from stays open, and sits closed on the dashboard, where
+  // no menu is selected.
+  const activeCategoryKey = useMemo(() => {
+    const owning = menuCategories.find((category) => category.menus.includes(safeActiveMenu));
+    return owning ? owning.key || "OTHER" : null;
+  }, [menuCategories, safeActiveMenu]);
+  const [openCategory, setOpenCategory] = useState(activeCategoryKey);
+
+  useEffect(() => {
+    setOpenCategory(activeCategoryKey);
+  }, [activeCategoryKey]);
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
   // While a change is owed the whole admin area is off limits, so the sidebar
   // count fetches below would only draw a 403 each. Fold it into their guards.
@@ -2942,6 +2981,16 @@ export default function AdminApp() {
     session && !pendingPasswordChange ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
   const canUseMemberMessages =
     session && !pendingPasswordChange ? hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) : false;
+  const menuBadgeCount = (menu) => {
+    if (menu === "OPERATION_CHECK") {
+      return operationCheckSummary.openAssignedCount;
+    }
+    if (menu === "MEMBER_MESSAGES") {
+      return memberMessageUnreadCount;
+    }
+    return 0;
+  };
+
   const shouldShowOperationCheckQuickInput =
     canUseOperationCheck && (safeActiveMenu === "DASHBOARD" || safeActiveMenu === "OPERATION_CHECK");
 
@@ -3077,7 +3126,49 @@ export default function AdminApp() {
 
       <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
-          <nav className="grid gap-4">
+          {/* Phones: the three categories are chips across the top and only the
+              chosen one lists its menus. Stacking all three open cost most of a
+              phone screen before any content appeared. */}
+          <nav className="grid gap-2 lg:hidden" aria-label={labels.brand}>
+            <div className="flex flex-wrap gap-1.5">
+              {menuCategories.map((category) => {
+                const isOpen = openCategory === (category.key || "OTHER");
+
+                return (
+                  <button
+                    key={category.key || "OTHER"}
+                    type="button"
+                    onClick={() => setOpenCategory(isOpen ? null : category.key || "OTHER")}
+                    aria-expanded={isOpen}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                      isOpen
+                        ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                        : "border-swing-border/55 bg-swing-paper text-swing-muted hover:bg-swing-cream/60"
+                    }`}
+                  >
+                    {category.key ? labels.menuCategories[category.key] || category.key : labels.brand}
+                  </button>
+                );
+              })}
+            </div>
+            {menuCategories
+              .filter((category) => openCategory === (category.key || "OTHER"))
+              .map((category) => (
+                <div key={category.key || "OTHER"} className="grid gap-1 border-t border-swing-border/30 pt-2">
+                  {category.menus.map((menu) => (
+                    <AdminMenuButton
+                      key={menu}
+                      label={labels.menus[menu] || menu}
+                      isActive={safeActiveMenu === menu}
+                      badgeCount={menuBadgeCount(menu)}
+                      onSelect={() => setActiveMenu(menu)}
+                    />
+                  ))}
+                </div>
+              ))}
+          </nav>
+
+          <nav className="hidden gap-4 lg:grid">
             {menuCategories.map((category) => (
               <div key={category.key || "OTHER"} className="grid gap-1">
                 {category.key ? (
@@ -3086,36 +3177,13 @@ export default function AdminApp() {
                   </div>
                 ) : null}
                 {category.menus.map((menu) => (
-                  <button
+                  <AdminMenuButton
                     key={menu}
-                    type="button"
-                    onClick={() => setActiveMenu(menu)}
-                    className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
-                      safeActiveMenu === menu
-                        ? "bg-swing-teal-deep text-swing-paper"
-                        : "text-swing-muted hover:bg-swing-cream/60 hover:text-swing-ink"
-                    }`}
-                  >
-                    <span>{labels.menus[menu] || menu}</span>
-                    {menu === "OPERATION_CHECK" && operationCheckSummary.openAssignedCount > 0 ? (
-                      <span
-                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                          safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
-                        }`}
-                      >
-                        {operationCheckSummary.openAssignedCount}
-                      </span>
-                    ) : null}
-                    {menu === "MEMBER_MESSAGES" && memberMessageUnreadCount > 0 ? (
-                      <span
-                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                          safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
-                        }`}
-                      >
-                        {memberMessageUnreadCount}
-                      </span>
-                    ) : null}
-                  </button>
+                    label={labels.menus[menu] || menu}
+                    isActive={safeActiveMenu === menu}
+                    badgeCount={menuBadgeCount(menu)}
+                    onSelect={() => setActiveMenu(menu)}
+                  />
                 ))}
               </div>
             ))}
@@ -3133,6 +3201,17 @@ export default function AdminApp() {
         <main className="grid min-w-0 gap-5">
           {shouldShowOperationCheckQuickInput ? (
             <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged} />
+          ) : null}
+          {/* Only on the dashboard: the OPERATION_CHECK menu below already lists
+              everything, so repeating my own items there would be noise. */}
+          {canUseOperationCheck && safeActiveMenu === "DASHBOARD" ? (
+            <OperationCheckMineList
+              token={token}
+              langCd={langCd}
+              currentUserId={session.user.userCd || session.user.userId}
+              refreshKey={operationCheckRefreshKey}
+              onSelect={() => setActiveMenu("OPERATION_CHECK")}
+            />
           ) : null}
           {safeActiveMenu === "DASHBOARD" ? (
             <div className="grid gap-5">

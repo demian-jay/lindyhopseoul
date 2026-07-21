@@ -22,6 +22,8 @@ const COPY = {
     emptyOpen: "미완료 항목이 없습니다.",
     emptyDone: "완료된 항목이 없습니다.",
     emptyAll: "등록된 항목이 없습니다.",
+    mineTitle: "내 운영 체크",
+    mineEmpty: "최근 확인내용이 없습니다.",
     createdBy: "작성자",
     assignedTo: "담당자",
     createdAt: "등록일시",
@@ -80,6 +82,8 @@ const COPY = {
     emptyOpen: "No open items.",
     emptyDone: "No completed items.",
     emptyAll: "No items yet.",
+    mineTitle: "My Operation Checks",
+    mineEmpty: "Nothing to check right now.",
     createdBy: "Created by",
     assignedTo: "Assignees",
     createdAt: "Created",
@@ -315,6 +319,96 @@ function AssigneeMultiSelect({ labels, langCd, assignees, value = [], onChange, 
         </div>
       ) : null}
     </div>
+  );
+}
+
+// "Related to me" is anything I would be expected to act on: items I raised,
+// items assigned to me, and items shared with everyone — an unassigned item is
+// the whole staff's to pick up, so it counts.
+function isRelatedToUser(item, userId) {
+  if (!userId) {
+    return false;
+  }
+  if (item.createdByUserId === userId) {
+    return true;
+  }
+  const assignees = getAssignees(item);
+  if (assignees.length === 0) {
+    return true;
+  }
+  return assignees.some((assignee) => assignee.userId === userId);
+}
+
+/**
+ * Dashboard companion to the quick input above it. The OPERATION_CHECK menu
+ * shows everything; this shows only what the signed-in account is on the hook
+ * for, and shrinks to a single line of text when that is nothing — a dashboard
+ * should not spend a card on "there is nothing here".
+ */
+export function OperationCheckMineList({ token, langCd, currentUserId, refreshKey = 0, onSelect }) {
+  const labels = copyFor(langCd);
+  const [items, setItems] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    adminApi
+      .findOperationChecks(token, { status: "OPEN" })
+      .then((list) => {
+        if (isMounted) {
+          setItems((list || []).filter((item) => isRelatedToUser(item, currentUserId)));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setItems([]);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoaded(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, currentUserId, refreshKey]);
+
+  // Nothing at all until the first response, so the empty line does not flash
+  // before the list arrives.
+  if (!isLoaded) {
+    return null;
+  }
+
+  if (items.length === 0) {
+    return <p className="px-1 text-xs text-swing-muted/80">{labels.mineEmpty}</p>;
+  }
+
+  return (
+    <section className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-bold text-swing-ink">{labels.mineTitle}</h2>
+        <span className="text-xs font-semibold text-swing-muted">{items.length}</span>
+      </div>
+      <ul className="mt-3 grid gap-2">
+        {items.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              onClick={onSelect}
+              className="flex w-full flex-col gap-1 rounded-lg border border-swing-border/30 px-3 py-2 text-left transition hover:bg-swing-cream/50"
+            >
+              <span className="text-sm leading-5 text-swing-ink">{formatContentPreview(item.content)}</span>
+              <span className="text-[11px] text-swing-muted">
+                {formatAssigneeSummary(item, labels, langCd)} · {formatDate(item.createdAt, langCd)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
