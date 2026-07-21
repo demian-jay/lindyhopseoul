@@ -810,6 +810,23 @@ function RoleBadges({ item, labels }) {
   );
 }
 
+// Timestamps in the wide admin tables get two short lines. Left as one string
+// they wrapped wherever the column happened to end — 가입일 came out as three
+// lines reading "2026." / "7. 15." / "오후 8:22".
+function DateTimeLines({ value, langCd, fallback }) {
+  const parts = formatDateTimeLines(value, langCd);
+  if (!parts) {
+    return fallback;
+  }
+
+  return (
+    <>
+      <div>{parts.date}</div>
+      <div className="text-xs">{parts.time}</div>
+    </>
+  );
+}
+
 function Field({ label, children }) {
   return (
     <label className="block">
@@ -1882,9 +1899,21 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   };
 
   return (
-    <section className="grid gap-4 sm:gap-5">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-swing-border/30 pb-3 sm:gap-3 sm:pb-4">
+    // min-w-0 on both the grid and its items, matching the action log panel: the
+    // 1180px member table sits inside a card, and that card is the grid item
+    // whose automatic minimum size would otherwise hold the table's full width.
+    // Without both, the page widened past the viewport instead of the table
+    // scrolling inside its own container. content-start keeps the auto rows from
+    // absorbing the height the page grid hands this column.
+    <section className="grid min-w-0 content-start gap-4 [&>*]:min-w-0 sm:gap-5">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+        {/* Collapsed, this card is just its title row, so the divider and the
+            padding under it would frame nothing but empty space. */}
+        <div
+          className={`flex flex-wrap items-center justify-between gap-2 sm:gap-3 ${
+            showFilters ? "border-b border-swing-border/30 pb-3" : ""
+          }`}
+        >
           <h2 className="text-lg font-bold text-swing-ink">{memberLabels.filtersTitle}</h2>
           <div className="flex gap-1.5 sm:gap-2">
             <button
@@ -1914,7 +1943,7 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
           </div>
         </div>
 
-        <div className={`mt-3 grid gap-2.5 sm:mt-4 sm:gap-3 ${showFilters ? "" : "hidden"}`}>
+        <div className={`mt-3 grid gap-2.5 sm:gap-3 ${showFilters ? "" : "hidden"}`}>
           <div className="grid gap-2">
             <Field label={memberLabels.keywordSearch}>
               <TextInput
@@ -2064,7 +2093,12 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
 
             <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-xs lg:text-sm">
-              <thead>
+              {/* whitespace-nowrap for the same reason as the action log table:
+                  sixteen columns inside a 1180px floor leave the short-label
+                  ones so little width that 닉네임 broke to one character per
+                  line. The table scrolls in its own container, so letting the
+                  headers set the column width costs nothing. */}
+              <thead className="whitespace-nowrap">
                 <tr className="text-xs font-semibold uppercase text-swing-muted">
                   <th className="w-12 border-b border-swing-border/30 px-3 py-2">
                     <input
@@ -2122,14 +2156,14 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                     <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {labels.memberLanguages[member.preferredLanguage] || member.preferredLanguage || labels.common.empty}
                     </td>
-                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
-                      {formatDate(member.createdAt, langCd)}
+                    <td className="whitespace-nowrap border-b border-swing-border/20 px-3 py-3 text-swing-muted">
+                      <DateTimeLines value={member.createdAt} langCd={langCd} fallback={labels.common.empty} />
                     </td>
-                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
-                      {formatDate(member.lastLoginAt, langCd)}
+                    <td className="whitespace-nowrap border-b border-swing-border/20 px-3 py-3 text-swing-muted">
+                      <DateTimeLines value={member.lastLoginAt} langCd={langCd} fallback={labels.common.empty} />
                     </td>
-                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
-                      {formatDate(member.withdrawnAt, langCd)}
+                    <td className="whitespace-nowrap border-b border-swing-border/20 px-3 py-3 text-swing-muted">
+                      <DateTimeLines value={member.withdrawnAt} langCd={langCd} fallback={labels.common.empty} />
                     </td>
                     <td className="border-b border-swing-border/20 px-3 py-3 text-right font-semibold text-swing-ink/80">
                       {member.level1ApplicationCount}
@@ -2483,18 +2517,10 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                 {logs.map((log) => {
                   const targetName = log.targetMemberNickname || log.targetMemberDisplayName || log.applicantName;
                   const targetEmail = log.targetMemberEmail || log.applicantEmail || labels.common.empty;
-                  const actionAtLines = formatDateTimeLines(log.actionAt, langCd);
                   return (
                     <tr key={log.id} className="align-top">
                       <td className="whitespace-nowrap px-3 py-3 text-swing-muted">
-                        {actionAtLines ? (
-                          <>
-                            <div>{actionAtLines.date}</div>
-                            <div className="text-xs">{actionAtLines.time}</div>
-                          </>
-                        ) : (
-                          labels.common.empty
-                        )}
+                        <DateTimeLines value={log.actionAt} langCd={langCd} fallback={labels.common.empty} />
                       </td>
                       <td className="px-3 py-3">
                         <div className="font-semibold text-swing-ink">{log.actorAdminName || log.actorLoginId}</div>
