@@ -299,7 +299,7 @@ const CONTENT = {
     heroBadge: "SwingPop Community",
     heroTitle: "SwingPop, a community connected through swing dance",
     heroDesc:
-      "Dance connects people, and music makes the moment special.\nSwingPop is a swing dance community built voluntarily by Koreans and internationals together.\nMeet new people through music and dance, and enjoy learning and growing side by side.",
+      "Dance connects people, and music makes the moment special.\nSwingPop is a swing dance community built voluntarily by Koreans and internationals together.\nMeet new people through music and dance while learning, growing, and having fun together.",
     heroPrimary: "View & Apply",
     heroSecondary: "About the Community",
     heroCorkboard: "Corkboard",
