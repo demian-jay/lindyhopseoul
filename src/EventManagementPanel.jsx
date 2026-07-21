@@ -1593,16 +1593,18 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
 export function LessonBoardPanel({ token, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
-  const [filters, setFilters] = useState(() => ({ from: monthRange().from, to: "" }));
   const [lessons, setLessons] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [isListOpen, setIsListOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // No date filter: the whole published schedule, which the server already
+  // narrows to a teacher's own lessons when that is who is asking.
   const loadLessons = useCallback(async () => {
     setIsLoading(true);
     try {
-      const list = await adminApi.findLessonBoard(token, { from: filters.from, to: filters.to });
+      const list = await adminApi.findLessonBoard(token, { status: "PUBLISHED" });
       setLessons(list || []);
       setError("");
     } catch (nextError) {
@@ -1611,7 +1613,7 @@ export function LessonBoardPanel({ token, langCd }) {
     } finally {
       setIsLoading(false);
     }
-  }, [token, filters.from, filters.to]);
+  }, [token]);
 
   useEffect(() => {
     loadLessons();
@@ -1619,31 +1621,30 @@ export function LessonBoardPanel({ token, langCd }) {
 
   const selectedLesson = lessons.find((lesson) => lesson.lessonId === selectedLessonId) || null;
 
-  const handleFilterChange = (event) => {
-    const { name, value } = event.target;
-    setFilters((current) => ({ ...current, [name]: value }));
-  };
-
   return (
     <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0 xl:grid-cols-[330px_minmax(0,1fr)]">
       <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-swing-border/30 pb-3">
+        {/* Starts collapsed so the screen opens on the lesson you are reading
+            rather than the index. Stays open once expanded, so stepping through
+            several lessons does not mean reopening it each time. */}
+        <button
+          type="button"
+          onClick={() => setIsListOpen((current) => !current)}
+          aria-expanded={isListOpen}
+          className={`flex w-full flex-wrap items-center justify-between gap-2 text-left ${
+            isListOpen ? "border-b border-swing-border/30 pb-3" : ""
+          }`}
+        >
           <h2 className="text-lg font-bold text-swing-ink">{copy.lessonBoard}</h2>
-          <span className="text-xs font-semibold text-swing-muted">{lessons.length}</span>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Field label={copy.from}>
-            <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-          </Field>
-          <Field label={copy.to}>
-            <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-          </Field>
-        </div>
+          <span className="text-xs font-semibold text-swing-muted">
+            {lessons.length}
+            <span className="ml-2 text-swing-muted/70">{isListOpen ? "▲" : "▼"}</span>
+          </span>
+        </button>
 
         <Notice>{error}</Notice>
 
-        <div className="mt-3 grid gap-2">
+        <div className={`mt-3 gap-2 ${isListOpen ? "grid" : "hidden"}`}>
           {!isLoading && lessons.length === 0 ? (
             <div className="py-6 text-center text-sm text-swing-muted">{copy.noLessonsInRange}</div>
           ) : null}
@@ -1661,15 +1662,15 @@ export function LessonBoardPanel({ token, langCd }) {
                     : "border-swing-border/30 hover:bg-swing-cream/50"
                 }`}
               >
-                <div className="text-sm font-semibold">
-                  {localizedTitle(lesson.lessonTitles, languageCode)}
-                  <span className={isActive ? "text-swing-paper/70" : "text-swing-muted"}>
-                    {" - "}
-                    {localizedTitle(lesson.eventTitles, languageCode)}
-                  </span>
+                {/* Event names are long enough that they wrap anyway, so they
+                    start on their own line rather than trailing off the end of
+                    the lesson title. */}
+                <div className="text-sm font-semibold">{localizedTitle(lesson.lessonTitles, languageCode)}</div>
+                <div className={`text-xs ${isActive ? "text-swing-paper/70" : "text-swing-muted"}`}>
+                  {localizedTitle(lesson.eventTitles, languageCode)}
                 </div>
-                <div className={`mt-1 text-xs ${isActive ? "text-swing-paper/70" : "text-swing-muted"}`}>
-                  {formatDateRange(lesson.startDate, lesson.endDate)} · {eventStatusLabel(lesson.status, langCd)}
+                <div className={`mt-1 text-xs ${isActive ? "text-swing-paper/60" : "text-swing-muted/80"}`}>
+                  {formatDateRange(lesson.startDate, lesson.endDate)}
                 </div>
               </button>
             );
@@ -1683,11 +1684,9 @@ export function LessonBoardPanel({ token, langCd }) {
             <h2 className="text-xl font-bold text-swing-ink">
               {localizedTitle(selectedLesson.lessonTitles, languageCode)}
             </h2>
+            {/* Only the time is left: the event, type, status and dates are all
+                already on the row that got you here. */}
             <div className="mt-2 flex flex-wrap gap-2">
-              <Badge>{localizedTitle(selectedLesson.eventTitles, languageCode)}</Badge>
-              <Badge>{selectedLesson.lessonType}</Badge>
-              <Badge>{eventStatusLabel(selectedLesson.status, langCd)}</Badge>
-              <Badge>{formatDateRange(selectedLesson.startDate, selectedLesson.endDate)}</Badge>
               <Badge>
                 {toTimeInput(selectedLesson.startTime)}-{toTimeInput(selectedLesson.endTime)}
               </Badge>
@@ -1697,7 +1696,9 @@ export function LessonBoardPanel({ token, langCd }) {
             </div>
 
             <ParticipantList participants={selectedLesson.participants} copy={copy} onRemoveParticipant={null} />
-            <LessonNoticePanel token={token} lessonId={selectedLesson.lessonId} copy={copy} readOnly />
+            {/* Notices are writable here, teachers included — the server allows a
+                teacher to manage notices on lessons they are assigned to. */}
+            <LessonNoticePanel token={token} lessonId={selectedLesson.lessonId} copy={copy} />
           </div>
         </div>
       ) : (

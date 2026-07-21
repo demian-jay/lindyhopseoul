@@ -258,9 +258,10 @@ public class EventManagementService {
     }
 
     /**
-     * Lessons across every event in a range, for the lesson-first 강습조회
-     * screen. Participants stay scoped the same way as anywhere else a reader
-     * sees them.
+     * Lessons across every event, for the lesson-first 강습조회 screen. Staff
+     * and super admins see the whole schedule; a teacher sees the lessons they
+     * are assigned to and no others, so the list matches what they can act on.
+     * Participants stay scoped the same way as anywhere else a reader sees them.
      */
     public List<AdminLessonBoardResponse> findLessonBoard(
             AdminPrincipal actor,
@@ -269,7 +270,9 @@ public class EventManagementService {
             LessonStatus status
     ) {
         requireEventReader(actor);
-        List<Lesson> lessons = lessonRepository.findLessonsInRange(from, to, status);
+        List<Lesson> lessons = actor.canManageEvents()
+                ? lessonRepository.findLessonsInRange(from, to, status)
+                : ownTeacherLessons(actor, from, to, status);
         Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsVisibleTo(actor, lessons);
         return lessons.stream()
                 .map(lesson -> new AdminLessonBoardResponse(
@@ -293,6 +296,23 @@ public class EventManagementService {
                         participantsByLessonId.getOrDefault(lesson.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    private List<Lesson> ownTeacherLessons(
+            AdminPrincipal actor,
+            LocalDate from,
+            LocalDate to,
+            LessonStatus status
+    ) {
+        return teacherUserRepository
+                .findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc(actor.userCd(), "Y")
+                .map(teacher -> lessonRepository.findTeacherLessons(
+                        teacher.getTeacherUserCd(),
+                        from,
+                        to,
+                        status == null ? LessonStatus.PUBLISHED : status
+                ))
+                .orElseGet(List::of);
     }
 
     public List<ActiveTeacherResponse> findActiveTeachers(AdminPrincipal actor) {
