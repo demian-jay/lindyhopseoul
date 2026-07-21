@@ -35,8 +35,6 @@ const CONTENT = {
     mobileApply: "일정 보고 신청하기",
     languageTitle: "언어를 선택해주세요",
     languageDesc: "Choose your preferred language to continue.",
-    languageBannerTitle: "Language / 언어 선택",
-    languageBannerDesc: "First time here? Choose your preferred language before exploring.",
     visitorGuide: {
       eyebrow: "처음 오시는 분",
       title: "장소 및 공지방 안내",
@@ -306,8 +304,6 @@ const CONTENT = {
     mobileApply: "View & Apply",
     languageTitle: "Choose your language",
     languageDesc: "Select Korean or English to continue.",
-    languageBannerTitle: "Language / 언어 선택",
-    languageBannerDesc: "First time here? Choose your preferred language before exploring.",
     visitorGuide: {
       eyebrow: "First Time Here",
       title: "Where to find us",
@@ -589,6 +585,14 @@ function languageOnboardingMessage(language) {
 }
 
 const SECTION_IDS = ["about", "swing", "swingpop-style", "seoul-scene", "schedule"];
+// Where a signed-out visitor's choice from the header picker is kept, so it
+// survives a reload. Signed-in members are not stored here at all — their
+// language lives on the account and the server is the authority.
+const GUEST_LANGUAGE_STORAGE_KEY = "swingpop-guest-language";
+
+// Keys written by earlier attempts at this. Wiped on load so a value left by an
+// old build cannot outrank the account setting. Deliberately does not include
+// GUEST_LANGUAGE_STORAGE_KEY, which is the one key still in use.
 const LANGUAGE_STORAGE_KEYS_TO_CLEAR = [
   "swingpop-language",
   "swingpop_guest_language",
@@ -599,6 +603,28 @@ const LANGUAGE_STORAGE_KEYS_TO_CLEAR = [
   "guestLanguage",
   "preferredLanguage",
 ];
+
+function readStoredGuestLanguage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const stored = window.localStorage.getItem(GUEST_LANGUAGE_STORAGE_KEY);
+  return LANGUAGE_OPTIONS.some((option) => option.value === stored) ? stored : null;
+}
+
+function writeStoredGuestLanguage(language) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(GUEST_LANGUAGE_STORAGE_KEY, language);
+}
+
+function clearStoredGuestLanguage() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(GUEST_LANGUAGE_STORAGE_KEY);
+}
 const MEMBER_LANGUAGE_TO_APP_LANGUAGE = {
   KO: "ko",
   EN: "en",
@@ -607,6 +633,13 @@ const APP_LANGUAGE_TO_MEMBER_LANGUAGE = {
   ko: "KO",
   en: "EN",
 };
+
+// Each label is written in its own language, so someone who cannot read the
+// current one can still find theirs.
+const LANGUAGE_OPTIONS = [
+  { value: "ko", label: "한국어" },
+  { value: "en", label: "English" },
+];
 
 function toAppLanguage(preferredLanguage) {
   const normalized = typeof preferredLanguage === "string" ? preferredLanguage.trim().toUpperCase() : "";
@@ -1358,7 +1391,93 @@ function scrollToHash(hash) {
 }
 
 // Anchor-only navigation over sections that already exist. No routing added.
-function SiteHeader({ nav, corkboardLabel, onCorkboard }) {
+/**
+ * Header language picker. Replaces the modal that used to block the first
+ * visit: the site opens in Korean, and anyone who needs another language can
+ * reach for this instead of being stopped at the door.
+ */
+function LanguageMenu({ language, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const current = LANGUAGE_OPTIONS.find((option) => option.value === language) || LANGUAGE_OPTIONS[0];
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const closeOnOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={`Language: ${current.label}`}
+        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full px-2.5 text-xs font-medium tracking-[0.04em] text-swing-muted transition hover:bg-swing-cream hover:text-swing-ink"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" />
+        </svg>
+        <span>{current.label}</span>
+      </button>
+
+      {isOpen ? (
+        <ul
+          role="listbox"
+          className="absolute right-0 top-full z-[80] mt-1 min-w-[128px] overflow-hidden rounded-lg border border-swing-border/30 bg-swing-paper py-1 shadow-frame"
+        >
+          {LANGUAGE_OPTIONS.map((option) => {
+            const isCurrent = option.value === current.value;
+
+            return (
+              <li key={option.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isCurrent}
+                  onClick={() => {
+                    setIsOpen(false);
+                    if (!isCurrent) {
+                      onChange(option.value);
+                    }
+                  }}
+                  className={`flex w-full items-center px-3 py-2 text-left text-sm transition hover:bg-swing-cream ${
+                    isCurrent ? "font-bold text-swing-teal-deep" : "text-swing-ink/80"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function SiteHeader({ nav, corkboardLabel, onCorkboard, language, onLanguageChange }) {
   return (
     <header className="sticky top-0 z-[70] border-b border-swing-border/30 bg-swing-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 md:px-8">
@@ -1405,10 +1524,13 @@ function SiteHeader({ nav, corkboardLabel, onCorkboard }) {
           </ul>
         </nav>
 
-        {/* Reserves room for the fixed AuthControl button in the top-right.
-            Must stay at least as wide as its widest label — "Sign in with
-            Google" measures 142px — or the nav runs underneath it at lg. */}
-        <div className="ml-auto h-1 w-36 shrink-0 lg:ml-0" aria-hidden="true" />
+        <div className="ml-auto flex shrink-0 items-center lg:ml-0">
+          <LanguageMenu language={language} onChange={onLanguageChange} />
+          {/* Reserves room for the fixed AuthControl button in the top-right.
+              Must stay at least as wide as its widest label — "Sign in with
+              Google" measures 142px — or the nav runs underneath it at lg. */}
+          <div className="h-1 w-36" aria-hidden="true" />
+        </div>
       </div>
     </header>
   );
@@ -3940,8 +4062,7 @@ function PrivacyPolicyPage({ language, onBack }) {
 }
 
 function PublicApp() {
-  const [guestLanguage, setGuestLanguage] = useState(null);
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const [guestLanguage, setGuestLanguage] = useState(readStoredGuestLanguage);
   const [scheduleItems, setScheduleItems] = useState([]);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
@@ -3968,7 +4089,10 @@ function PublicApp() {
     const normalizedAuthState = nextAuthState?.authenticated ? nextAuthState : { authenticated: false };
     setAuthState(normalizedAuthState);
     if (!normalizedAuthState.authenticated) {
-      setGuestLanguage(null);
+      // Fall back to the stored guest choice rather than null. Auth resolving
+      // as signed-out runs after mount, so nulling here threw away the
+      // language the header picker had saved on a previous visit.
+      setGuestLanguage(readStoredGuestLanguage());
       setAppliedScheduleItemIds([]);
       setIsAppliedScheduleLoading(false);
       setMemberMessageUnreadCount(0);
@@ -4078,7 +4202,6 @@ function PublicApp() {
     }
 
     clearPersistedLanguagePreferences();
-    setHasHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -4219,7 +4342,7 @@ function PublicApp() {
 
     if (!authState?.authenticated) {
       setGuestLanguage(nextLanguage);
-      clearPersistedLanguagePreferences();
+      writeStoredGuestLanguage(nextLanguage);
       return;
     }
 
@@ -4368,6 +4491,9 @@ function PublicApp() {
       .catch(() => null)
       .finally(() => {
         clearPersistedLanguagePreferences();
+        // Cleared alongside the state, or a reload would resurrect it from
+        // storage and disagree with what is on screen.
+        clearStoredGuestLanguage();
         setAuthState({ authenticated: false });
         setGuestLanguage(null);
         setAppliedScheduleItemIds([]);
@@ -4419,6 +4545,7 @@ function PublicApp() {
 
   const handleWithdrawComplete = (message) => {
     clearPersistedLanguagePreferences();
+    clearStoredGuestLanguage();
     setAuthState({ authenticated: false });
     setGuestLanguage(null);
     setAppliedScheduleItemIds([]);
@@ -4452,12 +4579,6 @@ function PublicApp() {
   const effectiveLanguage = isAuthenticated ? memberLanguage : guestLanguage;
   const isPrivacyPath = currentPath === "/privacy";
   const isLoginConsentPath = currentPath === "/login";
-  const shouldShowLanguageModal =
-    !isPrivacyPath &&
-    !isLoginConsentPath &&
-    hasHydrated &&
-    !isAuthLoading &&
-    (isAuthenticated ? !memberLanguage : !guestLanguage);
   const t = useMemo(() => CONTENT[effectiveLanguage] ?? CONTENT.ko, [effectiveLanguage]);
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
   const isSettingsPath = currentPath === "/settings";
@@ -4497,14 +4618,9 @@ function PublicApp() {
 
   return (
     <>
-      {shouldShowLanguageModal ? (
-        <LanguageSelectionModal
-          title={t.languageTitle}
-          description={t.languageDesc}
-          onSelect={handleLanguageSelect}
-        />
-      ) : null}
-
+      {/* The first-visit modal is gone; the header picker covers it. The one
+          below is a different thing: a new member choosing the language stored
+          on their account, asked once right after sign-up. */}
       {pendingLanguageOnboarding && isAuthenticated ? (
         <LanguageSelectionModal
           title={t.languageTitle}
@@ -4611,8 +4727,10 @@ function PublicApp() {
           nav={t.nav}
           corkboardLabel={t.heroCorkboard}
           onCorkboard={handleCorkboardOpen}
+          language={activeLanguage}
+          onLanguageChange={handleLanguageSelect}
         />
-        <main aria-hidden={shouldShowLanguageModal ? true : undefined}>
+        <main>
           <SectionWrapper
             id="top"
             className="border-b border-swing-border/25 bg-gradient-to-b from-swing-peach/75 via-swing-cream/55 to-swing-paper"
