@@ -157,11 +157,12 @@ curl -s https://swingpopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|
 curl -sI https://swingpopseoul.com/sw.js | grep -i cache-control
 curl -sI https://swingpopseoul.com/manifest.webmanifest | grep -iE 'content-type|cache-control'
 
-# The build stamp baked into the bundle. Must name the commit just deployed.
+# The build stamp baked into the bundle, and the commit it should name: the
+# last one that touched app code, which is not necessarily HEAD.
 BUNDLE=$(curl -s https://swingpopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js')
 curl -s "https://swingpopseoul.com/$BUNDLE" |
   grep -oE '"20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} · [0-9a-f]{7,}"' | head -1
-git rev-parse --short HEAD
+git log -1 --format=%h -- src/ public/ index.html vite.config.js
 ```
 
 Then load the site and confirm the bundle filename matches the one you just
@@ -173,6 +174,10 @@ problem can be asked for it rather than guessing which build they are on. It
 records the commit as of the **build**, so commit first, then build, then
 deploy — building before committing stamps the previous commit and the display
 quietly lies.
+
+Compare it against the last commit that touched app code, not `HEAD`. A commit
+that only edits docs ships nothing, so the stamp keeps naming the commit before
+it. That is correct, not a missed deploy.
 
 ## Backend Deploy
 
