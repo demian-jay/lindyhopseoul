@@ -91,6 +91,16 @@ public record AdminPrincipal(
         return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
     }
 
+    /**
+     * Teachers read the schedule but never change it — see
+     * {@link #canManageEvents()}. Participant lists are scoped separately, in
+     * EventManagementService, because a teacher may only see applicants for
+     * lessons they teach.
+     */
+    public boolean canViewEvents() {
+        return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF, AdminRole.TEACHER);
+    }
+
     public boolean canManageEvents() {
         return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
     }
@@ -100,15 +110,20 @@ public record AdminPrincipal(
     }
 
     public boolean canManageMessageTemplates() {
-        return hasRole(AdminRole.SUPER_ADMIN);
+        return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
     }
 
     public boolean canManageMembers() {
         return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
     }
 
+    /**
+     * Covers reading templates and rendering a preview to copy. Teachers get
+     * this for the read-only 메시지 템플릿 조회 menu; writing stays with
+     * {@link #canManageMessageTemplates()}.
+     */
     public boolean canRenderPromotionMessages() {
-        return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF);
+        return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF, AdminRole.TEACHER);
     }
 
     private static List<AdminRole> normalizeRoles(Collection<AdminRole> roles) {

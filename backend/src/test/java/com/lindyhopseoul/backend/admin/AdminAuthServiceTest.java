@@ -55,14 +55,16 @@ class AdminAuthServiceTest {
         assertThat(response.menus()).containsExactly(
                 AdminMenu.DASHBOARD,
                 AdminMenu.OPERATION_CHECK,
-                AdminMenu.EVENT_MANAGEMENT,
-                AdminMenu.CORKBOARD,
                 AdminMenu.MEMBER_MESSAGES,
-                AdminMenu.MEMBER_ACTION_LOGS,
                 AdminMenu.KNOWLEDGE_BASE,
-                AdminMenu.MESSAGE_TEMPLATES,
+                AdminMenu.MEMBERS,
+                AdminMenu.EVENT_VIEW,
+                AdminMenu.MESSAGE_TEMPLATE_VIEW,
+                AdminMenu.CORKBOARD,
                 AdminMenu.ADMIN_USERS,
-                AdminMenu.MEMBERS
+                AdminMenu.EVENT_REGISTRATION,
+                AdminMenu.MEMBER_ACTION_LOGS,
+                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION
         );
     }
 
@@ -84,7 +86,11 @@ class AdminAuthServiceTest {
         assertThat(response.user().role()).isEqualTo(AdminRole.TEACHER);
         assertThat(response.user().roles()).containsExactly(AdminRole.TEACHER);
         assertThat(response.user().langCd()).isEqualTo(AdminLanguage.Eng);
-        assertThat(response.menus()).containsExactly(AdminMenu.DASHBOARD);
+        assertThat(response.menus()).containsExactly(
+                AdminMenu.DASHBOARD,
+                AdminMenu.EVENT_VIEW,
+                AdminMenu.MESSAGE_TEMPLATE_VIEW
+        );
     }
 
     @Test
@@ -107,12 +113,15 @@ class AdminAuthServiceTest {
         assertThat(response.menus()).containsExactly(
                 AdminMenu.DASHBOARD,
                 AdminMenu.OPERATION_CHECK,
-                AdminMenu.EVENT_MANAGEMENT,
-                AdminMenu.CORKBOARD,
                 AdminMenu.MEMBER_MESSAGES,
                 AdminMenu.KNOWLEDGE_BASE,
+                AdminMenu.MEMBERS,
+                AdminMenu.EVENT_VIEW,
+                AdminMenu.MESSAGE_TEMPLATE_VIEW,
+                AdminMenu.CORKBOARD,
                 AdminMenu.ADMIN_USERS,
-                AdminMenu.MEMBERS
+                AdminMenu.EVENT_REGISTRATION,
+                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION
         );
     }
 

@@ -20,18 +20,29 @@ const I18N = {
     menus: {
       DASHBOARD: "관리자 홈",
       OPERATION_CHECK: "운영 체크",
-      EVENT_MANAGEMENT: "이벤트/강습 관리",
+      EVENT_VIEW: "강습조회",
+      EVENT_REGISTRATION: "이벤트/강습 등록",
       CORKBOARD: "담벼락",
       MEMBER_MESSAGES: "회원 메시지",
       MEMBER_ACTION_LOGS: "수강생 처리 로그",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
-      MESSAGE_TEMPLATES: "메시지 템플릿",
+      MESSAGE_TEMPLATE_VIEW: "메시지 템플릿",
+      MESSAGE_TEMPLATE_REGISTRATION: "메시지 템플릿 등록",
       ADMIN_USERS: "관리자 계정",
       MEMBERS: "회원 관리",
       TEACHER_USERS: "강사 프로필 관리",
     },
+    menuCategories: {
+      OPERATIONS: "운영진",
+      CLASSES: "수업관리",
+      SYSTEM: "시스템",
+    },
+    home: "관리자 홈",
     roles: {
-      SUPER_ADMIN: "수퍼관리자",
+      // Zero-width space: invisible, but it is the one place the badge is
+      // allowed to wrap, so a narrow column yields 수퍼 / 관리자 rather than
+      // 수퍼관 / 리자. Paired with `break-keep` in RoleBadge.
+      SUPER_ADMIN: "수퍼​관리자",
       STAFF: "동호회 운영진",
       TEACHER: "강사",
       MEMBER: "회원",
@@ -296,16 +307,24 @@ const I18N = {
     menus: {
       DASHBOARD: "Dashboard",
       OPERATION_CHECK: "Operation Check",
-      EVENT_MANAGEMENT: "Events & Lessons",
+      EVENT_VIEW: "Lesson Schedule",
+      EVENT_REGISTRATION: "Register Events & Lessons",
       CORKBOARD: "Corkboard",
       MEMBER_MESSAGES: "Member Messages",
       MEMBER_ACTION_LOGS: "Student Action Logs",
       KNOWLEDGE_BASE: "Manual Repository",
-      MESSAGE_TEMPLATES: "Message Templates",
+      MESSAGE_TEMPLATE_VIEW: "Message Templates",
+      MESSAGE_TEMPLATE_REGISTRATION: "Register Message Templates",
       ADMIN_USERS: "Admin Accounts",
       MEMBERS: "Member Management",
       TEACHER_USERS: "Teacher Profiles",
     },
+    menuCategories: {
+      OPERATIONS: "Operations",
+      CLASSES: "Classes",
+      SYSTEM: "System",
+    },
+    home: "Dashboard",
     roles: {
       SUPER_ADMIN: "Super Admin",
       STAFF: "Staff",
@@ -583,6 +602,22 @@ function formatDate(value, langCd) {
   }).format(new Date(value));
 }
 
+// The action log table carries twelve columns, so its timestamp is split over
+// two short lines instead of one wide one. The date half is YYYY-MM-DD in both
+// languages: it is the narrowest unambiguous form, and it keeps the column from
+// resizing when the language changes.
+function formatDateTimeLines(value, langCd) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return {
+    date: new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(date),
+    time: new Intl.DateTimeFormat(langCd === "Eng" ? "en-US" : "ko-KR", { timeStyle: "short" }).format(date),
+  };
+}
+
 function formatStaffSenderLabel(message, labels) {
   const displayName =
     typeof message?.senderAdminDisplayName === "string" ? message.senderAdminDisplayName.trim() : "";
@@ -612,6 +647,39 @@ function filterVisibleMenus(menus = []) {
   return menus.filter((menu) => (
     Object.prototype.hasOwnProperty.call(I18N.Kor.menus, menu) && !HIDDEN_ADMIN_MENUS.has(menu)
   ));
+}
+
+// Sidebar grouping. Which menus a given account actually receives is decided by
+// the backend (AdminMenu.forRole) — this only says where each one sits once it
+// arrives, so a role that never gets a menu simply yields an empty category.
+// DASHBOARD is deliberately absent: it is reached through the header home
+// button, not a sidebar row.
+const MENU_CATEGORIES = [
+  { key: "OPERATIONS", menus: ["OPERATION_CHECK", "MEMBER_MESSAGES", "KNOWLEDGE_BASE", "MEMBERS"] },
+  { key: "CLASSES", menus: ["EVENT_VIEW", "MESSAGE_TEMPLATE_VIEW"] },
+  {
+    key: "SYSTEM",
+    menus: [
+      "CORKBOARD",
+      "ADMIN_USERS",
+      "EVENT_REGISTRATION",
+      "MEMBER_ACTION_LOGS",
+      "MESSAGE_TEMPLATE_REGISTRATION",
+    ],
+  },
+];
+
+function groupMenusByCategory(visibleMenus = []) {
+  const available = new Set(visibleMenus);
+  const grouped = MENU_CATEGORIES
+    .map((category) => ({ ...category, menus: category.menus.filter((menu) => available.has(menu)) }))
+    .filter((category) => category.menus.length > 0);
+
+  // Anything the backend sends that no category claims still has to be reachable,
+  // or a new menu would silently vanish from the sidebar.
+  const claimed = new Set(MENU_CATEGORIES.flatMap((category) => category.menus));
+  const unclaimed = visibleMenus.filter((menu) => menu !== "DASHBOARD" && !claimed.has(menu));
+  return unclaimed.length > 0 ? [...grouped, { key: null, menus: unclaimed }] : grouped;
 }
 
 function createAdminForm() {
@@ -721,7 +789,10 @@ function RoleBadge({ role, labels }) {
           : "border-swing-border/30 bg-swing-cream/50 text-swing-ink/80";
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
+    // break-keep so a narrow column cannot split the label mid-word: Korean has
+    // no spaces here, so the default rule broke 수퍼관리자 into 수퍼관/리자. The
+    // only break point left is the zero-width space in the label itself.
+    <span className={`inline-flex items-center break-keep rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
       {labels.roles[role] || role}
     </span>
   );
@@ -1229,10 +1300,18 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
     // intrinsic width, so the 860px account table below refuses to shrink and
     // pushes the whole page wider than a phone screen instead of scrolling
     // inside its own container.
-    <section className="grid min-w-0 gap-5 [&>*]:min-w-0 xl:grid-cols-[390px_minmax(0,1fr)]">
+    // items-start for the same reason as the log panel: otherwise the form
+    // column stretches to the height of the account table beside it.
+    <section className="grid min-w-0 items-start gap-5 [&>*]:min-w-0 xl:grid-cols-[390px_minmax(0,1fr)]">
       {canManageSuperAdmin || isEditing ? (
-      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+        {/* Collapsed, this card is just its title row, so the divider and the
+            padding under it would frame nothing but empty space. */}
+        <div
+          className={`flex items-center justify-between gap-3 ${
+            showForm ? "border-b border-swing-border/30 pb-3" : ""
+          }`}
+        >
           <h2 className="text-lg font-bold text-swing-ink">
             {isEditing ? labels.adminUsers.editTitle : labels.adminUsers.createTitle}
           </h2>
@@ -1256,7 +1335,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
             The short single-line fields pair up two to a row: one per row left the
             form taller than a phone screen for what is a handful of short values.
             Role keeps a row of its own because it is a checkbox list. */}
-        <div className={`mt-4 grid gap-4 ${showForm ? "" : "hidden"}`}>
+        <div className={`mt-3 grid gap-3 ${showForm ? "" : "hidden"}`}>
           <div className="grid grid-cols-2 gap-3">
             <Field label={labels.fields.name}>
               <TextInput name="adminUserNm" value={form.adminUserNm} onChange={handleChange} />
@@ -2317,9 +2396,18 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
     // card, so the card is the grid item whose automatic minimum size holds the
     // table's width. Without both, the page widens to 1162px on a 375px screen
     // instead of the table scrolling inside its own container.
-    <section className="grid min-w-0 gap-5 [&>*]:min-w-0">
-      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+    // content-start: the page grid stretches this column to the sidebar's
+    // height, and without it the auto rows grew to absorb the slack — the
+    // collapsed filter card was 203px tall for a title and one button.
+    <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+        {/* Collapsed, this card is just its title row, so the divider and the
+            padding under it would frame nothing but empty space. */}
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 ${
+            showFilters ? "border-b border-swing-border/30 pb-3" : ""
+          }`}
+        >
           <h2 className="text-lg font-bold text-swing-ink">{logLabels.filtersTitle}</h2>
           <div className="flex gap-2">
             <SecondaryButton type="button" onClick={() => setShowFilters((current) => !current)}>
@@ -2335,7 +2423,7 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
             ) : null}
           </div>
         </div>
-        <div className={`mt-4 grid gap-4 md:grid-cols-3 ${showFilters ? "" : "hidden"}`}>
+        <div className={`mt-3 grid gap-3 md:grid-cols-3 ${showFilters ? "" : "hidden"}`}>
           <Field label={logLabels.from}>
             <TextInput type="date" name="from" value={filters.from} onChange={handleChange} />
           </Field>
@@ -2395,9 +2483,19 @@ function AdminMemberActionLogsPanel({ token, langCd, labels }) {
                 {logs.map((log) => {
                   const targetName = log.targetMemberNickname || log.targetMemberDisplayName || log.applicantName;
                   const targetEmail = log.targetMemberEmail || log.applicantEmail || labels.common.empty;
+                  const actionAtLines = formatDateTimeLines(log.actionAt, langCd);
                   return (
                     <tr key={log.id} className="align-top">
-                      <td className="whitespace-nowrap px-3 py-3 text-swing-muted">{formatDate(log.actionAt, langCd)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-swing-muted">
+                        {actionAtLines ? (
+                          <>
+                            <div>{actionAtLines.date}</div>
+                            <div className="text-xs">{actionAtLines.time}</div>
+                          </>
+                        ) : (
+                          labels.common.empty
+                        )}
+                      </td>
                       <td className="px-3 py-3">
                         <div className="font-semibold text-swing-ink">{log.actorAdminName || log.actorLoginId}</div>
                         <div className="mt-1 text-xs text-swing-muted">{log.actorLoginId || log.actorAdminId}</div>
@@ -2808,6 +2906,7 @@ export default function AdminApp() {
   const langCd = session?.user?.langCd || "Kor";
   const labels = getLabels(langCd);
   const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
+  const menuCategories = useMemo(() => groupMenusByCategory(visibleMenus), [visibleMenus]);
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
   // While a change is owed the whole admin area is off limits, so the sidebar
@@ -2905,9 +3004,29 @@ export default function AdminApp() {
     <div className="min-h-screen bg-swing-cream text-swing-ink">
       <header className="border-b border-swing-border/30 bg-swing-paper">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-swing-teal-deep">{labels.brand}</div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-swing-ink">{pageTitle}</h1>
+          <div className="flex items-center gap-3">
+            {/* Replaces the old 관리자 홈 sidebar row: the dashboard is a
+                destination you return to, not a peer of the working menus. */}
+            <button
+              type="button"
+              onClick={() => setActiveMenu("DASHBOARD")}
+              aria-label={labels.home}
+              aria-current={safeActiveMenu === "DASHBOARD" ? "page" : undefined}
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
+                safeActiveMenu === "DASHBOARD"
+                  ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                  : "border-swing-border/55 bg-swing-paper text-swing-ink/70 hover:bg-swing-cream/50 hover:text-swing-ink"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5.5 9.5V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <div>
+              <div className="text-sm font-semibold text-swing-teal-deep">{labels.brand}</div>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-swing-ink">{pageTitle}</h1>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
@@ -2932,38 +3051,47 @@ export default function AdminApp() {
 
       <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
-          <nav className="grid gap-1">
-            {visibleMenus.map((menu) => (
-              <button
-                key={menu}
-                type="button"
-                onClick={() => setActiveMenu(menu)}
-                className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
-                  safeActiveMenu === menu
-                    ? "bg-swing-teal-deep text-swing-paper"
-                    : "text-swing-muted hover:bg-swing-cream/60 hover:text-swing-ink"
-                }`}
-              >
-                <span>{labels.menus[menu] || menu}</span>
-                {menu === "OPERATION_CHECK" && operationCheckSummary.openAssignedCount > 0 ? (
-                  <span
-                    className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                      safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
+          <nav className="grid gap-4">
+            {menuCategories.map((category) => (
+              <div key={category.key || "OTHER"} className="grid gap-1">
+                {category.key ? (
+                  <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                    {labels.menuCategories[category.key] || category.key}
+                  </div>
+                ) : null}
+                {category.menus.map((menu) => (
+                  <button
+                    key={menu}
+                    type="button"
+                    onClick={() => setActiveMenu(menu)}
+                    className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition ${
+                      safeActiveMenu === menu
+                        ? "bg-swing-teal-deep text-swing-paper"
+                        : "text-swing-muted hover:bg-swing-cream/60 hover:text-swing-ink"
                     }`}
                   >
-                    {operationCheckSummary.openAssignedCount}
-                  </span>
-                ) : null}
-                {menu === "MEMBER_MESSAGES" && memberMessageUnreadCount > 0 ? (
-                  <span
-                    className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                      safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
-                    }`}
-                  >
-                    {memberMessageUnreadCount}
-                  </span>
-                ) : null}
-              </button>
+                    <span>{labels.menus[menu] || menu}</span>
+                    {menu === "OPERATION_CHECK" && operationCheckSummary.openAssignedCount > 0 ? (
+                      <span
+                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                          safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
+                        }`}
+                      >
+                        {operationCheckSummary.openAssignedCount}
+                      </span>
+                    ) : null}
+                    {menu === "MEMBER_MESSAGES" && memberMessageUnreadCount > 0 ? (
+                      <span
+                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                          safeActiveMenu === menu ? "bg-swing-paper text-swing-teal-deep" : "bg-swing-teal-deep text-swing-paper"
+                        }`}
+                      >
+                        {memberMessageUnreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
           {/* Deploys are manual and a phone can sit on an old bundle, so make the
@@ -2996,8 +3124,13 @@ export default function AdminApp() {
               onChanged={handleOperationCheckChanged}
             />
           ) : null}
-          {safeActiveMenu === "EVENT_MANAGEMENT" ? (
-            <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          {safeActiveMenu === "EVENT_VIEW" || safeActiveMenu === "EVENT_REGISTRATION" ? (
+            <EventManagementPanel
+              token={token}
+              currentUser={session.user}
+              langCd={langCd}
+              readOnly={safeActiveMenu === "EVENT_VIEW"}
+            />
           ) : null}
           {safeActiveMenu === "CORKBOARD" ? (
             <AdminCorkboardPanel token={token} currentUser={session.user} langCd={langCd} />
@@ -3019,8 +3152,13 @@ export default function AdminApp() {
           {safeActiveMenu === "KNOWLEDGE_BASE" ? (
             <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
-          {safeActiveMenu === "MESSAGE_TEMPLATES" ? (
-            <MessageTemplatePanel token={token} currentUser={session.user} langCd={langCd} />
+          {safeActiveMenu === "MESSAGE_TEMPLATE_VIEW" || safeActiveMenu === "MESSAGE_TEMPLATE_REGISTRATION" ? (
+            <MessageTemplatePanel
+              token={token}
+              currentUser={session.user}
+              langCd={langCd}
+              readOnly={safeActiveMenu === "MESSAGE_TEMPLATE_VIEW"}
+            />
           ) : null}
           {safeActiveMenu === "ADMIN_USERS" ? (
             <AdminUsersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />

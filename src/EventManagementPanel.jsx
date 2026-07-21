@@ -867,7 +867,10 @@ function noticeAuthorLabel(notice, copy) {
   return nickname || displayName || copy.noticeAuthorFallback;
 }
 
-function LessonNoticePanel({ token, lessonId, copy }) {
+// `readOnly` hides only the compose form — reading past notices is part of
+// viewing a lesson. Teachers keep posting notices from their own dashboard,
+// where the backend already scopes them to lessons they are assigned to.
+function LessonNoticePanel({ token, lessonId, copy, readOnly = false }) {
   const [notices, setNotices] = useState([]);
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
@@ -975,6 +978,7 @@ function LessonNoticePanel({ token, lessonId, copy }) {
         <h4 className="text-xs font-semibold text-swing-muted">{copy.notices}</h4>
         {isLoading ? <span className="text-xs text-swing-muted/70">{copy.loading}</span> : null}
       </div>
+      {readOnly ? null : (
       <form onSubmit={handleSubmit} className="mt-3 grid gap-2">
         <TextArea
           value={content}
@@ -993,6 +997,7 @@ function LessonNoticePanel({ token, lessonId, copy }) {
           </PrimaryButton>
         </div>
       </form>
+      )}
       {notices.length > 0 ? (
         <div className="mt-3 grid gap-2">
           {notices.map((notice) => (
@@ -1571,7 +1576,10 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
   );
 }
 
-export default function EventManagementPanel({ token, currentUser, langCd }) {
+// `readOnly` backs the 강습조회 menu: same schedule, no way to change it. The
+// server enforces this independently (canManageEvents), so this only keeps the
+// UI honest rather than being the actual guard.
+export default function EventManagementPanel({ token, currentUser, langCd, readOnly = false }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
   const [filters, setFilters] = useState(() => emptyEventFilters());
@@ -1592,8 +1600,9 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const [notice, setNotice] = useState("");
   const [removingParticipant, setRemovingParticipant] = useState(null);
   const [isRemovingParticipant, setIsRemovingParticipant] = useState(false);
-  const canDelete = hasRole(currentUser, "SUPER_ADMIN");
-  const canRemoveApplication = hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF");
+  const canEdit = !readOnly && (hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF"));
+  const canDelete = canEdit && hasRole(currentUser, "SUPER_ADMIN");
+  const canRemoveApplication = canEdit;
 
   const loadEvents = useCallback(async () => {
     setIsLoading(true);
@@ -1846,9 +1855,11 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             <SecondaryButton type="button" onClick={() => setShowEventFilters((current) => !current)}>
               {showEventFilters ? copy.hideFilters : copy.showFilters}
             </SecondaryButton>
-            <PrimaryButton type="button" onClick={startCreateEvent}>
-              {copy.createEvent}
-            </PrimaryButton>
+            {canEdit ? (
+              <PrimaryButton type="button" onClick={startCreateEvent}>
+                {copy.createEvent}
+              </PrimaryButton>
+            ) : null}
           </div>
         </div>
         {showEventFilters ? (
@@ -1991,6 +2002,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             event={selectedEvent}
             langCd={langCd}
             languageCode={languageCode}
+            canEdit={canEdit}
             canDelete={canDelete}
             onEditEvent={startEditEvent}
             onDeleteEvent={deleteEvent}
@@ -2024,6 +2036,7 @@ function EventDetail({
   event,
   langCd,
   languageCode,
+  canEdit,
   canDelete,
   onEditEvent,
   onDeleteEvent,
@@ -2058,9 +2071,11 @@ function EventDetail({
           <div className="mt-2 text-sm text-swing-muted">{event.location}</div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <SecondaryButton type="button" onClick={onEditEvent}>
-            {copy.edit}
-          </SecondaryButton>
+          {canEdit ? (
+            <SecondaryButton type="button" onClick={onEditEvent}>
+              {copy.edit}
+            </SecondaryButton>
+          ) : null}
           <SecondaryButton type="button" onClick={onPromotion}>
             {copy.promotion}
           </SecondaryButton>
@@ -2089,9 +2104,11 @@ function EventDetail({
       <div className="mt-6">
         <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-3">
           <h3 className="text-lg font-bold text-swing-ink">{copy.lessons}</h3>
-          <PrimaryButton type="button" onClick={onAddLesson}>
-            {copy.addLesson}
-          </PrimaryButton>
+          {canEdit ? (
+            <PrimaryButton type="button" onClick={onAddLesson}>
+              {copy.addLesson}
+            </PrimaryButton>
+          ) : null}
         </div>
         <div className="mt-4 grid gap-3">
           {event.lessons.length === 0 ? <div className="text-sm text-swing-muted">{copy.noLessons}</div> : null}
@@ -2121,9 +2138,11 @@ function EventDetail({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <SecondaryButton type="button" onClick={() => onEditLesson(lesson)}>
-                    {copy.edit}
-                  </SecondaryButton>
+                  {canEdit ? (
+                    <SecondaryButton type="button" onClick={() => onEditLesson(lesson)}>
+                      {copy.edit}
+                    </SecondaryButton>
+                  ) : null}
                   {canDelete ? (
                     <DangerButton type="button" onClick={() => onDeleteLesson(lesson)}>
                       {copy.delete}
@@ -2136,7 +2155,7 @@ function EventDetail({
                 copy={copy}
                 onRemoveParticipant={canRemoveApplication ? (participant) => onRemoveParticipant(lesson, participant) : null}
               />
-              <LessonNoticePanel token={token} lessonId={lesson.id} copy={copy} />
+              <LessonNoticePanel token={token} lessonId={lesson.id} copy={copy} readOnly={!canEdit} />
             </div>
           ))}
         </div>
@@ -2184,7 +2203,9 @@ function TemplateVariableList({ className = "" }) {
   );
 }
 
-export function MessageTemplatePanel({ token, currentUser, langCd }) {
+// `readOnly` backs the 메시지 템플릿 조회 menu: the preview and its copy button
+// stay, everything that writes goes away.
+export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = false }) {
   const copy = t(langCd);
   const [templates, setTemplates] = useState([]);
   const [events, setEvents] = useState([]);
@@ -2203,7 +2224,8 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const canManage = hasRole(currentUser, "SUPER_ADMIN");
+  // Staff gained template authoring alongside super admins; teachers only read.
+  const canManage = !readOnly && (hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF"));
 
   const load = useCallback(async () => {
     try {
@@ -2334,6 +2356,10 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
       <Notice type="success">{notice}</Notice>
 
       <div className="grid gap-5">
+        {/* The two menus split the work: 메시지 템플릿 is where a template gets
+            previewed and copied, 메시지 템플릿 등록 is where the list is
+            maintained. Neither needs both halves. */}
+        {readOnly ? null : (
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-swing-ink">{copy.templates}</h2>
@@ -2353,20 +2379,24 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <SecondaryButton type="button" onClick={() => editTemplate(template)}>
-                    {copy.edit}
-                  </SecondaryButton>
                   {canManage ? (
-                    <DangerButton type="button" onClick={() => deleteTemplate(template)}>
-                      {copy.delete}
-                    </DangerButton>
+                    <>
+                      <SecondaryButton type="button" onClick={() => editTemplate(template)}>
+                        {copy.edit}
+                      </SecondaryButton>
+                      <DangerButton type="button" onClick={() => deleteTemplate(template)}>
+                        {copy.delete}
+                      </DangerButton>
+                    </>
                   ) : null}
                 </div>
               </div>
             ))}
           </div>
         </div>
+        )}
 
+        {readOnly ? (
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <h2 className="text-lg font-bold text-swing-ink">{copy.preview}</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -2422,11 +2452,9 @@ export function MessageTemplatePanel({ token, currentUser, langCd }) {
             {preview.renderedText}
           </pre>
         </div>
-
-        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-swing-ink">{copy.variables}</h2>
-          <TemplateVariableList className="mt-4" />
-        </div>
+        ) : null}
+        {/* The variable reference used to sit here as a third block. It belongs
+            next to the field you type into, which is the register modal. */}
       </div>
 
       {isFormOpen ? (

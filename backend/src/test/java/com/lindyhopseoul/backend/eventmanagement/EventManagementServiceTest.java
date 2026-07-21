@@ -114,6 +114,113 @@ class EventManagementServiceTest {
     }
 
     @Test
+    void teacherReadingLessonsSeesParticipantsOnlyForOwnLessons() {
+        Event event = Event.create(
+                EventType.REGULAR_CLASS,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Studio",
+                EventStatus.PUBLISHED,
+                10
+        );
+        event.replaceTranslations(Set.of(new EventTranslation("ko", "정규수업", "안내", "설명")));
+
+        UserAccount teacherAccount = mock(UserAccount.class);
+        TeacherUser mine = TeacherUser.createProfile("T_MINE", "My Teacher", teacherAccount, "A1");
+        TeacherUser other = TeacherUser.createProfile("T_OTHER", "Other Teacher", teacherAccount, "A1");
+
+        Lesson ownLesson = lessonWithTeacher(event, mine, 1L);
+        Lesson otherLesson = lessonWithTeacher(event, other, 2L);
+
+        EventApplication ownApplication = EventApplication.create(
+                event, ownLesson, "Mine", ApplicationContactMethod.EMAIL, "mine@example.com", "", "ko", null);
+        EventApplication otherApplication = EventApplication.create(
+                event, otherLesson, "Theirs", ApplicationContactMethod.EMAIL, "theirs@example.com", "", "ko", null);
+
+        AdminPrincipal teacher = new AdminPrincipal(
+                "U1", "My Teacher", "teacher1", AdminRole.TEACHER, List.of(AdminRole.TEACHER), AdminLanguage.Kor);
+
+        when(eventRepository.existsById(1L)).thenReturn(true);
+        when(lessonRepository.findByEventIdWithDetails(1L)).thenReturn(List.of(ownLesson, otherLesson));
+        when(teacherUserRepository.findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc("U1", "Y"))
+                .thenReturn(Optional.of(mine));
+        // Only the teacher's own lesson may be queried for applicants at all.
+        when(eventApplicationRepository.findByLesson_IdInOrderByCreatedAtAscIdAsc(List.of(1L)))
+                .thenReturn(List.of(ownApplication));
+
+        List<LessonResponse> lessons = service.findLessons(teacher, 1L);
+
+        assertThat(lessons).hasSize(2);
+        assertThat(lessons.get(0).participants()).extracting(EventApplicationResponse::applicantName)
+                .containsExactly("Mine");
+        assertThat(lessons.get(1).participants()).isEmpty();
+        // The other lesson's applicants are never even fetched, so their names and
+        // contact details cannot leak through this endpoint.
+        verify(eventApplicationRepository, never())
+                .findByLesson_IdInOrderByCreatedAtAscIdAsc(List.of(1L, 2L));
+        assertThat(otherApplication.getApplicantName()).isEqualTo("Theirs");
+    }
+
+    @Test
+    void staffReadingLessonsSeesEveryParticipant() {
+        Event event = Event.create(
+                EventType.REGULAR_CLASS,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0),
+                "Studio",
+                EventStatus.PUBLISHED,
+                10
+        );
+        event.replaceTranslations(Set.of(new EventTranslation("ko", "정규수업", "안내", "설명")));
+
+        UserAccount teacherAccount = mock(UserAccount.class);
+        TeacherUser other = TeacherUser.createProfile("T_OTHER", "Other Teacher", teacherAccount, "A1");
+        Lesson lesson = lessonWithTeacher(event, other, 2L);
+        EventApplication application = EventApplication.create(
+                event, lesson, "Theirs", ApplicationContactMethod.EMAIL, "theirs@example.com", "", "ko", null);
+
+        AdminPrincipal staff = new AdminPrincipal(
+                "S1", "Staff", "staff", AdminRole.STAFF, List.of(AdminRole.STAFF), AdminLanguage.Kor);
+
+        when(eventRepository.existsById(1L)).thenReturn(true);
+        when(lessonRepository.findByEventIdWithDetails(1L)).thenReturn(List.of(lesson));
+        when(eventApplicationRepository.findByLesson_IdInOrderByCreatedAtAscIdAsc(List.of(2L)))
+                .thenReturn(List.of(application));
+
+        List<LessonResponse> lessons = service.findLessons(staff, 1L);
+
+        assertThat(lessons.get(0).participants()).extracting(EventApplicationResponse::applicantName)
+                .containsExactly("Theirs");
+        // Staff never go through the teacher lookup.
+        verify(teacherUserRepository, never())
+                .findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc(any(), any());
+    }
+
+    private Lesson lessonWithTeacher(Event event, TeacherUser teacherUser, Long lessonId) {
+        Lesson lesson = Lesson.create(
+                event,
+                LessonType.LEVEL1,
+                LessonScheduleType.PERIOD,
+                LocalDate.of(2026, 7, 6),
+                LocalDate.of(2026, 7, 27),
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0),
+                new BigDecimal("80000"),
+                "KRW",
+                LessonStatus.PUBLISHED,
+                10
+        );
+        lesson.replaceTranslations(Set.of(new LessonTranslation("ko", "레벨1", "초급 수업")));
+        lesson.addTeacher(new LessonTeacher(teacherUser, "LEAD", 10));
+        ReflectionTestUtils.setField(lesson, "id", lessonId);
+        return lesson;
+    }
+
+    @Test
     void removeEventApplicationMarksApplicationRemovedAndWritesLog() {
         Event event = Event.create(
                 EventType.REGULAR_CLASS,

@@ -87,7 +87,7 @@ public class EventManagementService {
     public EventResponse findEvent(AdminPrincipal actor, Long eventId) {
         requireEventReader(actor);
         Event event = findEventDetails(eventId);
-        return EventResponse.from(event, participantsByLessonId(event.getLessons()));
+        return EventResponse.from(event, participantsVisibleTo(actor, event.getLessons()));
     }
 
     @Transactional
@@ -158,7 +158,7 @@ public class EventManagementService {
             throw new ResourceNotFoundException("Event not found: " + eventId);
         }
         List<Lesson> lessons = lessonRepository.findByEventIdWithDetails(eventId);
-        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsByLessonId(lessons);
+        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsVisibleTo(actor, lessons);
         return lessons.stream()
                 .map(lesson -> LessonResponse.from(
                         lesson,
@@ -406,6 +406,35 @@ public class EventManagementService {
                         .toList(),
                 participantsByLessonId.getOrDefault(lesson.getId(), List.of())
         );
+    }
+
+    /**
+     * Participants carry the applicant's name and contact details, so who may
+     * see them is narrower than who may read the schedule. Staff and super
+     * admins see every list; a teacher reading 강습조회 sees only the lessons
+     * they are actually assigned to, and empty lists elsewhere.
+     */
+    private Map<Long, List<EventApplicationResponse>> participantsVisibleTo(
+            AdminPrincipal actor,
+            Collection<Lesson> lessons
+    ) {
+        if (actor.canManageEvents()) {
+            return participantsByLessonId(lessons);
+        }
+
+        String teacherUserCd = teacherUserRepository
+                .findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc(actor.userCd(), "Y")
+                .map(TeacherUser::getTeacherUserCd)
+                .orElse(null);
+        if (teacherUserCd == null) {
+            return Map.of();
+        }
+
+        List<Lesson> ownLessons = lessons.stream()
+                .filter(lesson -> lesson.getTeachers().stream().anyMatch(lessonTeacher -> teacherUserCd
+                        .equals(lessonTeacher.getTeacherUser().getTeacherUserCd())))
+                .toList();
+        return participantsByLessonId(ownLessons);
     }
 
     private Map<Long, List<EventApplicationResponse>> participantsByLessonId(Collection<Lesson> lessons) {
@@ -739,7 +768,7 @@ public class EventManagementService {
     }
 
     private void requireEventReader(AdminPrincipal actor) {
-        if (!actor.hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF)) {
+        if (!actor.canViewEvents()) {
             throw new ForbiddenException("This account cannot access event management.");
         }
     }
