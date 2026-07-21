@@ -257,6 +257,44 @@ public class EventManagementService {
         return EventApplicationResponse.from(application);
     }
 
+    /**
+     * Lessons across every event in a range, for the lesson-first 강습조회
+     * screen. Participants stay scoped the same way as anywhere else a reader
+     * sees them.
+     */
+    public List<AdminLessonBoardResponse> findLessonBoard(
+            AdminPrincipal actor,
+            LocalDate from,
+            LocalDate to,
+            LessonStatus status
+    ) {
+        requireEventReader(actor);
+        List<Lesson> lessons = lessonRepository.findLessonsInRange(from, to, status);
+        Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsVisibleTo(actor, lessons);
+        return lessons.stream()
+                .map(lesson -> new AdminLessonBoardResponse(
+                        lesson.getId(),
+                        lesson.getEvent().getId(),
+                        lessonTitleMap(lesson),
+                        eventTitleMap(lesson.getEvent()),
+                        lesson.getEvent().getEventType(),
+                        lesson.getLessonType(),
+                        lesson.getStatus(),
+                        lesson.getStartDate(),
+                        lesson.getEndDate(),
+                        lesson.getStartTime(),
+                        lesson.getEndTime(),
+                        lesson.getTeachers()
+                                .stream()
+                                .sorted(Comparator.comparing(LessonTeacher::getDisplayOrder)
+                                        .thenComparing(LessonTeacher::getId))
+                                .map(LessonTeacherResponse::from)
+                                .toList(),
+                        participantsByLessonId.getOrDefault(lesson.getId(), List.of())
+                ))
+                .toList();
+    }
+
     public List<ActiveTeacherResponse> findActiveTeachers(AdminPrincipal actor) {
         requireEventReader(actor);
         return teacherUserRepository.findActiveTeacherRoleProfiles()

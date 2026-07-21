@@ -334,6 +334,9 @@ const COPY_TEXT = {
     eventDetail: "이벤트 상세",
     noEvents: "이벤트가 없습니다.",
     selectEvent: "이벤트를 선택해주세요.",
+    lessonBoard: "강습 목록",
+    selectLesson: "강습을 선택해주세요.",
+    noLessonsInRange: "해당 기간에 강습이 없습니다.",
     addLesson: "강습 추가",
     editLesson: "강습 수정",
     promotion: "홍보 메시지 만들기",
@@ -449,6 +452,9 @@ const COPY_TEXT = {
     eventDetail: "Event Detail",
     noEvents: "No events.",
     selectEvent: "Select an event.",
+    lessonBoard: "Lessons",
+    selectLesson: "Select a lesson.",
+    noLessonsInRange: "No lessons in this range.",
     addLesson: "Add Lesson",
     editLesson: "Edit Lesson",
     promotion: "Create Promotion Message",
@@ -1576,10 +1582,136 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
   );
 }
 
-// `readOnly` backs the 강습조회 menu: same schedule, no way to change it. The
-// server enforces this independently (canManageEvents), so this only keeps the
-// UI honest rather than being the actual guard.
-export default function EventManagementPanel({ token, currentUser, langCd, readOnly = false }) {
+/**
+ * 강습조회. Lesson-first rather than event-first: the row you pick is a lesson,
+ * and what you get is who applied to it and what has been announced on it. The
+ * event exists here only as the second half of a label, because that is the
+ * only part of it this screen needs.
+ *
+ * Registration lives in EventManagementPanel; nothing here writes.
+ */
+export function LessonBoardPanel({ token, langCd }) {
+  const copy = t(langCd);
+  const languageCode = toManualLanguage(langCd);
+  const [filters, setFilters] = useState(() => ({ from: monthRange().from, to: "" }));
+  const [lessons, setLessons] = useState([]);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadLessons = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const list = await adminApi.findLessonBoard(token, { from: filters.from, to: filters.to });
+      setLessons(list || []);
+      setError("");
+    } catch (nextError) {
+      setLessons([]);
+      setError(nextError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, filters.from, filters.to]);
+
+  useEffect(() => {
+    loadLessons();
+  }, [loadLessons]);
+
+  const selectedLesson = lessons.find((lesson) => lesson.lessonId === selectedLessonId) || null;
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  return (
+    <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0 xl:grid-cols-[330px_minmax(0,1fr)]">
+      <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-swing-border/30 pb-3">
+          <h2 className="text-lg font-bold text-swing-ink">{copy.lessonBoard}</h2>
+          <span className="text-xs font-semibold text-swing-muted">{lessons.length}</span>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Field label={copy.from}>
+            <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
+          </Field>
+          <Field label={copy.to}>
+            <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
+          </Field>
+        </div>
+
+        <Notice>{error}</Notice>
+
+        <div className="mt-3 grid gap-2">
+          {!isLoading && lessons.length === 0 ? (
+            <div className="py-6 text-center text-sm text-swing-muted">{copy.noLessonsInRange}</div>
+          ) : null}
+          {lessons.map((lesson) => {
+            const isActive = lesson.lessonId === selectedLessonId;
+
+            return (
+              <button
+                key={lesson.lessonId}
+                type="button"
+                onClick={() => setSelectedLessonId(lesson.lessonId)}
+                className={`rounded-lg border px-3 py-2 text-left transition ${
+                  isActive
+                    ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                    : "border-swing-border/30 hover:bg-swing-cream/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">
+                  {localizedTitle(lesson.lessonTitles, languageCode)}
+                  <span className={isActive ? "text-swing-paper/70" : "text-swing-muted"}>
+                    {" - "}
+                    {localizedTitle(lesson.eventTitles, languageCode)}
+                  </span>
+                </div>
+                <div className={`mt-1 text-xs ${isActive ? "text-swing-paper/70" : "text-swing-muted"}`}>
+                  {formatDateRange(lesson.startDate, lesson.endDate)} · {eventStatusLabel(lesson.status, langCd)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {selectedLesson ? (
+        <div className="grid min-w-0 content-start gap-5">
+          <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+            <h2 className="text-xl font-bold text-swing-ink">
+              {localizedTitle(selectedLesson.lessonTitles, languageCode)}
+            </h2>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Badge>{localizedTitle(selectedLesson.eventTitles, languageCode)}</Badge>
+              <Badge>{selectedLesson.lessonType}</Badge>
+              <Badge>{eventStatusLabel(selectedLesson.status, langCd)}</Badge>
+              <Badge>{formatDateRange(selectedLesson.startDate, selectedLesson.endDate)}</Badge>
+              <Badge>
+                {toTimeInput(selectedLesson.startTime)}-{toTimeInput(selectedLesson.endTime)}
+              </Badge>
+            </div>
+            <div className="mt-3 text-sm text-swing-muted">
+              {selectedLesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
+            </div>
+
+            <ParticipantList participants={selectedLesson.participants} copy={copy} onRemoveParticipant={null} />
+            <LessonNoticePanel token={token} lessonId={selectedLesson.lessonId} copy={copy} readOnly />
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-8 text-center text-sm text-swing-muted shadow-sm">
+          {copy.selectLesson}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// 이벤트/강습 등록. Reading is LessonBoardPanel's job, so this one always
+// carries its write controls; the server still gates them by role.
+export default function EventManagementPanel({ token, currentUser, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
   const [filters, setFilters] = useState(() => emptyEventFilters());
@@ -1600,7 +1732,7 @@ export default function EventManagementPanel({ token, currentUser, langCd, readO
   const [notice, setNotice] = useState("");
   const [removingParticipant, setRemovingParticipant] = useState(null);
   const [isRemovingParticipant, setIsRemovingParticipant] = useState(false);
-  const canEdit = !readOnly && (hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF"));
+  const canEdit = hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF");
   const canDelete = canEdit && hasRole(currentUser, "SUPER_ADMIN");
   const canRemoveApplication = canEdit;
 

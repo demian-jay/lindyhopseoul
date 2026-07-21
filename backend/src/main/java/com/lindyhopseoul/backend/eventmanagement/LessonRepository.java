@@ -31,6 +31,29 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             """)
     Optional<Lesson> findDetailsById(@Param("id") Long id);
 
+    /**
+     * Every lesson in a date range, whoever teaches it. Backs the lesson-first
+     * 강습조회 screen, which lists lessons rather than walking events one at a
+     * time to reach them.
+     */
+    @Query("""
+            select distinct lesson from Lesson lesson
+            left join fetch lesson.event event
+            left join fetch event.translations
+            left join fetch lesson.translations
+            left join fetch lesson.teachers lessonTeachers
+            left join fetch lessonTeachers.teacherUser
+            where (:from is null or lesson.endDate >= :from)
+              and (:to is null or lesson.startDate <= :to)
+              and (:status is null or lesson.status = :status)
+            order by lesson.startDate asc, event.displayOrder asc, lesson.displayOrder asc, lesson.startTime asc, lesson.id asc
+            """)
+    List<Lesson> findLessonsInRange(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("status") LessonStatus status
+    );
+
     @Query("""
             select distinct lesson from Lesson lesson
             join lesson.teachers assignedTeacher

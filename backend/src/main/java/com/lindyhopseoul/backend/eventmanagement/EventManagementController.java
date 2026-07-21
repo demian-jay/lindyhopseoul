@@ -45,6 +45,16 @@ public class EventManagementController {
         return eventManagementService.findEvents(requirePrincipal(authorization), from, to, eventType, status);
     }
 
+    @GetMapping("/api/admin/lessons")
+    public List<AdminLessonBoardResponse> findLessonBoard(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) LessonStatus status
+    ) {
+        return eventManagementService.findLessonBoard(requirePrincipal(authorization), from, to, status);
+    }
+
     @GetMapping("/api/admin/events/{eventId}")
     public EventResponse findEvent(
             @RequestHeader(value = "Authorization", required = false) String authorization,

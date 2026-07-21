@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
-import EventManagementPanel, { MessageTemplatePanel, TeacherDashboardPanel } from "./EventManagementPanel";
+import EventManagementPanel, {
+  LessonBoardPanel,
+  MessageTemplatePanel,
+  TeacherDashboardPanel,
+} from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
 import MemberNameLabel from "./MemberNameLabel";
 import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput } from "./OperationCheckPanel";
@@ -3254,13 +3258,9 @@ export default function AdminApp() {
               onChanged={handleOperationCheckChanged}
             />
           ) : null}
-          {safeActiveMenu === "EVENT_VIEW" || safeActiveMenu === "EVENT_REGISTRATION" ? (
-            <EventManagementPanel
-              token={token}
-              currentUser={session.user}
-              langCd={langCd}
-              readOnly={safeActiveMenu === "EVENT_VIEW"}
-            />
+          {safeActiveMenu === "EVENT_VIEW" ? <LessonBoardPanel token={token} langCd={langCd} /> : null}
+          {safeActiveMenu === "EVENT_REGISTRATION" ? (
+            <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "CORKBOARD" ? (
             <AdminCorkboardPanel token={token} currentUser={session.user} langCd={langCd} />

@@ -259,6 +259,10 @@ export const adminApi = {
       token,
     });
   },
+  // Lessons across every event in a range, for the lesson-first 강습조회 screen.
+  findLessonBoard(token, params = {}) {
+    return request(`/api/admin/lessons${buildQuery(params)}`, { token });
+  },
   findEventLessons(token, eventId) {
     return request(`/api/admin/events/${eventId}/lessons`, { token });
   },
