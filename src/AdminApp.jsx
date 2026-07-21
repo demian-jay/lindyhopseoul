@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
@@ -2961,18 +2961,35 @@ export default function AdminApp() {
   const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
   const menuCategories = useMemo(() => groupMenusByCategory(visibleMenus), [visibleMenus]);
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
-  // Which category the phone layout has open. It follows the active menu so the
-  // list you navigated from stays open, and sits closed on the dashboard, where
-  // no menu is selected.
-  const activeCategoryKey = useMemo(() => {
-    const owning = menuCategories.find((category) => category.menus.includes(safeActiveMenu));
-    return owning ? owning.key || "OTHER" : null;
-  }, [menuCategories, safeActiveMenu]);
-  const [openCategory, setOpenCategory] = useState(activeCategoryKey);
+  // Which category the phone nav has dropped open. Purely open/closed state: it
+  // does not follow the active menu, because the panel closes as soon as you
+  // pick something from it.
+  const [openCategory, setOpenCategory] = useState(null);
+  const mobileNavRef = useRef(null);
 
   useEffect(() => {
-    setOpenCategory(activeCategoryKey);
-  }, [activeCategoryKey]);
+    if (!openCategory) {
+      return undefined;
+    }
+
+    const closeOnOutside = (event) => {
+      if (mobileNavRef.current && !mobileNavRef.current.contains(event.target)) {
+        setOpenCategory(null);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenCategory(null);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openCategory]);
   const pageTitle = labels.menus[safeActiveMenu] || labels.brand;
   // While a change is owed the whole admin area is off limits, so the sidebar
   // count fetches below would only draw a 403 each. Fold it into their guards.
@@ -3124,51 +3141,65 @@ export default function AdminApp() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:h-fit">
-          {/* Phones: the three categories are chips across the top and only the
-              chosen one lists its menus. Stacking all three open cost most of a
-              phone screen before any content appeared. */}
-          <nav className="grid gap-2 lg:hidden" aria-label={labels.brand}>
-            <div className="flex flex-wrap gap-1.5">
-              {menuCategories.map((category) => {
-                const isOpen = openCategory === (category.key || "OTHER");
+      {/* Phones get the categories as a bar fixed to the underside of the
+          header, and the chosen category's menus drop over the page rather than
+          pushing it down — a nav is a detour, not part of the content. Above lg
+          this is replaced by the sidebar. */}
+      <div ref={mobileNavRef} className="relative z-[60] border-b border-swing-border/30 bg-swing-paper lg:hidden">
+        <nav className="mx-auto flex max-w-7xl flex-wrap gap-1.5 px-5 py-2" aria-label={labels.brand}>
+          {menuCategories.map((category) => {
+            const categoryKey = category.key || "OTHER";
+            const isOpen = openCategory === categoryKey;
+            const holdsActiveMenu = category.menus.includes(safeActiveMenu);
 
-                return (
-                  <button
-                    key={category.key || "OTHER"}
-                    type="button"
-                    onClick={() => setOpenCategory(isOpen ? null : category.key || "OTHER")}
-                    aria-expanded={isOpen}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                      isOpen
-                        ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
-                        : "border-swing-border/55 bg-swing-paper text-swing-muted hover:bg-swing-cream/60"
-                    }`}
-                  >
-                    {category.key ? labels.menuCategories[category.key] || category.key : labels.brand}
-                  </button>
-                );
-              })}
+            return (
+              <button
+                key={categoryKey}
+                type="button"
+                onClick={() => setOpenCategory(isOpen ? null : categoryKey)}
+                aria-expanded={isOpen}
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                  isOpen
+                    ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                    : holdsActiveMenu
+                      ? "border-swing-teal-deep/40 bg-swing-cream text-swing-teal-deep"
+                      : "border-swing-border/55 bg-swing-paper text-swing-muted"
+                }`}
+              >
+                {category.key ? labels.menuCategories[category.key] || category.key : labels.brand}
+              </button>
+            );
+          })}
+        </nav>
+
+        {menuCategories
+          .filter((category) => openCategory === (category.key || "OTHER"))
+          .map((category) => (
+            <div
+              key={category.key || "OTHER"}
+              className="absolute inset-x-0 top-full border-b border-swing-border/30 bg-swing-paper shadow-[0_12px_24px_-12px_rgba(46,39,32,0.45)]"
+            >
+              <div className="mx-auto grid max-w-7xl gap-1 px-5 py-2">
+                {category.menus.map((menu) => (
+                  <AdminMenuButton
+                    key={menu}
+                    label={labels.menus[menu] || menu}
+                    isActive={safeActiveMenu === menu}
+                    badgeCount={menuBadgeCount(menu)}
+                    onSelect={() => {
+                      setActiveMenu(menu);
+                      setOpenCategory(null);
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-            {menuCategories
-              .filter((category) => openCategory === (category.key || "OTHER"))
-              .map((category) => (
-                <div key={category.key || "OTHER"} className="grid gap-1 border-t border-swing-border/30 pt-2">
-                  {category.menus.map((menu) => (
-                    <AdminMenuButton
-                      key={menu}
-                      label={labels.menus[menu] || menu}
-                      isActive={safeActiveMenu === menu}
-                      badgeCount={menuBadgeCount(menu)}
-                      onSelect={() => setActiveMenu(menu)}
-                    />
-                  ))}
-                </div>
-              ))}
-          </nav>
+          ))}
+      </div>
 
-          <nav className="hidden gap-4 lg:grid">
+      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="hidden rounded-lg border border-swing-border/30 bg-swing-paper p-3 shadow-sm lg:sticky lg:top-5 lg:block lg:h-fit">
+          <nav className="grid gap-4">
             {menuCategories.map((category) => (
               <div key={category.key || "OTHER"} className="grid gap-1">
                 {category.key ? (
