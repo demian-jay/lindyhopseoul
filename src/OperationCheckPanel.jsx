@@ -382,17 +382,28 @@ export function OperationCheckMineList({ token, langCd, currentUserId, refreshKe
     return null;
   }
 
+  // Owns its divider rather than the card doing it, so nothing is drawn while
+  // the first response is still in flight.
   if (items.length === 0) {
-    return <p className="px-1 text-xs text-swing-muted/80">{labels.mineEmpty}</p>;
+    return (
+      <div className="mt-4 border-t border-swing-border/30 pt-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-bold text-swing-muted">{labels.mineTitle}</h3>
+        </div>
+        <p className="mt-2 rounded-lg border border-dashed border-swing-border/40 px-3 py-3 text-center text-xs text-swing-muted/80">
+          {labels.mineEmpty}
+        </p>
+      </div>
+    );
   }
 
   return (
-    <section className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+    <div className="mt-4 border-t border-swing-border/30 pt-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold text-swing-ink">{labels.mineTitle}</h2>
+        <h3 className="text-xs font-bold text-swing-muted">{labels.mineTitle}</h3>
         <span className="text-xs font-semibold text-swing-muted">{items.length}</span>
       </div>
-      <ul className="mt-3 grid gap-2">
+      <ul className="mt-2 grid gap-2">
         {items.map((item) => (
           <li key={item.id}>
             <button
@@ -408,11 +419,14 @@ export function OperationCheckMineList({ token, langCd, currentUserId, refreshKe
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   );
 }
 
-export function OperationCheckQuickInput({ token, langCd, onChanged }) {
+// `children` is a slot at the foot of the card, used by the dashboard to hang
+// OperationCheckMineList off the same card the quick input lives in — an empty
+// list reads as empty only when it sits where the list would have been.
+export function OperationCheckQuickInput({ token, langCd, onChanged, children }) {
   const labels = copyFor(langCd);
   const [assignees, setAssignees] = useState([]);
   const [form, setForm] = useState({ content: "", assignedToUserIds: [] });
@@ -523,6 +537,7 @@ export function OperationCheckQuickInput({ token, langCd, onChanged }) {
         <Notice>{error}</Notice>
         <Notice type="success">{notice}</Notice>
       </div>
+      {children}
     </form>
   );
 }

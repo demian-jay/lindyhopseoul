@@ -3223,18 +3223,20 @@ export default function AdminApp() {
 
         <main className="grid min-w-0 gap-5">
           {shouldShowOperationCheckQuickInput ? (
-            <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged} />
-          ) : null}
-          {/* Only on the dashboard: the OPERATION_CHECK menu below already lists
-              everything, so repeating my own items there would be noise. */}
-          {canUseOperationCheck && safeActiveMenu === "DASHBOARD" ? (
-            <OperationCheckMineList
-              token={token}
-              langCd={langCd}
-              currentUserId={session.user.userCd || session.user.userId}
-              refreshKey={operationCheckRefreshKey}
-              onSelect={() => setActiveMenu("OPERATION_CHECK")}
-            />
+            <OperationCheckQuickInput token={token} langCd={langCd} onChanged={handleOperationCheckChanged}>
+              {/* Only on the dashboard: the OPERATION_CHECK menu below already
+                  lists everything, so repeating my own items there would be
+                  noise. */}
+              {safeActiveMenu === "DASHBOARD" ? (
+                <OperationCheckMineList
+                  token={token}
+                  langCd={langCd}
+                  currentUserId={session.user.userCd || session.user.userId}
+                  refreshKey={operationCheckRefreshKey}
+                  onSelect={() => setActiveMenu("OPERATION_CHECK")}
+                />
+              ) : null}
+            </OperationCheckQuickInput>
           ) : null}
           {safeActiveMenu === "DASHBOARD" ? (
             <div className="grid gap-5">
