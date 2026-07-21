@@ -126,17 +126,23 @@ public record AdminPrincipal(
         return hasAnyRole(AdminRole.SUPER_ADMIN, AdminRole.STAFF, AdminRole.TEACHER);
     }
 
+    /**
+     * An account with no roles keeps none. This used to fall back to a MEMBER
+     * role, which read as "some minimal access" when what it actually described
+     * was an account nobody had granted anything to — every permission check
+     * here is a positive test, so an empty list denies everything.
+     */
     private static List<AdminRole> normalizeRoles(Collection<AdminRole> roles) {
-        List<AdminRole> normalized = roles == null ? List.of() : roles.stream()
+        return roles == null ? List.of() : roles.stream()
                 .filter(role -> role != null)
                 .distinct()
                 .sorted((left, right) -> Integer.compare(rolePriority(left), rolePriority(right)))
                 .toList();
-        return normalized.isEmpty() ? List.of(AdminRole.MEMBER) : normalized;
     }
 
     private static AdminRole primaryRole(List<AdminRole> roles) {
-        return normalizeRoles(roles).get(0);
+        List<AdminRole> normalized = normalizeRoles(roles);
+        return normalized.isEmpty() ? null : normalized.get(0);
     }
 
     private static int rolePriority(AdminRole role) {
@@ -144,7 +150,6 @@ public record AdminPrincipal(
             case SUPER_ADMIN -> 0;
             case STAFF -> 1;
             case TEACHER -> 2;
-            case MEMBER -> 3;
         };
     }
 }

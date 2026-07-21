@@ -22,7 +22,9 @@ public record AdminAccountResponse(
 
     public static AdminAccountResponse from(UserAccount user) {
         List<AdminRole> roles = user.getRoleCodes();
-        AdminRole role = roles.isEmpty() ? AdminRole.MEMBER : roles.get(0);
+        // Null rather than a stand-in role: an account with no roles has no
+        // primary one, and the clients render the roles list anyway.
+        AdminRole role = roles.isEmpty() ? null : roles.get(0);
         return new AdminAccountResponse(
                 user.getUserId(),
                 user.getUserId(),

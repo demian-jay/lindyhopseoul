@@ -9,7 +9,7 @@ const EVENT_STATUSES = ["PUBLISHED", "FINISHED"];
 const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPERIENCE"];
 const LESSON_STATUSES = ["PUBLISHED", "FINISHED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
-const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER"];
 // Named by venue, not by event type: regular classes and parties both run at KP.
 const KP_GOOGLE_MAP_URL = "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96";
 const KP_NAVER_MAP_URL = "https://naver.me/x2jQH2Tt";

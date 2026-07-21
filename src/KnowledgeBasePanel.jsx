@@ -4,7 +4,7 @@ import { adminApi } from "./api/admin";
 
 const STATUS_OPTIONS = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 const FALLBACK_SUPPORTED_LANGUAGES = ["ko", "en"];
-const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER"];
 
 const LANGUAGE_LABELS = {
   ko: "한국어",

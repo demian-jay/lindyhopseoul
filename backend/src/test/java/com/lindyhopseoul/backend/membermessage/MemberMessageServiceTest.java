@@ -100,16 +100,18 @@ class MemberMessageServiceTest {
 
     @Test
     void findAdminThreadsRejectsNonStaffAdminPrincipal() {
-        AdminPrincipal memberPrincipal = new AdminPrincipal(
-                "member-admin",
-                "Member Admin",
-                "member",
-                AdminRole.MEMBER,
-                List.of(AdminRole.MEMBER),
+        // An account nobody has granted a role to. There is no catch-all role
+        // standing in for this any more, so it carries an empty role list.
+        AdminPrincipal rolelessPrincipal = new AdminPrincipal(
+                "no-role-admin",
+                "No Role Admin",
+                "norole",
+                null,
+                List.of(),
                 AdminLanguage.Kor
         );
 
-        assertThatThrownBy(() -> memberMessageService.findAdminThreads(memberPrincipal))
+        assertThatThrownBy(() -> memberMessageService.findAdminThreads(rolelessPrincipal))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -337,17 +339,19 @@ class MemberMessageServiceTest {
 
     @Test
     void sendAdminMessagesRejectsUnauthorizedPrincipal() {
-        AdminPrincipal memberPrincipal = new AdminPrincipal(
-                "member-admin",
-                "Member Admin",
-                "member",
-                AdminRole.MEMBER,
-                List.of(AdminRole.MEMBER),
+        // An account nobody has granted a role to. There is no catch-all role
+        // standing in for this any more, so it carries an empty role list.
+        AdminPrincipal rolelessPrincipal = new AdminPrincipal(
+                "no-role-admin",
+                "No Role Admin",
+                "norole",
+                null,
+                List.of(),
                 AdminLanguage.Kor
         );
 
         assertThatThrownBy(() -> memberMessageService.sendAdminMessages(
-                memberPrincipal,
+                rolelessPrincipal,
                 new AdminMemberMessageSendRequest(List.of(1L), "안내드립니다.")
         )).isInstanceOf(ForbiddenException.class);
     }

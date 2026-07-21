@@ -45,7 +45,6 @@ const I18N = {
       SUPER_ADMIN: "수퍼​관리자",
       STAFF: "동호회 운영진",
       TEACHER: "강사",
-      MEMBER: "회원",
     },
     statuses: {
       Y: "사용",
@@ -329,7 +328,6 @@ const I18N = {
       SUPER_ADMIN: "Super Admin",
       STAFF: "Staff",
       TEACHER: "Teacher",
-      MEMBER: "Member",
     },
     statuses: {
       Y: "Active",
@@ -624,15 +622,17 @@ function formatStaffSenderLabel(message, labels) {
   return labels.staffSender(displayName);
 }
 
-const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER"];
 
 function normalizeRoles(userLike) {
   const roles = Array.isArray(userLike?.roles) && userLike.roles.length > 0 ? userLike.roles : [userLike?.role].filter(Boolean);
   return ROLE_ORDER.filter((role) => roles.includes(role));
 }
 
+// Null for an account with no roles, matching the server. There is no
+// catch-all role to fall back to.
 function primaryRole(userLike) {
-  return normalizeRoles(userLike)[0] || "MEMBER";
+  return normalizeRoles(userLike)[0] || null;
 }
 
 function hasRole(userLike, role) {
@@ -1218,7 +1218,7 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
     if (canManageSuperAdmin || form.roles.includes("SUPER_ADMIN")) {
       return ROLE_ORDER;
     }
-    return ["STAFF", "TEACHER", "MEMBER"];
+    return ["STAFF", "TEACHER"];
   }, [canManageSuperAdmin, form.roles]);
 
   const loadItems = useCallback(async () => {

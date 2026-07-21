@@ -71,7 +71,6 @@ public enum AdminMenu {
                     MESSAGE_TEMPLATE_REGISTRATION
             );
             case TEACHER -> List.of(DASHBOARD, EVENT_VIEW, MESSAGE_TEMPLATE_VIEW);
-            case MEMBER -> List.of(DASHBOARD, KNOWLEDGE_BASE);
         };
     }
 }

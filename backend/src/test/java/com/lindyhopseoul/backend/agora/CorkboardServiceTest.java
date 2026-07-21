@@ -633,17 +633,19 @@ class CorkboardServiceTest {
     }
 
     @Test
-    void adminActionsRejectMemberRole() {
-        AdminPrincipal memberPrincipal = new AdminPrincipal(
-                "member-1",
-                "Member",
-                "member",
-                AdminRole.MEMBER,
-                List.of(AdminRole.MEMBER),
+    void adminActionsRejectRolelessAccount() {
+        // An account nobody has granted a role to. There is no catch-all role
+        // standing in for this any more, so it carries an empty role list.
+        AdminPrincipal rolelessPrincipal = new AdminPrincipal(
+                "no-role-1",
+                "No Role",
+                "norole",
+                null,
+                List.of(),
                 AdminLanguage.Kor
         );
 
-        assertThatThrownBy(() -> corkboardService.findAdminCorkboards(memberPrincipal, null))
+        assertThatThrownBy(() -> corkboardService.findAdminCorkboards(rolelessPrincipal, null))
                 .isInstanceOf(ForbiddenException.class);
     }
 

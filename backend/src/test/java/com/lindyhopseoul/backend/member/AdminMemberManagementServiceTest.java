@@ -62,16 +62,18 @@ class AdminMemberManagementServiceTest {
 
     @Test
     void findMembersRejectsNonOperatorAdmin() {
-        AdminPrincipal memberAdmin = new AdminPrincipal(
-                "member-admin",
-                "Member Admin",
-                "member",
-                AdminRole.MEMBER,
-                List.of(AdminRole.MEMBER),
+        // An account nobody has granted a role to. There is no catch-all role
+        // standing in for this any more, so it carries an empty role list.
+        AdminPrincipal rolelessAdmin = new AdminPrincipal(
+                "no-role-admin",
+                "No Role Admin",
+                "norole",
+                null,
+                List.of(),
                 AdminLanguage.Kor
         );
 
-        assertThatThrownBy(() -> service.findMembers(memberAdmin, null, null, null, null, null))
+        assertThatThrownBy(() -> service.findMembers(rolelessAdmin, null, null, null, null, null))
                 .isInstanceOf(ForbiddenException.class);
         verifyNoInteractions(memberRepository, eventApplicationRepository);
     }

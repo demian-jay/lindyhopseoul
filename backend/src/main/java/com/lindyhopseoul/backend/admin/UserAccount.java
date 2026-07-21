@@ -236,7 +236,6 @@ public class UserAccount {
             case SUPER_ADMIN -> 0;
             case STAFF -> 1;
             case TEACHER -> 2;
-            case MEMBER -> 3;
         };
     }
 }

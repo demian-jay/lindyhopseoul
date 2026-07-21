@@ -381,11 +381,13 @@ public class AdminAccountService {
                 .distinct()
                 .sorted(Comparator.comparingInt(this::rolePriority))
                 .toList();
-        return normalized.isEmpty() ? List.of(defaultRole) : normalized;
+        return normalized.isEmpty() && defaultRole != null ? List.of(defaultRole) : normalized;
     }
 
     private boolean sameRoles(List<AdminRole> left, List<AdminRole> right) {
-        return normalizeRoles(left, null, AdminRole.MEMBER).equals(normalizeRoles(right, null, AdminRole.MEMBER));
+        // No default: two role-less accounts compare equal on their own terms,
+        // rather than both being normalised into a placeholder role.
+        return normalizeRoles(left, null, null).equals(normalizeRoles(right, null, null));
     }
 
     private AdminLanguage normalizeLanguage(AdminLanguage langCd) {
@@ -397,7 +399,6 @@ public class AdminAccountService {
             case SUPER_ADMIN -> 0;
             case STAFF -> 1;
             case TEACHER -> 2;
-            case MEMBER -> 3;
         };
     }
 

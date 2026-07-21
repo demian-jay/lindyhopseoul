@@ -215,7 +215,7 @@ function appLanguage(langCd) {
   return langCd === "Eng" ? "en" : "ko";
 }
 
-const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER", "MEMBER"];
+const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER"];
 
 function normalizeRoles(userLike) {
   const roles = Array.isArray(userLike?.roles) && userLike.roles.length > 0
