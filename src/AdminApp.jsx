@@ -76,6 +76,7 @@ const I18N = {
       hideFilters: "검색 조건 닫기",
       showForm: "입력 열기",
       hideForm: "입력 닫기",
+      buildVersion: "빌드 버전",
       loading: "불러오는 중",
       count: (count) => `${count}개`,
       empty: "-",
@@ -368,6 +369,7 @@ const I18N = {
       hideFilters: "Hide Filters",
       showForm: "Show Form",
       hideForm: "Hide Form",
+      buildVersion: "Build",
       loading: "Loading",
       count: (count) => `${count} items`,
       empty: "-",
@@ -2964,6 +2966,14 @@ export default function AdminApp() {
               </button>
             ))}
           </nav>
+          {/* Deploys are manual and a phone can sit on an old bundle, so make the
+              running build readable instead of guessing from which features
+              appear. Selectable, so it can be quoted when reporting a problem. */}
+          <div className="mt-3 select-text border-t border-swing-border/30 pt-3 text-center text-[11px] leading-4 text-swing-muted/80">
+            {labels.common.buildVersion}
+            <br />
+            {__BUILD_VERSION__}
+          </div>
         </aside>
 
         <main className="grid min-w-0 gap-5">
