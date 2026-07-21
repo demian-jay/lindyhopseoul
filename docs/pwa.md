@@ -1,6 +1,6 @@
 # Installable App (PWA)
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 Stage 1 only: the site can be installed to a home screen and launches without
 browser chrome. Push notifications are deliberately not built — see Stage 2.
@@ -14,6 +14,7 @@ browser chrome. Push notifications are deliberately not built — see Stage 2.
 | Service worker | `public/sw.js` |
 | Registration | `src/main.jsx`, production builds only |
 | Meta tags | `index.html` |
+| Build stamp | `vite.config.js` defines it, admin sidebar prints it |
 
 Everything in `public/` is copied to the root of `dist/`, so the manifest and
 worker are served from `/manifest.webmanifest` and `/sw.js`.
@@ -45,6 +46,27 @@ would strand people on an old build with no way to tell.
 
 Network-first navigation is what keeps a deploy visible immediately. The cached
 shell exists so a launch without signal still renders something.
+
+The shell is re-cached on every successful load, so the offline fallback is the
+last version actually seen. Caching it only at install time was a real trap: one
+offline moment could pin a phone to that build indefinitely, which on 2026-07-20
+left a stale admin UI talking to a newer backend.
+
+## Picking Up a New Build
+
+Fully closing and reopening the app is enough — swiping it away in the app
+switcher, not just backgrounding it, since the loaded bundle stays in memory
+otherwise. Confirmed on Android on 2026-07-21: no reinstall, no clearing data.
+
+To check rather than assume, read the build stamp under the admin sidebar menu
+and compare it with the deployed commit. If a close-and-reopen leaves it
+unchanged, that is a bug in the worker, not something to paper over by clearing
+data.
+
+Clearing the site's Chrome data is a separate remedy for a separate problem: it
+is what restores the install prompt when Chrome has gone stale on whether the
+app is installed. It is not part of the update cycle. Note that removing the
+home screen icon on Android is not an uninstall — check Settings → Apps.
 
 ## Changing the Worker
 

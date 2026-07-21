@@ -2,7 +2,7 @@
 
 This file is the note to check before deploying to `swingpopseoul.com`.
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 Deployment is manual. There is no CI/CD, `Dockerfile`, or deploy script in this
 repository; every step below is run by hand.
@@ -35,8 +35,8 @@ unreachable. Checked on the new address:
 | SSH port 22 | Open, daemon responds |
 | `ssh ec2-user@52.78.185.32` | Shell reached, `sudo` works, a full frontend deploy ran end to end |
 
-Everything on this page has now been exercised against this address except the
-Backend Deploy section, which stays untested.
+Every procedure on this page has since been run against this address, the
+backend deploy included.
 
 The SSH host key differs from the one `known_hosts` recorded for the old
 address, so this is a new instance rather than a moved Elastic IP. Expect
@@ -156,11 +156,23 @@ curl -s https://swingpopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|
 # The installable app: sw.js must stay no-cache or new workers never land.
 curl -sI https://swingpopseoul.com/sw.js | grep -i cache-control
 curl -sI https://swingpopseoul.com/manifest.webmanifest | grep -iE 'content-type|cache-control'
+
+# The build stamp baked into the bundle. Must name the commit just deployed.
+BUNDLE=$(curl -s https://swingpopseoul.com/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js')
+curl -s "https://swingpopseoul.com/$BUNDLE" |
+  grep -oE '"20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} · [0-9a-f]{7,}"' | head -1
+git rev-parse --short HEAD
 ```
 
 Then load the site and confirm the bundle filename matches the one you just
 built, because a stale `index.html` in your own browser cache will happily show
 you the old build and make a good deploy look broken.
+
+The admin sidebar prints that same stamp under the menu, so anyone reporting a
+problem can be asked for it rather than guessing which build they are on. It
+records the commit as of the **build**, so commit first, then build, then
+deploy — building before committing stamps the previous commit and the display
+quietly lies.
 
 ## Backend Deploy
 
