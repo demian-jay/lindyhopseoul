@@ -841,6 +841,12 @@ const MY_PAGE_COPY = {
   ko: {
     topButton: "내 페이지",
     login: "Google로 로그인",
+    // Phone widths cannot hold the full label beside the logo and the language
+    // picker — the English wording needs 108px at its smallest against an 87px
+    // budget at 320px. Below `sm` the button shows the brand name alone; the
+    // full wording stays on the button's aria-label. Not translated: it is a
+    // brand name, and it is deliberately identical in both languages.
+    loginShort: "Google",
     privacyLink: "개인정보처리방침",
     title: "내 페이지",
     description: "신청 내역, 메시지, 계정 설정을 한곳에서 확인합니다.",
@@ -872,6 +878,7 @@ const MY_PAGE_COPY = {
   en: {
     topButton: "My Page",
     login: "Sign in with Google",
+    loginShort: "Google",
     privacyLink: "Privacy Policy",
     title: "My Page",
     description: "Manage your classes, messages, and profile.",
@@ -1488,14 +1495,14 @@ function LanguageMenu({ language, onChange }) {
 function SiteHeader({ nav, corkboardLabel, onCorkboard, language, onLanguageChange }) {
   return (
     <header className="sticky top-0 z-[70] border-b border-swing-border/30 bg-swing-paper/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 md:px-8">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:px-5 md:gap-4 md:px-8">
         <a
           href="#top"
           onClick={(event) => {
             event.preventDefault();
             scrollToHash("#top");
           }}
-          className="shrink-0 font-display text-lg font-bold tracking-[0.14em] text-swing-teal-deep transition hover:text-swing-teal"
+          className="shrink-0 font-display text-base font-bold tracking-[0.1em] text-swing-teal-deep transition hover:text-swing-teal sm:text-lg sm:tracking-[0.14em]"
         >
           SWINGPOP
         </a>
@@ -1535,21 +1542,34 @@ function SiteHeader({ nav, corkboardLabel, onCorkboard, language, onLanguageChan
         <div className="ml-auto flex shrink-0 items-center lg:ml-0">
           <LanguageMenu language={language} onChange={onLanguageChange} />
           {/* Reserves room for the fixed AuthControl button in the top-right.
-              Must stay at least as wide as its widest label — "Sign in with
-              Google" measures 142px — or the nav runs underneath it at lg. */}
-          <div className="h-1 w-36" aria-hidden="true" />
+              Must stay at least as wide as its widest label at that breakpoint,
+              or the nav runs underneath it at lg. Below `sm` the button drops to
+              its short label ("Sign in", 69px), so reserving the full 144px
+              there overflowed the row and pushed the button off-screen on any
+              phone narrower than 410px. */}
+          <div className="h-1 w-20 sm:w-36" aria-hidden="true" />
         </div>
       </div>
     </header>
   );
 }
 
-function MobileStickyCta({ label, onClick }) {
+// Stays mounted and slides out of frame when hidden, so both directions are
+// animated. Unmounting would make it pop back in with no transition.
+function MobileStickyCta({ label, onClick, isVisible }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-swing-border/25 bg-swing-paper/92 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(46,39,32,0.12)] backdrop-blur md:hidden">
+    <div
+      className={`fixed inset-x-0 bottom-0 z-[90] border-t border-swing-border/25 bg-swing-paper/92 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] pt-3 shadow-[0_-8px_30px_rgba(46,39,32,0.12)] backdrop-blur transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none md:hidden ${
+        isVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
+      }`}
+      aria-hidden={!isVisible}
+    >
       <button
         type="button"
         onClick={onClick}
+        // Untabbable while off-screen, or keyboard focus lands on a button the
+        // user cannot see.
+        tabIndex={isVisible ? undefined : -1}
         className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-swing-teal-deep px-5 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-paper"
         aria-label={label}
       >
@@ -3857,20 +3877,36 @@ function AuthControl({ authState, isLoading, isPending, language, onLogin, onMyP
       : "border-swing-border/30 bg-swing-paper/80 text-swing-ink hover:bg-swing-paper focus:ring-swing-teal disabled:text-swing-muted/45";
 
   return (
-    // Aligned to the header rather than the viewport. The right inset matches
-    // the header's own `px-5 md:px-8` so the button lines up with SWINGPOP
-    // opposite it, and the top insets centre it in the header band, which is
-    // 53px until the nav appears at lg and makes it 63px. The previous `top-5`
-    // pushed a 38px button to y=58, leaving it hanging below the header border.
-    <div className="fixed right-5 top-2 z-[80] flex max-w-[calc(100vw-40px)] justify-end md:right-8 lg:top-3">
-      <button
-        type="button"
-        onClick={isAuthenticated ? onMyPage : onLogin}
-        disabled={isLoading || isPending}
-        className={`inline-flex min-h-[36px] items-center justify-center rounded-full border px-3 text-xs font-medium shadow-sm backdrop-blur transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed sm:min-h-[38px] sm:px-4 ${toneClass}`}
-      >
-        {isLoading || isPending ? "..." : isAuthenticated ? labels.topButton : labels.login}
-      </button>
+    // Mirrors SiteHeader's own row box — same max width, same padding, same
+    // vertical padding — so the button lands exactly on the spacer the header
+    // reserves for it, horizontally and vertically, at every breakpoint.
+    // Hardcoded insets were used here before and drifted: `top-2` sat the button
+    // 5px above the logo and language picker once the band grew to 63px.
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[80]">
+      <div className="mx-auto flex max-w-6xl items-center justify-end px-4 py-3 sm:px-5 md:px-8">
+        {/* 38px matches the language picker beside it, which is what makes the
+            button share a centre line with the logo and the picker. */}
+        <button
+          type="button"
+          onClick={isAuthenticated ? onMyPage : onLogin}
+          disabled={isLoading || isPending}
+          // Below `sm` the visible text is just "Google", so the full wording
+          // has to reach screen readers some other way.
+          aria-label={isAuthenticated ? undefined : labels.login}
+          className={`pointer-events-auto inline-flex min-h-[38px] items-center justify-center rounded-full border px-3 text-xs font-medium shadow-sm backdrop-blur transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed sm:px-4 ${toneClass}`}
+        >
+          {isLoading || isPending ? (
+            "..."
+          ) : isAuthenticated ? (
+            labels.topButton
+          ) : (
+            <>
+              <span className="sm:hidden">{labels.loginShort}</span>
+              <span className="hidden sm:inline">{labels.login}</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -4583,6 +4619,30 @@ function PublicApp() {
   }, [authState?.authenticated, loadAppliedScheduleItemIds, markScheduleItemApplied]);
 
   const isAuthenticated = Boolean(authState?.authenticated);
+
+  // The sticky bottom CTA duplicates the hero's "apply" button, so it only earns
+  // its space once the hero one has scrolled away. Watching the hero button
+  // itself — rather than a scroll offset — keeps the handover correct when the
+  // hero reflows (language switch, long titles, small screens).
+  const heroCtaRef = useRef(null);
+  const [isHeroCtaOnScreen, setIsHeroCtaOnScreen] = useState(true);
+
+  useEffect(() => {
+    const node = heroCtaRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsHeroCtaOnScreen(entry.isIntersecting),
+      // The sticky header covers the top 63px; a button hidden behind it is not
+      // reachable, so treat that band as off-screen.
+      { rootMargin: "-63px 0px 0px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const memberLanguage = isAuthenticated ? toAppLanguage(authState.preferredLanguage) : null;
   const effectiveLanguage = isAuthenticated ? memberLanguage : guestLanguage;
   const isPrivacyPath = currentPath === "/privacy";
@@ -4756,6 +4816,7 @@ function PublicApp() {
               </p>
               <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <a
+                  ref={heroCtaRef}
                   href="#schedule"
                   onClick={() => setActiveFilter("all")}
                   className="inline-flex min-h-[50px] items-center justify-center rounded-full bg-swing-teal-deep px-7 text-sm font-medium tracking-wide text-swing-paper shadow-frame transition hover:-translate-y-0.5 hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal focus:ring-offset-2 focus:ring-offset-swing-cream"
@@ -4970,11 +5031,19 @@ function PublicApp() {
 
         {!isSettingsPath && !isMessagesPath && !isCorkboardPath && !isMyClassesPath && !isMyPagePath && !isPrivacyPath && !isLoginConsentPath ? (
           <>
-            <div className="h-28 md:hidden" aria-hidden="true" />
-            <MobileStickyCta
-              label={t.mobileApply}
-              onClick={() => scrollToHash("#schedule")}
-            />
+            {/* Signed-in members reach their schedule from My Page, so the bar
+                never shows for them — and without the bar there is nothing to
+                clear, hence no spacer either. */}
+            {!isAuthenticated ? (
+              <>
+                <div className="h-28 md:hidden" aria-hidden="true" />
+                <MobileStickyCta
+                  label={t.mobileApply}
+                  onClick={() => scrollToHash("#schedule")}
+                  isVisible={!isHeroCtaOnScreen}
+                />
+              </>
+            ) : null}
           </>
         ) : null}
         <EventLessonsModal
