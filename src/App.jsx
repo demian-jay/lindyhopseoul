@@ -1439,7 +1439,15 @@ function LanguageMenu({ language, onChange }) {
           <circle cx="12" cy="12" r="9" />
           <path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" />
         </svg>
-        <span>{current.label}</span>
+        {/* "Language" always in English above the current value: someone who
+            cannot read 한국어 needs a word they recognise to know what this
+            opens. Stacked rather than inline so it costs no header width. */}
+        <span className="flex flex-col items-start leading-none">
+          <span className="text-[9px] font-normal uppercase tracking-[0.1em] text-swing-muted/70">
+            Language
+          </span>
+          <span className="mt-0.5">{current.label}</span>
+        </span>
       </button>
 
       {isOpen ? (
