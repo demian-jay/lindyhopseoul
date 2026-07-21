@@ -3188,14 +3188,6 @@ export default function AdminApp() {
               </div>
             ))}
           </nav>
-          {/* Deploys are manual and a phone can sit on an old bundle, so make the
-              running build readable instead of guessing from which features
-              appear. Selectable, so it can be quoted when reporting a problem. */}
-          <div className="mt-3 select-text border-t border-swing-border/30 pt-3 text-center text-[11px] leading-4 text-swing-muted/80">
-            {labels.common.buildVersion}
-            <br />
-            {__BUILD_VERSION__}
-          </div>
         </aside>
 
         <main className="grid min-w-0 gap-5">
@@ -3269,6 +3261,15 @@ export default function AdminApp() {
             <AdminUsersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
         </main>
+      </div>
+
+      {/* Deploys are manual and a phone can sit on an old bundle, so make the
+          running build readable instead of guessing from which features appear.
+          Selectable, so it can be quoted when reporting a problem. It sits on
+          the page background at the foot of the page rather than in the sidebar,
+          where it competed with the menus for a phone's first screen. */}
+      <div className="select-text px-5 pb-6 text-center text-[11px] leading-4 text-swing-muted/70">
+        {labels.common.buildVersion} · {__BUILD_VERSION__}
       </div>
 
       {isMyAccountOpen ? (
