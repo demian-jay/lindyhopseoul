@@ -8,7 +8,6 @@
 }
 
 .corkboard-hero,
-.corkboard-toolbar,
 .corkboard-layout {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -21,7 +20,6 @@
 }
 
 .corkboard-back-button,
-.corkboard-period-button,
 .corkboard-composer button,
 .corkboard-page-tabs button,
 .corkboard-note-admin-action,
@@ -74,30 +72,13 @@
   line-height: 1.8;
 }
 
-.corkboard-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.corkboard-period-button {
-  border-radius: 999px;
-  border: 1px solid rgba(51, 111, 106, 0.26);
-  background: #fff3d7;
-  padding: 10px 16px;
-  color: #336f6a;
-  font-size: 13px;
-  font-weight: 900;
-  transition: transform 160ms ease, background 160ms ease;
-}
-
-.corkboard-period-button:hover,
-.corkboard-period-button.is-active {
-  transform: translateY(-1px);
-  background: #336f6a;
-  color: #fff3d7;
+/* Foot of the page: a quiet way out to older boards, not a control competing
+   with the board itself. */
+.corkboard-archive-footer {
+  width: min(1180px, 100%);
+  margin: 22px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(110, 75, 54, 0.14);
 }
 
 .corkboard-archive-select {
@@ -106,17 +87,18 @@
   align-items: center;
   gap: 8px;
   color: #675748;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .corkboard-archive-select select {
-  min-height: 40px;
+  min-height: 32px;
   border-radius: 999px;
   border: 1px solid rgba(110, 75, 54, 0.14);
   background: rgba(255, 243, 215, 0.88);
-  padding: 0 34px 0 14px;
+  padding: 0 28px 0 12px;
   color: #2e2720;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -139,18 +121,27 @@
   margin-bottom: 12px;
 }
 
-.corkboard-board-heading h2 {
-  margin: 0;
-  color: #2e2720;
-  font-size: 22px;
-  line-height: 1.2;
-}
-
 .corkboard-board-heading p {
-  margin: 5px 0 0;
+  margin: 0;
   color: #675748;
   font-size: 13px;
   font-weight: 700;
+}
+
+/* Label first, then the dates, so the line reads as one short caption rather
+   than a heading with a subtitle under it. */
+.corkboard-board-period {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.corkboard-board-period span {
+  color: #675748;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
 }
 
 .corkboard-readonly-badge {

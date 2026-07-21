@@ -39,6 +39,7 @@ const COPY = {
     title: "담벼락",
     subtitle: "스윙팝 사람들의 짧은 안내와 마음을 코르크보드에 붙여두는 공간입니다.",
     current: "현재 보드",
+    period: "게시기간",
     archive: "지난 코르크보드",
     archiveEmpty: "아직 지나간 코르크보드가 없습니다.",
     loading: "코르크보드를 꺼내는 중입니다.",
@@ -101,6 +102,7 @@ const COPY = {
     title: "Corkboard",
     subtitle: "Short notes, guestbook messages, and warm SwingPop notices pinned in one place.",
     current: "Current board",
+    period: "Posting period",
     archive: "Past corkboards",
     archiveEmpty: "No archived corkboards yet.",
     loading: "Opening the corkboard.",
@@ -1225,37 +1227,15 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
         </div>
       </header>
 
-      <section className="corkboard-toolbar" aria-label="Corkboard controls">
-        <button
-          type="button"
-          className={`corkboard-period-button ${selectedPeriodKey === "current" ? "is-active" : ""}`}
-          onClick={() => loadPeriod("current")}
-        >
-          {labels.current}
-        </button>
-        <label className="corkboard-archive-select">
-          <span>{labels.archive}</span>
-          <select
-            value={selectedPeriodKey === "current" ? "" : selectedPeriodKey}
-            onChange={(event) => loadPeriod(event.target.value || "current")}
-          >
-            <option value="">{labels.archiveEmpty}</option>
-            {archivePeriods.map((period) => (
-              <option key={period.periodKey} value={period.periodKey}>
-                {period.periodKey} · {period.noteCount}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
       <section className="corkboard-layout">
         <div className="corkboard-board-column">
+          {/* The board's own name repeated what the page title already said, so
+              only the dates it covers are left, labelled and set small. */}
           <div className="corkboard-board-heading">
-            <div>
-              <h2>{boardData?.title || labels.title}</h2>
-              <p>{periodLabel(boardData, language)}</p>
-            </div>
+            <p className="corkboard-board-period">
+              <span>{labels.period}</span>
+              {periodLabel(boardData, language)}
+            </p>
             {boardData?.readOnly ? <span className="corkboard-readonly-badge">{labels.readOnly}</span> : null}
           </div>
 
@@ -1506,6 +1486,28 @@ export default function CorkboardPage({ authState, isLoading, language = "ko", o
             </form>
           )}
         </aside>
+      </section>
+
+      {/* Past boards are a rare detour, so they sit at the foot of the page
+          rather than above the board itself. Picking the blank option is what
+          returns you to the current board — the green button that used to do
+          that was the loudest thing on the page for the state you are already
+          in. */}
+      <section className="corkboard-archive-footer" aria-label={labels.archive}>
+        <label className="corkboard-archive-select">
+          <span>{labels.archive}</span>
+          <select
+            value={selectedPeriodKey === "current" ? "" : selectedPeriodKey}
+            onChange={(event) => loadPeriod(event.target.value || "current")}
+          >
+            <option value="">{archivePeriods.length === 0 ? labels.archiveEmpty : labels.current}</option>
+            {archivePeriods.map((period) => (
+              <option key={period.periodKey} value={period.periodKey}>
+                {period.periodKey} · {period.noteCount}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
     </main>
   );
