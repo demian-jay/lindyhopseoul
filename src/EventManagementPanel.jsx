@@ -1595,7 +1595,7 @@ export function LessonBoardPanel({ token, langCd }) {
   const languageCode = toManualLanguage(langCd);
   const [lessons, setLessons] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
-  const [isListOpen, setIsListOpen] = useState(false);
+  const [isListOpen, setIsListOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -1624,9 +1624,9 @@ export function LessonBoardPanel({ token, langCd }) {
   return (
     <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0 xl:grid-cols-[330px_minmax(0,1fr)]">
       <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
-        {/* Starts collapsed so the screen opens on the lesson you are reading
-            rather than the index. Stays open once expanded, so stepping through
-            several lessons does not mean reopening it each time. */}
+        {/* Starts open on the lesson index. Picking a lesson collapses it down
+            to this header so the screen shows what you selected; reopening it to
+            switch lessons is a deliberate tap on the header. */}
         <button
           type="button"
           onClick={() => setIsListOpen((current) => !current)}
@@ -1655,7 +1655,10 @@ export function LessonBoardPanel({ token, langCd }) {
               <button
                 key={lesson.lessonId}
                 type="button"
-                onClick={() => setSelectedLessonId(lesson.lessonId)}
+                onClick={() => {
+                  setSelectedLessonId(lesson.lessonId);
+                  setIsListOpen(false);
+                }}
                 className={`rounded-lg border px-3 py-2 text-left transition ${
                   isActive
                     ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
