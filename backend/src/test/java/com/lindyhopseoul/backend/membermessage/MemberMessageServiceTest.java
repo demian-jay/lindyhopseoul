@@ -39,7 +39,12 @@ class MemberMessageServiceTest {
         memberRepository = mock(MemberRepository.class);
         threadRepository = mock(MemberMessageThreadRepository.class);
         messageRepository = mock(MemberMessageRepository.class);
-        memberMessageService = new MemberMessageService(memberRepository, threadRepository, messageRepository);
+        memberMessageService = new MemberMessageService(
+                memberRepository,
+                threadRepository,
+                messageRepository,
+                mock(com.lindyhopseoul.backend.admin.UserAccountRepository.class),
+                mock(org.springframework.context.ApplicationEventPublisher.class));
 
         member = Member.createGoogle(
                 "google-sub-1",

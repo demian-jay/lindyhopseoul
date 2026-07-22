@@ -33,6 +33,9 @@ class OperationCheckServiceTest {
     @Mock
     private UserAccountRepository userAccountRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     private OperationCheckService operationCheckService;
 
     @BeforeEach
@@ -40,7 +43,8 @@ class OperationCheckServiceTest {
         operationCheckService = new OperationCheckService(
                 operationCheckItemRepository,
                 operationCheckCommentRepository,
-                userAccountRepository
+                userAccountRepository,
+                eventPublisher
         );
     }
 

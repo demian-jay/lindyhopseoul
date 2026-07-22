@@ -90,3 +90,47 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// Web push. The backend sends a JSON payload of {title, body, url}; show it as a
+// notification and, on click, focus an already-open admin tab or open one.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "SwingPop", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "SwingPop";
+  const options = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: data.url || "/admin" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/admin";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Prefer a tab already on the target, then any open tab (navigate it),
+      // then a fresh window.
+      const onTarget = clients.find((client) => client.url.includes(target));
+      if (onTarget) {
+        return onTarget.focus();
+      }
+      const anyClient = clients.find((client) => "focus" in client);
+      if (anyClient && "navigate" in anyClient) {
+        return anyClient.navigate(target).then((client) => (client ? client.focus() : undefined));
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(target);
+      }
+      return undefined;
+    })
+  );
+});

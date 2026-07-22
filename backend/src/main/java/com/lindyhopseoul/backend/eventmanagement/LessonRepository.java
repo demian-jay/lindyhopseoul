@@ -20,6 +20,20 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             """)
     List<Lesson> findByEventIdWithDetails(@Param("eventId") Long eventId);
 
+    // For the day-before reminder: lessons starting on a given date, with the
+    // teacher accounts fetched so the scheduler can resolve recipients without a
+    // session held open.
+    @Query("""
+            select distinct lesson from Lesson lesson
+            left join fetch lesson.translations
+            left join fetch lesson.teachers lessonTeachers
+            left join fetch lessonTeachers.teacherUser teacherUser
+            left join fetch teacherUser.userAccount
+            where lesson.startDate = :startDate
+              and lesson.status = :status
+            """)
+    List<Lesson> findForReminder(@Param("startDate") LocalDate startDate, @Param("status") LessonStatus status);
+
     @Query("""
             select distinct lesson from Lesson lesson
             left join fetch lesson.event event

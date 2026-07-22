@@ -36,11 +36,14 @@ class EventApplicationServiceTest {
     @Mock
     private EventApplicationRepository eventApplicationRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     private EventApplicationService service;
 
     @BeforeEach
     void setUp() {
-        service = new EventApplicationService(eventRepository, lessonRepository, eventApplicationRepository);
+        service = new EventApplicationService(eventRepository, lessonRepository, eventApplicationRepository, eventPublisher);
     }
 
     @Test

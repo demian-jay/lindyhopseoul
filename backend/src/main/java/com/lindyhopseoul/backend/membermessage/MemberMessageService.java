@@ -10,6 +10,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
+import com.lindyhopseoul.backend.admin.AdminRole;
+import com.lindyhopseoul.backend.admin.UserAccount;
+import com.lindyhopseoul.backend.admin.UserAccountRepository;
 import com.lindyhopseoul.backend.exception.BadRequestException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
@@ -17,6 +20,9 @@ import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import com.lindyhopseoul.backend.member.Member;
 import com.lindyhopseoul.backend.member.MemberRepository;
 import com.lindyhopseoul.backend.member.MemberStatus;
+import com.lindyhopseoul.backend.push.NotificationType;
+import com.lindyhopseoul.backend.push.PushSendRequestedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +34,21 @@ public class MemberMessageService {
     private final MemberRepository memberRepository;
     private final MemberMessageThreadRepository threadRepository;
     private final MemberMessageRepository messageRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MemberMessageService(
             MemberRepository memberRepository,
             MemberMessageThreadRepository threadRepository,
-            MemberMessageRepository messageRepository
+            MemberMessageRepository messageRepository,
+            UserAccountRepository userAccountRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.memberRepository = memberRepository;
         this.threadRepository = threadRepository;
         this.messageRepository = messageRepository;
+        this.userAccountRepository = userAccountRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -77,7 +89,38 @@ public class MemberMessageService {
         thread.recordMemberMessage(now);
         thread.markMemberRead(now);
 
+        // Ping every active staff member that a member wrote in. Resolved here and
+        // sent after commit (PushNotificationListener).
+        List<String> staffUserIds = userAccountRepository
+                .findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(
+                        List.of(AdminRole.SUPER_ADMIN, AdminRole.STAFF), "Y")
+                .stream()
+                .map(UserAccount::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (!staffUserIds.isEmpty()) {
+            eventPublisher.publishEvent(new PushSendRequestedEvent(
+                    staffUserIds,
+                    NotificationType.MEMBER_MESSAGE,
+                    "새 회원 메시지",
+                    memberDisplayName(member) + "님이 메시지를 보냈습니다.",
+                    "/admin"
+            ));
+        }
+
         return toThreadResponse(thread, findMessages(thread.getId()));
+    }
+
+    private String memberDisplayName(Member member) {
+        String nickname = member.getNickname();
+        if (nickname != null && !nickname.isBlank()) {
+            return nickname.trim();
+        }
+        String displayName = member.getDisplayName();
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName.trim();
+        }
+        return "회원";
     }
 
     @Transactional(readOnly = true)

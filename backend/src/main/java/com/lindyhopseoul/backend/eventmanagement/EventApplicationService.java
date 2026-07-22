@@ -1,11 +1,16 @@
 package com.lindyhopseoul.backend.eventmanagement;
 
+import java.util.List;
 import java.util.Objects;
 
+import com.lindyhopseoul.backend.admin.UserAccount;
 import com.lindyhopseoul.backend.exception.BadRequestException;
 import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
 import com.lindyhopseoul.backend.member.Member;
+import com.lindyhopseoul.backend.push.NotificationType;
+import com.lindyhopseoul.backend.push.PushSendRequestedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,15 +21,18 @@ public class EventApplicationService {
     private final EventRepository eventRepository;
     private final LessonRepository lessonRepository;
     private final EventApplicationRepository eventApplicationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public EventApplicationService(
             EventRepository eventRepository,
             LessonRepository lessonRepository,
-            EventApplicationRepository eventApplicationRepository
+            EventApplicationRepository eventApplicationRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.eventRepository = eventRepository;
         this.lessonRepository = lessonRepository;
         this.eventApplicationRepository = eventApplicationRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -73,7 +81,44 @@ public class EventApplicationService {
                 normalizeDanceRole(lesson, request.danceRole())
         );
 
-        return EventApplicationResponse.from(eventApplicationRepository.save(application));
+        EventApplication saved = eventApplicationRepository.save(application);
+
+        // Let the lesson's teachers know a new student signed up. Recipients are
+        // resolved here, inside the transaction, so the teacher associations still
+        // load; the send itself waits for commit (PushNotificationListener).
+        if (lesson != null) {
+            List<String> teacherUserIds = lesson.getTeachers().stream()
+                    .map(lessonTeacher -> lessonTeacher.getTeacherUser().getUserAccount())
+                    .filter(Objects::nonNull)
+                    .map(UserAccount::getUserId)
+                    .filter(Objects::nonNull)
+                    .toList();
+            if (!teacherUserIds.isEmpty()) {
+                String lessonTitle = lessonKoreanTitle(lesson);
+                eventPublisher.publishEvent(new PushSendRequestedEvent(
+                        teacherUserIds,
+                        NotificationType.NEW_APPLICATION,
+                        "새 수강 신청",
+                        application.getApplicantName() + "님이 " + lessonTitle + " 수업에 신청했습니다.",
+                        "/admin"
+                ));
+            }
+        }
+
+        return EventApplicationResponse.from(saved);
+    }
+
+    private String lessonKoreanTitle(Lesson lesson) {
+        return lesson.getTranslations().stream()
+                .filter(translation -> "ko".equalsIgnoreCase(translation.getLanguageCode()))
+                .map(LessonTranslation::getTitle)
+                .filter(title -> title != null && !title.isBlank())
+                .findFirst()
+                .orElseGet(() -> lesson.getTranslations().stream()
+                        .map(LessonTranslation::getTitle)
+                        .filter(title -> title != null && !title.isBlank())
+                        .findFirst()
+                        .orElse("강습"));
     }
 
     private String clean(String value) {

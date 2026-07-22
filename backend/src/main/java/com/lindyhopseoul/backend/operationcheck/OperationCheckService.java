@@ -2,7 +2,10 @@ package com.lindyhopseoul.backend.operationcheck;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import com.lindyhopseoul.backend.admin.AdminPrincipal;
 import com.lindyhopseoul.backend.admin.AdminRole;
@@ -11,6 +14,9 @@ import com.lindyhopseoul.backend.admin.UserAccountRepository;
 import com.lindyhopseoul.backend.exception.ConflictException;
 import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.exception.ResourceNotFoundException;
+import com.lindyhopseoul.backend.push.NotificationType;
+import com.lindyhopseoul.backend.push.PushSendRequestedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,15 +30,18 @@ public class OperationCheckService {
     private final OperationCheckItemRepository operationCheckItemRepository;
     private final OperationCheckCommentRepository operationCheckCommentRepository;
     private final UserAccountRepository userAccountRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OperationCheckService(
             OperationCheckItemRepository operationCheckItemRepository,
             OperationCheckCommentRepository operationCheckCommentRepository,
-            UserAccountRepository userAccountRepository
+            UserAccountRepository userAccountRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.operationCheckItemRepository = operationCheckItemRepository;
         this.operationCheckCommentRepository = operationCheckCommentRepository;
         this.userAccountRepository = userAccountRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<OperationCheckAssigneeResponse> findAssignees(AdminPrincipal actor) {
@@ -73,6 +82,9 @@ public class OperationCheckService {
                 assignees
         ));
 
+        // Tell the newly-tagged staff, but never the person doing the tagging.
+        notifyTagged(actor, assigneeUserIds(item), item.getContent());
+
         return toResponse(actor, item);
     }
 
@@ -88,7 +100,16 @@ public class OperationCheckService {
             throw new ForbiddenException("Only the creator or super administrator can edit this item.");
         }
 
+        Set<String> before = new LinkedHashSet<>(assigneeUserIds(item));
         item.update(clean(request.content()), resolveAssignees(request.assignedToUserIds(), request.assignedToUserId()));
+
+        // Only people added by this edit get tagged; ones already on it are not
+        // re-notified.
+        List<String> newlyTagged = assigneeUserIds(item).stream()
+                .filter(userId -> !before.contains(userId))
+                .toList();
+        notifyTagged(actor, newlyTagged, item.getContent());
+
         return toResponse(actor, item);
     }
 
@@ -105,7 +126,60 @@ public class OperationCheckService {
         }
 
         item.markDone(actor, cleanNullable(request.checkedMemo()));
+
+        // The creator and the tagged staff hear that it is done — except whoever
+        // just completed it.
+        Set<String> recipients = new LinkedHashSet<>();
+        recipients.add(item.getCreatedByUserId());
+        recipients.addAll(assigneeUserIds(item));
+        recipients.remove(actor.userCd());
+        recipients.removeIf(Objects::isNull);
+        if (!recipients.isEmpty()) {
+            eventPublisher.publishEvent(new PushSendRequestedEvent(
+                    List.copyOf(recipients),
+                    NotificationType.OPERATION_CHECK_COMPLETED,
+                    "운영 체크 완료",
+                    actor.userNm() + "님이 완료했습니다: " + preview(item.getContent()),
+                    "/admin"
+            ));
+        }
+
         return toResponse(actor, item);
+    }
+
+    // The item's assignees as user ids, falling back to the legacy single-assignee
+    // column when the assignee list is empty.
+    private List<String> assigneeUserIds(OperationCheckItem item) {
+        List<String> ids = item.getAssignees().stream()
+                .map(OperationCheckAssignee::getAssigneeUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (!ids.isEmpty()) {
+            return ids;
+        }
+        return item.getAssignedToUserId() == null ? List.of() : List.of(item.getAssignedToUserId());
+    }
+
+    private void notifyTagged(AdminPrincipal actor, List<String> assigneeUserIds, String content) {
+        List<String> recipients = assigneeUserIds.stream()
+                .filter(Objects::nonNull)
+                .filter(userId -> !userId.equals(actor.userCd()))
+                .toList();
+        if (recipients.isEmpty()) {
+            return;
+        }
+        eventPublisher.publishEvent(new PushSendRequestedEvent(
+                recipients,
+                NotificationType.OPERATION_CHECK_TAGGED,
+                "운영 체크 지정",
+                actor.userNm() + "님이 운영 체크를 맡겼습니다: " + preview(content),
+                "/admin"
+        ));
+    }
+
+    private String preview(String content) {
+        String normalized = content == null ? "" : content.replaceAll("\\s+", " ").trim();
+        return normalized.length() <= 40 ? normalized : normalized.substring(0, 40) + "...";
     }
 
     @Transactional

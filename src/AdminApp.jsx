@@ -9,6 +9,12 @@ import EventManagementPanel, {
 } from "./EventManagementPanel";
 import KnowledgeBasePanel from "./KnowledgeBasePanel";
 import MemberNameLabel from "./MemberNameLabel";
+import {
+  getExistingSubscription,
+  isPushSupported,
+  subscribeThisDevice,
+  unsubscribeThisDevice,
+} from "./pushNotifications";
 import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
@@ -129,6 +135,27 @@ const I18N = {
       themeDesc: "밝은 화면과 어두운 화면 중에서 고릅니다.",
       themeTitle: "화면 테마",
       themeNames: { light: "라이트", dark: "다크" },
+      notifications: {
+        action: "알림 설정",
+        actionDesc: "이벤트별 푸시 알림을 켜고 끕니다.",
+        title: "알림 설정",
+        device: "이 기기에서 푸시 알림 받기",
+        deviceHint: "알림은 기기마다 따로 켜야 합니다.",
+        unsupported: "이 브라우저는 푸시 알림을 지원하지 않습니다.",
+        permissionDenied: "브라우저 알림이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.",
+        notConfigured: "서버에 푸시 알림이 설정되어 있지 않습니다.",
+        needsInstall: "홈 화면에 설치했거나 알림을 지원하는 브라우저에서 사용해주세요.",
+        saveError: "설정을 저장하지 못했습니다.",
+        teacherSection: "강사 알림",
+        staffSection: "운영진 알림",
+        types: {
+          newApplication: { title: "신규 수강신청", desc: "내 수업에 새 수강생이 신청하면 알림" },
+          lessonReminder: { title: "강습 전날 알림", desc: "내 수업 전날 저녁에 알림" },
+          memberMessage: { title: "회원 메시지", desc: "회원이 홈페이지에서 메시지를 보내면 알림" },
+          operationCheckTagged: { title: "운영체크 지정", desc: "운영체크에 내가 지정되면 알림" },
+          operationCheckCompleted: { title: "운영체크 완료", desc: "내 운영체크가 완료되면 알림" },
+        },
+      },
       // Login ID modal
       loginIdTitle: "아이디 변경",
       currentLoginId: "현재 아이디",
@@ -424,6 +451,27 @@ const I18N = {
       themeDesc: "Choose between a light and a dark screen.",
       themeTitle: "Theme",
       themeNames: { light: "Light", dark: "Dark" },
+      notifications: {
+        action: "Notifications",
+        actionDesc: "Turn push notifications on or off per event.",
+        title: "Notifications",
+        device: "Receive push notifications on this device",
+        deviceHint: "Notifications must be turned on per device.",
+        unsupported: "This browser does not support push notifications.",
+        permissionDenied: "Browser notifications are blocked. Allow them in your browser settings.",
+        notConfigured: "Push notifications are not configured on the server.",
+        needsInstall: "Use an installed app or a browser that supports notifications.",
+        saveError: "Could not save the setting.",
+        teacherSection: "Teacher notifications",
+        staffSection: "Staff notifications",
+        types: {
+          newApplication: { title: "New application", desc: "When a new student applies to my lesson" },
+          lessonReminder: { title: "Lesson reminder", desc: "The evening before my lesson" },
+          memberMessage: { title: "Member message", desc: "When a member sends a message from the site" },
+          operationCheckTagged: { title: "Operation check tag", desc: "When I am tagged on an operation check" },
+          operationCheckCompleted: { title: "Operation check done", desc: "When my operation check is completed" },
+        },
+      },
       // Login ID modal
       loginIdTitle: "Change Login ID",
       currentLoginId: "Current login ID",
@@ -1458,6 +1506,178 @@ function ThemeModal({ currentTheme, labels, commonLabels, themeNames, onThemeCha
   );
 }
 
+// Per-event push notifications. The device master toggle subscribes/unsubscribes
+// this browser; the per-type switches persist to the account and are shown only
+// for the roles the user holds.
+function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
+  const copy = labels.notifications;
+  const [settings, setSettings] = useState(null);
+  const [subscribed, setSubscribed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const supported = isPushSupported();
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [loaded, subscription] = await Promise.all([
+          adminApi.getPushSettings(token),
+          getExistingSubscription().catch(() => null),
+        ]);
+        if (!active) {
+          return;
+        }
+        setSettings(loaded);
+        setSubscribed(Boolean(subscription));
+      } catch {
+        if (active) {
+          setError(copy.saveError);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [token, copy.saveError]);
+
+  const mapError = (caught) => {
+    switch (caught?.message) {
+      case "PUSH_UNSUPPORTED":
+        return copy.unsupported;
+      case "PERMISSION_DENIED":
+        return copy.permissionDenied;
+      case "PUSH_NOT_CONFIGURED":
+        return copy.notConfigured;
+      case "NO_SERVICE_WORKER":
+        return copy.needsInstall;
+      default:
+        return copy.saveError;
+    }
+  };
+
+  const toggleDevice = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      if (subscribed) {
+        await unsubscribeThisDevice(token);
+        setSubscribed(false);
+      } else {
+        await subscribeThisDevice(token);
+        setSubscribed(true);
+      }
+    } catch (caught) {
+      setError(mapError(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleType = async (key) => {
+    if (!settings) {
+      return;
+    }
+    const next = {
+      newApplication: settings.newApplication,
+      lessonReminder: settings.lessonReminder,
+      memberMessage: settings.memberMessage,
+      operationCheckTagged: settings.operationCheckTagged,
+      operationCheckCompleted: settings.operationCheckCompleted,
+      [key]: !settings[key],
+    };
+    setSettings((current) => ({ ...current, [key]: !current[key] }));
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await adminApi.updatePushSettings(token, next);
+      setSettings((current) => ({ ...current, ...updated }));
+    } catch {
+      setSettings((current) => ({ ...current, [key]: !current[key] }));
+      setError(copy.saveError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const roles = settings?.roles || [];
+  const isTeacher = roles.includes("TEACHER");
+  const isStaff = roles.includes("SUPER_ADMIN") || roles.includes("STAFF");
+
+  const typeRow = (key) => (
+    <label className="flex items-start justify-between gap-3 rounded-lg border border-swing-border/40 bg-swing-paper px-4 py-3">
+      <span>
+        <span className="block text-sm font-semibold text-swing-ink">{copy.types[key].title}</span>
+        <span className="mt-0.5 block text-xs text-swing-muted">{copy.types[key].desc}</span>
+      </span>
+      <input
+        type="checkbox"
+        checked={Boolean(settings?.[key])}
+        disabled={busy}
+        onChange={() => toggleType(key)}
+        className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
+      />
+    </label>
+  );
+
+  return (
+    <AccountModalShell title={copy.title} onClose={onClose} commonLabels={commonLabels}>
+      {loading ? (
+        <div className="py-6 text-center text-sm text-swing-muted">{commonLabels.loading}</div>
+      ) : (
+        <div className="grid gap-4">
+          <div className="rounded-lg border border-swing-border/40 bg-swing-cream/40 p-4">
+            <label className="flex items-start justify-between gap-3">
+              <span>
+                <span className="block text-sm font-semibold text-swing-ink">{copy.device}</span>
+                <span className="mt-0.5 block text-xs text-swing-muted">{copy.deviceHint}</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={subscribed}
+                disabled={busy || !supported}
+                onChange={toggleDevice}
+                className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
+              />
+            </label>
+            {!supported ? <p className="mt-2 text-xs text-swing-muted">{copy.unsupported}</p> : null}
+            {settings && !settings.pushConfigured ? (
+              <p className="mt-2 text-xs text-swing-muted">{copy.notConfigured}</p>
+            ) : null}
+          </div>
+
+          {error ? <Notice type="error">{error}</Notice> : null}
+
+          {isTeacher ? (
+            <div className="grid gap-2">
+              <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                {copy.teacherSection}
+              </div>
+              {typeRow("newApplication")}
+              {typeRow("lessonReminder")}
+            </div>
+          ) : null}
+          {isStaff ? (
+            <div className="grid gap-2">
+              <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                {copy.staffSection}
+              </div>
+              {typeRow("memberMessage")}
+              {typeRow("operationCheckTagged")}
+              {typeRow("operationCheckCompleted")}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </AccountModalShell>
+  );
+}
+
 // The 내 정보 (설정) menu content: an account summary plus the self-service
 // actions, each opening one of the modals above.
 function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, onRequireRelogin, onLanguageChanged, onLogout }) {
@@ -1480,6 +1700,11 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
       title: copy.themeAction,
       desc: copy.themeDesc,
       value: copy.themeNames[theme] || theme,
+    },
+    {
+      key: "notifications",
+      title: copy.notifications.action,
+      desc: copy.notifications.actionDesc,
     },
   ];
 
@@ -1582,6 +1807,14 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
           commonLabels={labels.common}
           themeNames={copy.themeNames}
           onThemeChanged={onThemeChanged}
+          onClose={() => setOpenModal(null)}
+        />
+      ) : null}
+      {openModal === "notifications" ? (
+        <NotificationSettingsModal
+          token={token}
+          labels={copy}
+          commonLabels={labels.common}
           onClose={() => setOpenModal(null)}
         />
       ) : null}

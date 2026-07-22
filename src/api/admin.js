@@ -95,6 +95,33 @@ export const adminApi = {
       body: payload,
     });
   },
+  getPushVapidPublicKey(token) {
+    return request("/api/admin/push/vapid-public-key", { token });
+  },
+  savePushSubscription(token, subscription) {
+    return request("/api/admin/push/subscriptions", {
+      method: "POST",
+      token,
+      body: subscription,
+    });
+  },
+  deletePushSubscription(token, endpoint) {
+    return request("/api/admin/push/subscriptions", {
+      method: "DELETE",
+      token,
+      body: { endpoint },
+    });
+  },
+  getPushSettings(token) {
+    return request("/api/admin/push/settings", { token });
+  },
+  updatePushSettings(token, payload) {
+    return request("/api/admin/push/settings", {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
   findAdmins(token) {
     return request("/api/admin/users/admins", { token });
   },
