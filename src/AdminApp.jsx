@@ -991,7 +991,7 @@ function LanguageOptions({ labels }) {
   ));
 }
 
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, theme }) {
   const [form, setForm] = useState({ loginId: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1028,7 +1028,7 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-swing-cream px-5 py-10 text-swing-ink">
+    <div className={`min-h-screen bg-swing-cream px-5 py-10 text-swing-ink${theme === "dark" ? " dark" : ""}`}>
       <main className="mx-auto flex min-h-[calc(100vh-80px)] max-w-md items-center">
         <form onSubmit={handleSubmit} className="w-full rounded-lg border border-swing-border/30 bg-swing-paper p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4 border-b border-swing-border/30 pb-5">
@@ -1178,9 +1178,9 @@ function PasswordChangeForm({ token, labels, commonLabels, onChanged, onCancel }
  * Stands in for the whole admin area rather than overlaying it. An overlay could
  * be removed from the DOM; this way there is nothing rendered behind it to reach.
  */
-function PasswordChangeRequiredScreen({ token, labels, commonLabels, onChanged, onLogout }) {
+function PasswordChangeRequiredScreen({ token, labels, commonLabels, theme, onChanged, onLogout }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-swing-cream px-4 py-8">
+    <div className={`flex min-h-screen items-center justify-center bg-swing-cream px-4 py-8${theme === "dark" ? " dark" : ""}`}>
       <div className="w-full max-w-md rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-xl">
         <h1 className="text-lg font-bold text-swing-ink">{labels.requiredTitle}</h1>
         <p className="mt-2 text-sm leading-6 text-swing-muted">{labels.requiredBody}</p>
@@ -3486,14 +3486,14 @@ export default function AdminApp() {
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-swing-cream text-sm font-semibold text-swing-muted">
+      <div className={`flex min-h-screen items-center justify-center bg-swing-cream text-sm font-semibold text-swing-muted${theme === "dark" ? " dark" : ""}`}>
         {labels.checkingSession}
       </div>
     );
   }
 
   if (!session) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return <LoginScreen onLogin={handleLogin} theme={theme} />;
   }
 
   // Checked before anything else renders, so the admin area is not merely
@@ -3505,6 +3505,7 @@ export default function AdminApp() {
         token={token}
         labels={labels.myAccount}
         commonLabels={labels.common}
+        theme={theme}
         onChanged={(nextSession) => {
           setPasswordChangeRequired(false);
           applySession(nextSession);

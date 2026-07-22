@@ -2647,19 +2647,26 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
   );
 }
 
+// Mirrors LessonBoardPanel (강습조회): a collapsible lesson index on the left,
+// and the picked lesson's participants and notices on the right. The data is the
+// teacher's own published lessons rather than the whole schedule, but the shape
+// on screen is the same, so the two read alike.
 export function TeacherDashboardPanel({ token, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
   const [lessons, setLessons] = useState([]);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [isListOpen, setIsListOpen] = useState(true);
   const [error, setError] = useState("");
 
   const loadLessons = useCallback(async () => {
     try {
-      // No filter controls: just every published lesson assigned to this
-      // teacher, which the server already scopes by permission.
+      // No filter controls: every published lesson assigned to this teacher,
+      // which the server already scopes by permission.
       setLessons(await adminApi.findTeacherLessons(token, { status: "PUBLISHED" }));
       setError("");
     } catch (nextError) {
+      setLessons([]);
       setError(nextError.message);
     }
   }, [token]);
@@ -2668,54 +2675,87 @@ export function TeacherDashboardPanel({ token, langCd }) {
     loadLessons();
   }, [loadLessons]);
 
+  const selectedLesson = lessons.find((lesson) => lesson.lessonId === selectedLessonId) || null;
+
   return (
-    <section className="grid gap-5">
-      <Notice>{error}</Notice>
-      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="border-b border-swing-border/30 pb-4">
+    <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0 xl:grid-cols-[330px_minmax(0,1fr)]">
+      <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setIsListOpen((current) => !current)}
+          aria-expanded={isListOpen}
+          className={`flex w-full flex-wrap items-center justify-between gap-2 text-left ${
+            isListOpen ? "border-b border-swing-border/30 pb-3" : ""
+          }`}
+        >
           <h2 className="text-lg font-bold text-swing-ink">{copy.teachingSchedule}</h2>
-        </div>
-        <div className="mt-4">
-          <LessonDashboardRows lessons={lessons} copy={copy} langCd={langCd} languageCode={languageCode} token={token} />
-        </div>
-      </div>
-    </section>
-  );
-}
+          <span className="text-xs font-semibold text-swing-muted">
+            {lessons.length}
+            <span className="ml-2 text-swing-muted/70">{isListOpen ? "▲" : "▼"}</span>
+          </span>
+        </button>
 
-function LessonDashboardRows({ lessons, copy, langCd, languageCode, token }) {
-  if (lessons.length === 0) {
-    return <div className="text-sm text-swing-muted">{copy.noLessons}</div>;
-  }
+        <Notice>{error}</Notice>
 
-  return (
-    <div className="grid gap-3">
-      {lessons.map((lesson) => (
-        <div key={lesson.lessonId} className="rounded-lg border border-swing-border/30 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-[min(100%,280px)] flex-1">
-              <div className="text-base font-bold text-swing-ink">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
-              <div className="mt-1 text-sm text-swing-muted">{localizedTitle(lesson.eventTitle, languageCode)}</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Badge>{formatDateRange(lesson.startDate, lesson.endDate)}</Badge>
-                <Badge>{eventStatusLabel(lesson.status, langCd)}</Badge>
-                <Badge>{lesson.lessonDisplayStatus}</Badge>
-                <Badge>{lesson.scheduleType}</Badge>
-                <Badge>{lesson.lessonType}</Badge>
-                <Badge>
-                  {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
-                </Badge>
-              </div>
-              <div className="mt-3 text-sm text-swing-muted">
-                {copy.teachers}: {lesson.teachers.map((teacher) => teacher.name).join(", ")}
-              </div>
+        <div className={`mt-3 gap-2 ${isListOpen ? "grid" : "hidden"}`}>
+          {lessons.length === 0 ? (
+            <div className="py-6 text-center text-sm text-swing-muted">{copy.noLessons}</div>
+          ) : null}
+          {lessons.map((lesson) => {
+            const isActive = lesson.lessonId === selectedLessonId;
+
+            return (
+              <button
+                key={lesson.lessonId}
+                type="button"
+                onClick={() => {
+                  setSelectedLessonId(lesson.lessonId);
+                  setIsListOpen(false);
+                }}
+                className={`rounded-lg border px-3 py-2 text-left transition ${
+                  isActive
+                    ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                    : "border-swing-border/30 hover:bg-swing-cream/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">{localizedTitle(lesson.lessonTitle, languageCode)}</div>
+                <div className={`text-xs ${isActive ? "text-swing-paper/70" : "text-swing-muted"}`}>
+                  {localizedTitle(lesson.eventTitle, languageCode)}
+                </div>
+                <div className={`mt-1 text-xs ${isActive ? "text-swing-paper/60" : "text-swing-muted/80"}`}>
+                  {formatDateRange(lesson.startDate, lesson.endDate)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {selectedLesson ? (
+        <div className="grid min-w-0 content-start gap-5">
+          <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+            <h2 className="text-xl font-bold text-swing-ink">
+              {localizedTitle(selectedLesson.lessonTitle, languageCode)}
+            </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-swing-muted">
+              {selectedLesson.teachers.length > 0 ? (
+                <span>{selectedLesson.teachers.map((teacher) => teacher.name).join(", ")}</span>
+              ) : null}
+              <Badge>
+                {toTimeInput(selectedLesson.startTime)}-{toTimeInput(selectedLesson.endTime)}
+              </Badge>
             </div>
+
+            <ParticipantList participants={selectedLesson.participants} copy={copy} onRemoveParticipant={null} />
+            <LessonNoticePanel token={token} lessonId={selectedLesson.lessonId} copy={copy} />
           </div>
-          <ParticipantList participants={lesson.participants} copy={copy} />
-          <LessonNoticePanel token={token} lessonId={lesson.lessonId} copy={copy} />
         </div>
-      ))}
-    </div>
+      ) : (
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-8 text-center text-sm text-swing-muted shadow-sm">
+          {copy.selectLesson}
+        </div>
+      )}
+    </section>
   );
 }
 
