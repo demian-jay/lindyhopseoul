@@ -33,7 +33,7 @@ After a successful login, the account's `langCd` controls the full admin UI.
 ## Backend Defaults
 
 If an existing row has no `LANG_CD` value during local schema updates, the backend treats it as `Kor`.
-The initial seeded super administrator `admin / 1234` is created with `Kor`.
+The initial seeded super administrator `admin` is created with `Kor`.
 
 ## Review Checklist
 

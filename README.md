@@ -251,8 +251,13 @@ When the backend starts, it seeds the first super administrator if missing:
 
 ```text
 id:       admin
-password: 1234
+password: value of ADMIN_INITIAL_PASSWORD (set it in .env)
 ```
+
+If `ADMIN_INITIAL_PASSWORD` is unset, the backend generates a random password and
+logs it once at startup — change it after the first sign-in. The seed only runs
+when the `admin` account does not yet exist; on an existing database, set the
+password directly on the `USER_M` row instead.
 
 The admin UI is intentionally hidden from the public page navigation. Open it directly at:
 
