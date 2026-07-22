@@ -1687,15 +1687,15 @@ export function LessonBoardPanel({ token, langCd }) {
             <h2 className="text-xl font-bold text-swing-ink">
               {localizedTitle(selectedLesson.lessonTitles, languageCode)}
             </h2>
-            {/* Only the time is left: the event, type, status and dates are all
-                already on the row that got you here. */}
-            <div className="mt-2 flex flex-wrap gap-2">
+            {/* Teachers and time share one line: the event, type, status and
+                dates are all already on the row that got you here. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-swing-muted">
+              {selectedLesson.teachers.length > 0 ? (
+                <span>{selectedLesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}</span>
+              ) : null}
               <Badge>
                 {toTimeInput(selectedLesson.startTime)}-{toTimeInput(selectedLesson.endTime)}
               </Badge>
-            </div>
-            <div className="mt-3 text-sm text-swing-muted">
-              {selectedLesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}
             </div>
 
             <ParticipantList participants={selectedLesson.participants} copy={copy} onRemoveParticipant={null} />
