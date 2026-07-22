@@ -148,6 +148,11 @@ const I18N = {
         saveError: "설정을 저장하지 못했습니다.",
         teacherSection: "강사 알림",
         staffSection: "운영진 알림",
+        quietSection: "방해금지",
+        quietTitle: "방해금지 모드",
+        quietDesc: "밤 10시부터 다음날 아침 8시까지 알림을 받지 않습니다.",
+        quietWarning:
+          "이 시간에 발생한 알림은 보관되지 않고 사라집니다. 아침 8시가 되어도 다시 오지 않으니, 밤사이 내용은 직접 확인해주세요.",
         types: {
           newApplication: { title: "신규 수강신청", desc: "내 수업에 새 수강생이 신청하면 알림" },
           lessonReminder: { title: "강습 전날 알림", desc: "내 수업 전날 저녁에 알림" },
@@ -464,6 +469,11 @@ const I18N = {
         saveError: "Could not save the setting.",
         teacherSection: "Teacher notifications",
         staffSection: "Staff notifications",
+        quietSection: "Do not disturb",
+        quietTitle: "Do not disturb",
+        quietDesc: "No notifications between 10 PM and 8 AM.",
+        quietWarning:
+          "Notifications raised during those hours are dropped, not held. They will not arrive at 8 AM either, so check anything from overnight yourself.",
         types: {
           newApplication: { title: "New application", desc: "When a new student applies to my lesson" },
           lessonReminder: { title: "Lesson reminder", desc: "The evening before my lesson" },
@@ -1589,6 +1599,7 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
       memberMessage: settings.memberMessage,
       operationCheckTagged: settings.operationCheckTagged,
       operationCheckCompleted: settings.operationCheckCompleted,
+      quietHours: settings.quietHours,
       [key]: !settings[key],
     };
     setSettings((current) => ({ ...current, [key]: !current[key] }));
@@ -1652,6 +1663,30 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
           </div>
 
           {error ? <Notice type="error">{error}</Notice> : null}
+
+          {/* Applies across every type below, so it sits above them. The warning
+              is always visible rather than only once it is switched on: what it
+              costs — notifications that never arrive at all — is the thing to
+              know *before* turning it on. */}
+          <div className="grid gap-2">
+            <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+              {copy.quietSection}
+            </div>
+            <label className="flex items-start justify-between gap-3 rounded-lg border border-swing-border/40 bg-swing-paper px-4 py-3">
+              <span>
+                <span className="block text-sm font-semibold text-swing-ink">{copy.quietTitle}</span>
+                <span className="mt-0.5 block text-xs text-swing-muted">{copy.quietDesc}</span>
+                <span className="mt-2 block text-xs leading-5 text-swing-muted/90">{copy.quietWarning}</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={Boolean(settings?.quietHours)}
+                disabled={busy}
+                onChange={() => toggleType("quietHours")}
+                className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
+              />
+            </label>
+          </div>
 
           {isTeacher ? (
             <div className="grid gap-2">

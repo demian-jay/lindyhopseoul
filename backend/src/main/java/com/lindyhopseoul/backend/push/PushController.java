@@ -83,7 +83,8 @@ public class PushController {
                 request.lessonReminder(),
                 request.memberMessage(),
                 request.operationCheckTagged(),
-                request.operationCheckCompleted()
+                request.operationCheckCompleted(),
+                request.quietHours()
         );
         return PushSettingsResponse.of(updated, actor.roles(), pushNotificationService.isEnabled());
     }

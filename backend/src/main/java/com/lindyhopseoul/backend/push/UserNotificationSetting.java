@@ -35,6 +35,11 @@ public class UserNotificationSetting {
     @Column(name = "OPERATION_CHECK_COMPLETED", nullable = false)
     private boolean operationCheckCompleted = true;
 
+    // Applies to every type above. Off by default: it silences notifications
+    // outside the quiet window entirely, so nobody should get it without asking.
+    @Column(name = "QUIET_HOURS", nullable = false)
+    private boolean quietHours = false;
+
     protected UserNotificationSetting() {
     }
 
@@ -52,13 +57,15 @@ public class UserNotificationSetting {
             boolean lessonReminder,
             boolean memberMessage,
             boolean operationCheckTagged,
-            boolean operationCheckCompleted
+            boolean operationCheckCompleted,
+            boolean quietHours
     ) {
         this.newApplication = newApplication;
         this.lessonReminder = lessonReminder;
         this.memberMessage = memberMessage;
         this.operationCheckTagged = operationCheckTagged;
         this.operationCheckCompleted = operationCheckCompleted;
+        this.quietHours = quietHours;
     }
 
     public String getUserId() {
@@ -83,5 +90,9 @@ public class UserNotificationSetting {
 
     public boolean isOperationCheckCompleted() {
         return operationCheckCompleted;
+    }
+
+    public boolean isQuietHours() {
+        return quietHours;
     }
 }

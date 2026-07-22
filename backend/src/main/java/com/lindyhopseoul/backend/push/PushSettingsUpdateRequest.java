@@ -5,6 +5,7 @@ public record PushSettingsUpdateRequest(
         boolean lessonReminder,
         boolean memberMessage,
         boolean operationCheckTagged,
-        boolean operationCheckCompleted
+        boolean operationCheckCompleted,
+        boolean quietHours
 ) {
 }

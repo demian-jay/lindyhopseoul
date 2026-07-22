@@ -1,6 +1,9 @@
 package com.lindyhopseoul.backend.push;
 
 import java.security.Security;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +34,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class PushNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
+
+    /**
+     * The quiet window for users who turned 방해금지 on: 22:00 through 08:00
+     * Asia/Seoul. It is deliberately a drop, not a queue — a notification held
+     * overnight arrives about something already hours stale, and a batch of them
+     * landing at 08:00 is worse than the silence the setting asked for.
+     */
+    static final int QUIET_HOURS_START = 22;
+    static final int QUIET_HOURS_END = 8;
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PushSubscriptionRepository subscriptionRepository;
     private final UserNotificationSettingRepository settingRepository;
@@ -109,12 +122,22 @@ public class PushNotificationService {
             boolean lessonReminder,
             boolean memberMessage,
             boolean operationCheckTagged,
-            boolean operationCheckCompleted
+            boolean operationCheckCompleted,
+            boolean quietHours
     ) {
         UserNotificationSetting setting = settingRepository.findByUserId(userId)
                 .orElseGet(() -> UserNotificationSetting.defaultsFor(userId));
-        setting.update(newApplication, lessonReminder, memberMessage, operationCheckTagged, operationCheckCompleted);
+        setting.update(newApplication, lessonReminder, memberMessage, operationCheckTagged, operationCheckCompleted, quietHours);
         return settingRepository.save(setting);
+    }
+
+    /**
+     * True while the clock is inside the quiet window. The window wraps midnight,
+     * so it is "at or after 22:00 <em>or</em> before 08:00" rather than a range.
+     */
+    static boolean isWithinQuietHours(ZonedDateTime now) {
+        LocalTime time = now.toLocalTime();
+        return time.getHour() >= QUIET_HOURS_START || time.getHour() < QUIET_HOURS_END;
     }
 
     // --- Sending -----------------------------------------------------------
@@ -136,9 +159,16 @@ public class PushNotificationService {
         Set<String> recipients = new LinkedHashSet<>(userIds);
         recipients.removeIf(id -> id == null || id.isBlank());
         int requested = recipients.size();
-        recipients.removeIf(id -> !type.isEnabledFor(settingsFor(id)));
+        // Quiet hours drop the notification for that user; nothing is stored to
+        // be delivered once the window ends.
+        boolean quiet = isWithinQuietHours(ZonedDateTime.now(SEOUL_ZONE));
+        recipients.removeIf(id -> {
+            UserNotificationSetting setting = settingsFor(id);
+            return !type.isEnabledFor(setting) || (quiet && setting.isQuietHours());
+        });
         if (recipients.isEmpty()) {
-            log.info("push send skipped ({}): all {} target user(s) opted out", type, requested);
+            log.info("push send skipped ({}): all {} target user(s) opted out{}",
+                    type, requested, quiet ? " or are in quiet hours" : "");
             return;
         }
 
