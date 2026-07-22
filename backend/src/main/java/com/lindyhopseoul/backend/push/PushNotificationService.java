@@ -10,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Subscription;
+import nl.martijndwars.webpush.Urgency;
 import org.apache.http.HttpResponse;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
@@ -160,7 +161,9 @@ public class PushNotificationService {
                     subscription.getEndpoint(),
                     new Subscription.Keys(subscription.getP256dh(), subscription.getAuth())
             );
-            HttpResponse response = pushService.send(new Notification(target, payload));
+            // High urgency asks the push service to wake a dozing device rather
+            // than batch the message for later — these notifications are timely.
+            HttpResponse response = pushService.send(new Notification(target, payload, Urgency.HIGH));
             int status = response.getStatusLine().getStatusCode();
             // 404/410 mean the browser dropped the subscription; stop pushing to it.
             if (status == 404 || status == 410) {

@@ -104,8 +104,12 @@ self.addEventListener("push", (event) => {
   const title = data.title || "SwingPop";
   const options = {
     body: data.body || "",
+    // icon is the large image inside the notification (full colour is fine);
+    // badge is the small status-bar mark, which Android always renders as a
+    // white silhouette — so it is a transparent monochrome heart, not the solid
+    // logo (which would show as a white square).
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    badge: "/icons/notification-badge.png",
     data: { url: data.url || "/admin" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
