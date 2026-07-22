@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +45,41 @@ public class AdminAuthController {
         AdminPrincipal updated = adminAuthService.changeOwnPassword(actor, request);
         // The session holds a snapshot, so push the cleared flag back into it;
         // otherwise the interceptor keeps blocking until the session expires.
+        adminSessionService.refreshPrincipal(authorization, updated);
+        return AdminMeResponse.from(updated);
+    }
+
+    @GetMapping("/me/login-id/available")
+    public AdminLoginIdAvailabilityResponse checkLoginIdAvailable(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam("loginId") String loginId
+    ) {
+        AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
+        return new AdminLoginIdAvailabilityResponse(adminAuthService.isLoginIdAvailable(actor, loginId));
+    }
+
+    @PostMapping("/me/login-id")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changeOwnLoginId(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Valid @RequestBody AdminLoginIdChangeRequest request
+    ) {
+        AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
+        adminAuthService.changeOwnLoginId(actor, request);
+        // The login ID lives in the session snapshot too, but the client is forced
+        // to sign in again after this, so the stale snapshot is discarded anyway.
+        adminSessionService.clearSession(authorization);
+    }
+
+    @PostMapping("/me/language")
+    public AdminMeResponse changeOwnLanguage(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Valid @RequestBody AdminLanguageChangeRequest request
+    ) {
+        AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
+        AdminPrincipal updated = adminAuthService.changeOwnLanguage(actor, request);
+        // No re-login for a language switch, so keep the session and refresh its
+        // snapshot in place — otherwise the next `me` would report the old language.
         adminSessionService.refreshPrincipal(authorization, updated);
         return AdminMeResponse.from(updated);
     }

@@ -78,6 +78,23 @@ export const adminApi = {
       body: payload,
     });
   },
+  checkLoginIdAvailable(token, loginId) {
+    return request(`/api/admin/auth/me/login-id/available${buildQuery({ loginId })}`, { token });
+  },
+  changeOwnLoginId(token, payload) {
+    return request("/api/admin/auth/me/login-id", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  changeOwnLanguage(token, payload) {
+    return request("/api/admin/auth/me/language", {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
   findAdmins(token) {
     return request("/api/admin/users/admins", { token });
   },

@@ -102,6 +102,22 @@ public class UserAccount {
     }
 
     /**
+     * The account holder changing their own login ID. Narrow on purpose: it does
+     * not touch the password or its pending-change state, so self-service renames
+     * do not re-lock the account.
+     */
+    public void changeLoginId(String loginId) {
+        this.loginId = loginId;
+    }
+
+    /**
+     * The account holder choosing their own admin UI language.
+     */
+    public void changeLanguage(AdminLanguage langCd) {
+        this.langCd = langCd == null ? AdminLanguage.Kor : langCd;
+    }
+
+    /**
      * The account holder setting their own password. Clears the pending change.
      */
     public void changePassword(String password) {

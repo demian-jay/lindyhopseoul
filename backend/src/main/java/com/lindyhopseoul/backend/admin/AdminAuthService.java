@@ -65,4 +65,55 @@ public class AdminAuthService {
         user.changePassword(passwordHasher.hash(request.newPassword()));
         return AdminPrincipal.from(user);
     }
+
+    /**
+     * True when {@code loginId} is free for the actor to take — either unused or
+     * already their own. Mirrors the uniqueness check in
+     * {@link AdminAccountService#validateLoginIdAvailable}.
+     */
+    public boolean isLoginIdAvailable(AdminPrincipal actor, String loginId) {
+        String nextLoginId = clean(loginId);
+        if (nextLoginId.isEmpty()) {
+            return false;
+        }
+        return userAccountRepository.findByLoginId(nextLoginId)
+                .map(user -> user.getUserId().equals(actor.userCd()))
+                .orElse(true);
+    }
+
+    /**
+     * The account holder changing their own login ID. Uniqueness is re-checked
+     * here even though the UI checks availability as you type, because the field
+     * could be free at check time and taken by save time.
+     */
+    @Transactional
+    public void changeOwnLoginId(AdminPrincipal actor, AdminLoginIdChangeRequest request) {
+        UserAccount user = userAccountRepository.findById(actor.userCd())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + actor.userCd()));
+
+        String nextLoginId = clean(request.newLoginId());
+        userAccountRepository.findByLoginId(nextLoginId)
+                .filter(existing -> !existing.getUserId().equals(user.getUserId()))
+                .ifPresent(existing -> {
+                    throw new ConflictException("Login ID already exists.");
+                });
+
+        user.changeLoginId(nextLoginId);
+    }
+
+    /**
+     * The account holder choosing their own admin UI language.
+     */
+    @Transactional
+    public AdminPrincipal changeOwnLanguage(AdminPrincipal actor, AdminLanguageChangeRequest request) {
+        UserAccount user = userAccountRepository.findById(actor.userCd())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + actor.userCd()));
+
+        user.changeLanguage(request.langCd());
+        return AdminPrincipal.from(user);
+    }
+
+    private String clean(String value) {
+        return value == null ? "" : value.trim();
+    }
 }

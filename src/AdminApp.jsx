@@ -35,11 +35,12 @@ const I18N = {
       ADMIN_USERS: "관리자 계정",
       MEMBERS: "회원 관리",
       TEACHER_USERS: "강사 프로필 관리",
+      MY_ACCOUNT: "내 정보",
     },
     menuCategories: {
       OPERATIONS: "운영진",
       CLASSES: "수업관리",
-      SYSTEM: "시스템",
+      SYSTEM: "설정",
     },
     home: "관리자 홈",
     roles: {
@@ -97,6 +98,8 @@ const I18N = {
     },
     myAccount: {
       openButton: "내 정보",
+      panelTitle: "내 정보",
+      panelSubtitle: "계정 아이디와 비밀번호, 표시 언어를 관리합니다.",
       title: "비밀번호 변경",
       requiredTitle: "비밀번호를 변경해주세요",
       requiredBody:
@@ -111,6 +114,29 @@ const I18N = {
       tooShort: "새 비밀번호는 8자 이상이어야 합니다.",
       sameAsCurrent: "현재 비밀번호와 다른 값으로 정해주세요.",
       success: "비밀번호를 변경했습니다.",
+      // Settings screen
+      changeLoginIdAction: "아이디 변경하기",
+      changeLoginIdDesc: "로그인에 사용하는 아이디를 바꿉니다.",
+      changePasswordAction: "비밀번호 변경하기",
+      changePasswordDesc: "로그인 비밀번호를 새로 정합니다.",
+      languageAction: "언어 선택",
+      languageDesc: "관리자 화면에 표시할 언어를 고릅니다.",
+      // Login ID modal
+      loginIdTitle: "아이디 변경",
+      currentLoginId: "현재 아이디",
+      newLoginId: "새 아이디",
+      loginIdChecking: "확인 중…",
+      loginIdAvailable: "사용 가능한 아이디입니다.",
+      loginIdTaken: "이미 사용 중인 아이디입니다.",
+      loginIdTooShort: "아이디는 3자 이상이어야 합니다.",
+      loginIdSame: "지금 쓰는 아이디와 같습니다.",
+      loginIdSubmit: "저장",
+      loginIdSubmitting: "저장 중",
+      reloginNotice: "저장하면 로그아웃되고 새 아이디로 다시 로그인해야 합니다.",
+      passwordReloginNotice: "비밀번호를 바꾸면 다시 로그인해야 합니다.",
+      // Language modal
+      languageTitle: "언어 선택",
+      languageSaving: "변경 중",
     },
     fields: {
       name: "이름",
@@ -321,11 +347,12 @@ const I18N = {
       ADMIN_USERS: "Admin Accounts",
       MEMBERS: "Member Management",
       TEACHER_USERS: "Teacher Profiles",
+      MY_ACCOUNT: "My Account",
     },
     menuCategories: {
       OPERATIONS: "Operations",
       CLASSES: "Classes",
-      SYSTEM: "System",
+      SYSTEM: "Settings",
     },
     home: "Dashboard",
     roles: {
@@ -362,6 +389,8 @@ const I18N = {
     },
     myAccount: {
       openButton: "My Account",
+      panelTitle: "My Account",
+      panelSubtitle: "Manage your login ID, password, and display language.",
       title: "Change Password",
       requiredTitle: "Choose your own password",
       requiredBody:
@@ -376,6 +405,29 @@ const I18N = {
       tooShort: "The new password must be at least 8 characters.",
       sameAsCurrent: "Choose something different from your current password.",
       success: "Password changed.",
+      // Settings screen
+      changeLoginIdAction: "Change login ID",
+      changeLoginIdDesc: "Change the ID you sign in with.",
+      changePasswordAction: "Change password",
+      changePasswordDesc: "Set a new sign-in password.",
+      languageAction: "Language",
+      languageDesc: "Choose the language for the admin screens.",
+      // Login ID modal
+      loginIdTitle: "Change Login ID",
+      currentLoginId: "Current login ID",
+      newLoginId: "New login ID",
+      loginIdChecking: "Checking…",
+      loginIdAvailable: "This login ID is available.",
+      loginIdTaken: "This login ID is already in use.",
+      loginIdTooShort: "The login ID must be at least 3 characters.",
+      loginIdSame: "This is the same as your current login ID.",
+      loginIdSubmit: "Save",
+      loginIdSubmitting: "Saving",
+      reloginNotice: "Saving signs you out; sign back in with the new login ID.",
+      passwordReloginNotice: "Changing your password signs you out and back in.",
+      // Language modal
+      languageTitle: "Language",
+      languageSaving: "Saving",
     },
     common: {
       cancel: "Cancel",
@@ -664,6 +716,9 @@ const MENU_CATEGORIES = [
   {
     key: "SYSTEM",
     menus: [
+      // Self-service, so it is not a backend-granted menu — it is injected into
+      // the visible list for every signed-in admin (see AdminApp visibleMenus).
+      "MY_ACCOUNT",
       "CORKBOARD",
       "ADMIN_USERS",
       "EVENT_REGISTRATION",
@@ -1011,6 +1066,10 @@ function LoginScreen({ onLogin }) {
 }
 
 const MIN_PASSWORD_LENGTH = 8;
+// Matches the @Size(min = 3) floor on AdminLoginIdChangeRequest.
+const MIN_LOGIN_ID_LENGTH = 3;
+// The admin UI languages, in the order the language picker lists them.
+const LANGUAGE_OPTIONS = ["Kor", "Eng"];
 
 /**
  * Shared by the modal an admin opens themselves and the screen they are held on
@@ -1133,32 +1192,323 @@ function PasswordChangeRequiredScreen({ token, labels, commonLabels, onChanged, 
   );
 }
 
-function MyAccountModal({ token, labels, commonLabels, onChanged, onClose }) {
-  const [message, setMessage] = useState("");
-
+// Shared overlay used by the account-settings modals. Sits on the same
+// end/center-anchored sheet the old MyAccountModal used, so it reads the same on
+// a phone.
+function AccountModalShell({ title, onClose, commonLabels, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
       <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
-        <h2 className="text-lg font-bold text-swing-ink">{labels.title}</h2>
-        {message ? (
-          <div className="mt-3">
-            <Notice type="success">{message}</Notice>
-          </div>
-        ) : null}
-        <div className="mt-4">
-          <PasswordChangeForm
-            token={token}
-            labels={labels}
-            commonLabels={commonLabels}
-            onCancel={onClose}
-            onChanged={(nextSession) => {
-              setMessage(labels.success);
-              onChanged(nextSession);
-            }}
-          />
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold text-swing-ink">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={commonLabels.cancel}
+            className="-mr-1 -mt-1 rounded-md p-1 text-swing-muted transition hover:text-swing-ink"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
+        <div className="mt-4">{children}</div>
       </div>
     </div>
+  );
+}
+
+// New login ID with a live availability check. Save stays disabled until the
+// backend confirms the trimmed value is free and actually different from the
+// current one; a successful save forces a re-login because the ID it was signed
+// in with is gone.
+function ChangeLoginIdModal({ token, currentLoginId, labels, commonLabels, onRequireRelogin, onClose }) {
+  const [newLoginId, setNewLoginId] = useState("");
+  // idle | same | tooShort | checking | available | taken
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const trimmed = newLoginId.trim();
+
+  useEffect(() => {
+    if (trimmed === "") {
+      setStatus("idle");
+      return undefined;
+    }
+    if (trimmed === currentLoginId) {
+      setStatus("same");
+      return undefined;
+    }
+    if (trimmed.length < MIN_LOGIN_ID_LENGTH) {
+      setStatus("tooShort");
+      return undefined;
+    }
+
+    let cancelled = false;
+    setStatus("checking");
+    const handle = window.setTimeout(async () => {
+      try {
+        const result = await adminApi.checkLoginIdAvailable(token, trimmed);
+        if (!cancelled) {
+          setStatus(result.available ? "available" : "taken");
+        }
+      } catch {
+        // A failed check leaves Save disabled; the save itself re-validates.
+        if (!cancelled) {
+          setStatus("idle");
+        }
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [trimmed, currentLoginId, token]);
+
+  const statusMessage = {
+    same: { type: "error", text: labels.loginIdSame },
+    tooShort: { type: "error", text: labels.loginIdTooShort },
+    checking: { type: "muted", text: labels.loginIdChecking },
+    available: { type: "success", text: labels.loginIdAvailable },
+    taken: { type: "error", text: labels.loginIdTaken },
+  }[status];
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (status !== "available") {
+      return;
+    }
+    setIsSubmitting(true);
+    setError("");
+    try {
+      await adminApi.changeOwnLoginId(token, { newLoginId: trimmed });
+      onRequireRelogin();
+    } catch (submitError) {
+      // Lost the race — someone took the ID between the check and the save.
+      setStatus("taken");
+      setError(submitError.message);
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AccountModalShell title={labels.loginIdTitle} onClose={onClose} commonLabels={commonLabels}>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        <Field label={labels.currentLoginId}>
+          <TextInput value={currentLoginId} disabled readOnly />
+        </Field>
+        <Field label={labels.newLoginId}>
+          <TextInput
+            value={newLoginId}
+            onChange={(event) => {
+              setNewLoginId(event.target.value);
+              setError("");
+            }}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+          />
+        </Field>
+        {statusMessage && statusMessage.type === "muted" ? (
+          <p className="text-xs font-semibold text-swing-muted">{statusMessage.text}</p>
+        ) : null}
+        {statusMessage && statusMessage.type !== "muted" ? (
+          <Notice type={statusMessage.type}>{statusMessage.text}</Notice>
+        ) : null}
+        {error ? <Notice type="error">{error}</Notice> : null}
+        <p className="text-xs leading-5 text-swing-muted">{labels.reloginNotice}</p>
+        <div className="mt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <SecondaryButton type="button" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
+            {commonLabels.cancel}
+          </SecondaryButton>
+          <PrimaryButton type="submit" disabled={isSubmitting || status !== "available"} className="w-full sm:w-auto">
+            {isSubmitting ? labels.loginIdSubmitting : labels.loginIdSubmit}
+          </PrimaryButton>
+        </div>
+      </form>
+    </AccountModalShell>
+  );
+}
+
+// Password change reuses PasswordChangeForm but, unlike the header modal it
+// replaces, forces a re-login on success instead of quietly refreshing the
+// session in place.
+function ChangePasswordModal({ token, labels, commonLabels, onRequireRelogin, onClose }) {
+  return (
+    <AccountModalShell title={labels.title} onClose={onClose} commonLabels={commonLabels}>
+      <p className="mb-3 text-xs leading-5 text-swing-muted">{labels.passwordReloginNotice}</p>
+      <PasswordChangeForm
+        token={token}
+        labels={labels}
+        commonLabels={commonLabels}
+        onCancel={onClose}
+        onChanged={() => onRequireRelogin()}
+      />
+    </AccountModalShell>
+  );
+}
+
+// Language switch is the one settings action that does not force a re-login: it
+// updates the account's LANG_CD and the caller swaps langCd in the live session.
+function LanguageModal({ token, currentLangCd, labels, commonLabels, languageNames, onLanguageChanged, onClose }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const choose = async (langCd) => {
+    if (langCd === currentLangCd || isSaving) {
+      onClose();
+      return;
+    }
+    setIsSaving(true);
+    setError("");
+    try {
+      await adminApi.changeOwnLanguage(token, { langCd });
+      onLanguageChanged(langCd);
+      onClose();
+    } catch (submitError) {
+      setError(submitError.message);
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <AccountModalShell title={labels.languageTitle} onClose={onClose} commonLabels={commonLabels}>
+      {error ? (
+        <div className="mb-3">
+          <Notice type="error">{error}</Notice>
+        </div>
+      ) : null}
+      <div className="grid gap-2">
+        {LANGUAGE_OPTIONS.map((option) => {
+          const isCurrent = option === currentLangCd;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => choose(option)}
+              disabled={isSaving}
+              className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left text-sm font-semibold transition disabled:opacity-60 ${
+                isCurrent
+                  ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                  : "border-swing-border/55 bg-swing-paper text-swing-ink hover:bg-swing-cream/50"
+              }`}
+            >
+              <span>{languageNames[option]}</span>
+              {isCurrent ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="m5 12 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </AccountModalShell>
+  );
+}
+
+// The 내 정보 (설정) menu content: an account summary plus the three
+// self-service actions, each opening one of the modals above.
+function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLanguageChanged }) {
+  const copy = labels.myAccount;
+  // null | loginId | password | language
+  const [openModal, setOpenModal] = useState(null);
+  const user = session.user;
+
+  const actions = [
+    { key: "loginId", title: copy.changeLoginIdAction, desc: copy.changeLoginIdDesc },
+    { key: "password", title: copy.changePasswordAction, desc: copy.changePasswordDesc },
+    {
+      key: "language",
+      title: copy.languageAction,
+      desc: copy.languageDesc,
+      value: labels.languages[user.langCd] || user.langCd,
+    },
+  ];
+
+  return (
+    <section className="grid gap-5">
+      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-swing-border/30 pb-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-swing-ink">{copy.panelTitle}</h2>
+            <p className="mt-2 text-sm text-swing-muted">{copy.panelSubtitle}</p>
+          </div>
+          <RoleBadges item={user} labels={labels} />
+        </div>
+
+        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.name}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">{user.userNm}</dd>
+          </div>
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.loginId}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">{user.loginId}</dd>
+          </div>
+          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
+            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.language}</dt>
+            <dd className="mt-1 text-sm font-semibold text-swing-ink">{labels.languages[user.langCd]}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-5 grid gap-2">
+          {actions.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              onClick={() => setOpenModal(action.key)}
+              className="flex items-center justify-between gap-3 rounded-lg border border-swing-border/55 bg-swing-paper px-4 py-3 text-left transition hover:bg-swing-cream/50"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-swing-ink">{action.title}</span>
+                <span className="mt-0.5 block text-xs text-swing-muted">{action.desc}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-swing-muted">
+                {action.value ? <span className="text-xs font-semibold text-swing-ink/70">{action.value}</span> : null}
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {openModal === "loginId" ? (
+        <ChangeLoginIdModal
+          token={token}
+          currentLoginId={user.loginId}
+          labels={copy}
+          commonLabels={labels.common}
+          onRequireRelogin={onRequireRelogin}
+          onClose={() => setOpenModal(null)}
+        />
+      ) : null}
+      {openModal === "password" ? (
+        <ChangePasswordModal
+          token={token}
+          labels={copy}
+          commonLabels={labels.common}
+          onRequireRelogin={onRequireRelogin}
+          onClose={() => setOpenModal(null)}
+        />
+      ) : null}
+      {openModal === "language" ? (
+        <LanguageModal
+          token={token}
+          currentLangCd={user.langCd}
+          labels={copy}
+          commonLabels={labels.common}
+          languageNames={labels.languages}
+          onLanguageChanged={onLanguageChanged}
+          onClose={() => setOpenModal(null)}
+        />
+      ) : null}
+    </section>
   );
 }
 
@@ -2868,7 +3218,6 @@ export default function AdminApp() {
   const [operationCheckSummary, setOperationCheckSummary] = useState({ openTotalCount: 0, openAssignedCount: 0 });
   const [memberMessageUnreadCount, setMemberMessageUnreadCount] = useState(0);
   const [operationCheckRefreshKey, setOperationCheckRefreshKey] = useState(0);
-  const [isMyAccountOpen, setIsMyAccountOpen] = useState(false);
   // Set when any admin call comes back with PASSWORD_CHANGE_REQUIRED, so a
   // session whose flag is out of date still lands on the change screen instead
   // of showing a raw error. The login flag below is the usual trigger.
@@ -2888,7 +3237,10 @@ export default function AdminApp() {
     });
 
     setActiveMenu((currentMenu) => {
-      if (nextMenus.includes(currentMenu)) {
+      // MY_ACCOUNT is injected into visibleMenus rather than granted by the
+      // backend, so treat it as always-valid here too — a session refresh should
+      // not bounce someone off the settings screen.
+      if (currentMenu === "MY_ACCOUNT" || nextMenus.includes(currentMenu)) {
         return currentMenu;
       }
       return nextMenus[0] || "DASHBOARD";
@@ -2960,9 +3312,22 @@ export default function AdminApp() {
     }
   };
 
+  // Language is the one self-service change with no re-login: swap langCd on the
+  // live session so every label re-renders, without disturbing the active menu.
+  const handleOwnLanguageChanged = useCallback((nextLangCd) => {
+    setSession((current) =>
+      current ? { ...current, user: { ...current.user, langCd: nextLangCd } } : current
+    );
+  }, []);
+
   const langCd = session?.user?.langCd || "Kor";
   const labels = getLabels(langCd);
-  const visibleMenus = useMemo(() => filterVisibleMenus(session?.menus || []), [session?.menus]);
+  // MY_ACCOUNT is self-service rather than backend-granted, so it is appended for
+  // every signed-in admin rather than arriving in session.menus.
+  const visibleMenus = useMemo(
+    () => (session ? [...filterVisibleMenus(session.menus || []), "MY_ACCOUNT"] : []),
+    [session]
+  );
   const menuCategories = useMemo(() => groupMenusByCategory(visibleMenus), [visibleMenus]);
   const safeActiveMenu = visibleMenus.includes(activeMenu) ? activeMenu : visibleMenus[0] || "DASHBOARD";
   // Which category the phone nav has dropped open. Purely open/closed state: it
@@ -3127,13 +3492,8 @@ export default function AdminApp() {
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
             <span className="text-sm font-semibold text-swing-ink/80">{session.user.userNm}</span>
-            <button
-              type="button"
-              onClick={() => setIsMyAccountOpen(true)}
-              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
-            >
-              {labels.myAccount.openButton}
-            </button>
+            {/* 내 정보 moved into the 설정 sidebar category; the header keeps only
+                logout. */}
             <button
               type="button"
               onClick={handleLogout}
@@ -3258,6 +3618,15 @@ export default function AdminApp() {
               onChanged={handleOperationCheckChanged}
             />
           ) : null}
+          {safeActiveMenu === "MY_ACCOUNT" ? (
+            <AccountSettingsPanel
+              token={token}
+              session={session}
+              labels={labels}
+              onRequireRelogin={handleLogout}
+              onLanguageChanged={handleOwnLanguageChanged}
+            />
+          ) : null}
           {safeActiveMenu === "EVENT_VIEW" ? <LessonBoardPanel token={token} langCd={langCd} /> : null}
           {safeActiveMenu === "EVENT_REGISTRATION" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
@@ -3304,16 +3673,6 @@ export default function AdminApp() {
       <div className="select-text px-5 pb-6 text-center text-[11px] leading-4 text-swing-muted/70">
         {labels.common.buildVersion} · {__BUILD_VERSION__}
       </div>
-
-      {isMyAccountOpen ? (
-        <MyAccountModal
-          token={token}
-          labels={labels.myAccount}
-          commonLabels={labels.common}
-          onChanged={applySession}
-          onClose={() => setIsMyAccountOpen(false)}
-        />
-      ) : null}
     </div>
   );
 }
