@@ -12,6 +12,10 @@ import MemberNameLabel from "./MemberNameLabel";
 import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput } from "./OperationCheckPanel";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
+// A local UI preference, so it lives in the browser rather than the account —
+// admin-scoped so it never touches the public site's theme.
+const THEME_STORAGE_KEY = "swingpop-admin-theme";
+const THEMES = ["light", "dark"];
 
 const LANGUAGES = ["Kor", "Eng"];
 const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
@@ -121,6 +125,10 @@ const I18N = {
       changePasswordDesc: "로그인 비밀번호를 새로 정합니다.",
       languageAction: "언어 선택",
       languageDesc: "관리자 화면에 표시할 언어를 고릅니다.",
+      themeAction: "화면 테마",
+      themeDesc: "밝은 화면과 어두운 화면 중에서 고릅니다.",
+      themeTitle: "화면 테마",
+      themeNames: { light: "라이트", dark: "다크" },
       // Login ID modal
       loginIdTitle: "아이디 변경",
       currentLoginId: "현재 아이디",
@@ -412,6 +420,10 @@ const I18N = {
       changePasswordDesc: "Set a new sign-in password.",
       languageAction: "Language",
       languageDesc: "Choose the language for the admin screens.",
+      themeAction: "Theme",
+      themeDesc: "Choose between a light and a dark screen.",
+      themeTitle: "Theme",
+      themeNames: { light: "Light", dark: "Dark" },
       // Login ID modal
       loginIdTitle: "Change Login ID",
       currentLoginId: "Current login ID",
@@ -1410,11 +1422,47 @@ function LanguageModal({ token, currentLangCd, labels, commonLabels, languageNam
   );
 }
 
-// The 내 정보 (설정) menu content: an account summary plus the three
-// self-service actions, each opening one of the modals above.
-function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLanguageChanged, onLogout }) {
+// Light/dark theme picker. Purely local — it applies the choice immediately by
+// swapping a class on the admin shell, with no backend or re-login.
+function ThemeModal({ currentTheme, labels, commonLabels, themeNames, onThemeChanged, onClose }) {
+  return (
+    <AccountModalShell title={labels.themeTitle} onClose={onClose} commonLabels={commonLabels}>
+      <div className="grid gap-2">
+        {THEMES.map((option) => {
+          const isCurrent = option === currentTheme;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onThemeChanged(option);
+                onClose();
+              }}
+              className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
+                isCurrent
+                  ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
+                  : "border-swing-border/55 bg-swing-paper text-swing-ink hover:bg-swing-cream/50"
+              }`}
+            >
+              <span>{themeNames[option]}</span>
+              {isCurrent ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="m5 12 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </AccountModalShell>
+  );
+}
+
+// The 내 정보 (설정) menu content: an account summary plus the self-service
+// actions, each opening one of the modals above.
+function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, onRequireRelogin, onLanguageChanged, onLogout }) {
   const copy = labels.myAccount;
-  // null | loginId | password | language
+  // null | loginId | password | language | theme
   const [openModal, setOpenModal] = useState(null);
   const user = session.user;
 
@@ -1426,6 +1474,12 @@ function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLang
       title: copy.languageAction,
       desc: copy.languageDesc,
       value: labels.languages[user.langCd] || user.langCd,
+    },
+    {
+      key: "theme",
+      title: copy.themeAction,
+      desc: copy.themeDesc,
+      value: copy.themeNames[theme] || theme,
     },
   ];
 
@@ -1518,6 +1572,16 @@ function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLang
           commonLabels={labels.common}
           languageNames={labels.languages}
           onLanguageChanged={onLanguageChanged}
+          onClose={() => setOpenModal(null)}
+        />
+      ) : null}
+      {openModal === "theme" ? (
+        <ThemeModal
+          currentTheme={theme}
+          labels={copy}
+          commonLabels={labels.common}
+          themeNames={copy.themeNames}
+          onThemeChanged={onThemeChanged}
           onClose={() => setOpenModal(null)}
         />
       ) : null}
@@ -3226,6 +3290,10 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
 export default function AdminApp() {
   const [token, setToken] = useState(() => window.localStorage.getItem(TOKEN_STORAGE_KEY) || "");
   const [session, setSession] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return THEMES.includes(stored) ? stored : "light";
+  });
   const [activeMenu, setActiveMenu] = useState("DASHBOARD");
   const [isChecking, setIsChecking] = useState(Boolean(token));
   const [operationCheckSummary, setOperationCheckSummary] = useState({ openTotalCount: 0, openAssignedCount: 0 });
@@ -3331,6 +3399,14 @@ export default function AdminApp() {
     setSession((current) =>
       current ? { ...current, user: { ...current.user, langCd: nextLangCd } } : current
     );
+  }, []);
+
+  // Theme is a browser-local preference: persist it and let the `dark` class on
+  // the shell (below) do the rest.
+  const handleThemeChanged = useCallback((nextTheme) => {
+    const safeTheme = THEMES.includes(nextTheme) ? nextTheme : "light";
+    window.localStorage.setItem(THEME_STORAGE_KEY, safeTheme);
+    setTheme(safeTheme);
   }, []);
 
   const langCd = session?.user?.langCd || "Kor";
@@ -3475,7 +3551,7 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-screen bg-swing-cream text-swing-ink">
+    <div className={`min-h-screen bg-swing-cream text-swing-ink${theme === "dark" ? " dark" : ""}`}>
       <header className="border-b border-swing-border/30 bg-swing-paper">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
@@ -3629,6 +3705,8 @@ export default function AdminApp() {
               token={token}
               session={session}
               labels={labels}
+              theme={theme}
+              onThemeChanged={handleThemeChanged}
               onRequireRelogin={handleLogout}
               onLanguageChanged={handleOwnLanguageChanged}
               onLogout={handleLogout}

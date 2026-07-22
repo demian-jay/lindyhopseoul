@@ -6,21 +6,26 @@ export default {
       colors: {
         // SwingPop brand palette: warm vintage / Wes Anderson direction.
         // Reused from the earlier theme pass so the agreed direction stays intact.
+        //
+        // Driven by CSS variables (channel triples in src/index.css) so a `.dark`
+        // ancestor can swap the whole palette without touching any utility class.
+        // The light values in :root are identical to the old hex, so light mode is
+        // unchanged. <alpha-value> keeps `/40`-style opacity utilities working.
         swing: {
-          ink: '#2e2720',
-          muted: '#675748',
-          paper: '#fff3d7',
-          cream: '#f7dfad',
-          peach: '#e9a47d',
-          coral: '#c8614c',
-          gold: '#c6932f',
-          sage: '#a9b98f',
-          mint: '#c8d7bf',
-          sky: '#9fbfd0',
-          teal: '#336f6a',
-          'teal-deep': '#26534f',
-          burgundy: '#7d342c',
-          border: '#6e4b36',
+          ink: 'rgb(var(--swing-ink) / <alpha-value>)',
+          muted: 'rgb(var(--swing-muted) / <alpha-value>)',
+          paper: 'rgb(var(--swing-paper) / <alpha-value>)',
+          cream: 'rgb(var(--swing-cream) / <alpha-value>)',
+          peach: 'rgb(var(--swing-peach) / <alpha-value>)',
+          coral: 'rgb(var(--swing-coral) / <alpha-value>)',
+          gold: 'rgb(var(--swing-gold) / <alpha-value>)',
+          sage: 'rgb(var(--swing-sage) / <alpha-value>)',
+          mint: 'rgb(var(--swing-mint) / <alpha-value>)',
+          sky: 'rgb(var(--swing-sky) / <alpha-value>)',
+          teal: 'rgb(var(--swing-teal) / <alpha-value>)',
+          'teal-deep': 'rgb(var(--swing-teal-deep) / <alpha-value>)',
+          burgundy: 'rgb(var(--swing-burgundy) / <alpha-value>)',
+          border: 'rgb(var(--swing-border) / <alpha-value>)',
         },
       },
       fontFamily: {

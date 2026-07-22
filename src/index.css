@@ -8,6 +8,48 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ---------------------------------------------------------------------------
+   Palette variables.
+
+   The swing.* Tailwind colors resolve to these channel triples (see
+   tailwind.config.js). :root holds the light values — identical to the old
+   hex, so light mode is byte-for-byte unchanged. A `.dark` ancestor (set only
+   on the admin shell for now) swaps them for the whole subtree, so every
+   existing bg-/text-/border-swing-* utility darkens without edits.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --swing-ink: 46 39 32;
+  --swing-muted: 103 87 72;
+  --swing-paper: 255 243 215;
+  --swing-cream: 247 223 173;
+  --swing-peach: 233 164 125;
+  --swing-coral: 200 97 76;
+  --swing-gold: 198 147 47;
+  --swing-sage: 169 185 143;
+  --swing-mint: 200 215 191;
+  --swing-sky: 159 191 208;
+  --swing-teal: 51 111 106;
+  --swing-teal-deep: 38 83 79;
+  --swing-burgundy: 125 52 44;
+  --swing-border: 110 75 54;
+}
+
+.dark {
+  /* Warm near-black surfaces with an off-white ink, and the accent teal
+     brightened so it still reads on a dark card. Peach/coral/gold/sky keep their
+     light values — used sparingly as accents, they stay legible. */
+  --swing-ink: 242 231 210;
+  --swing-muted: 183 166 141;
+  --swing-paper: 42 38 33;
+  --swing-cream: 32 29 25;
+  --swing-sage: 122 140 108;
+  --swing-mint: 120 140 118;
+  --swing-teal: 79 154 145;
+  --swing-teal-deep: 92 179 168;
+  --swing-border: 78 67 54;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
