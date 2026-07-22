@@ -3877,7 +3877,7 @@ export default function AdminApp() {
                   langCd={langCd}
                   currentUserId={session.user.userCd || session.user.userId}
                   refreshKey={operationCheckRefreshKey}
-                  onSelect={() => setActiveMenu("OPERATION_CHECK")}
+                  onChanged={handleOperationCheckChanged}
                 />
               ) : null}
             </OperationCheckQuickInput>

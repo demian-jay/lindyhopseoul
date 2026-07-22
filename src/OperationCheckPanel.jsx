@@ -58,6 +58,7 @@ const COPY = {
     cancel: "취소",
     completing: "처리 중",
     completed: "완료 처리되었습니다.",
+    close: "닫기",
     statusLabels: {
       OPEN: "미완료",
       DONE: "완료",
@@ -118,6 +119,7 @@ const COPY = {
     cancel: "Cancel",
     completing: "Completing",
     completed: "Completed.",
+    close: "Close",
     statusLabels: {
       OPEN: "Open",
       DONE: "Done",
@@ -340,15 +342,112 @@ function isRelatedToUser(item, userId) {
 }
 
 /**
+ * One item, one modal. The dashboard list is a to-do list, so a tap should open
+ * exactly what is needed to finish that single item — the content, who it is
+ * for, and the completion action — and nothing else. Everything richer (edit,
+ * comments, history) stays on the OPERATION_CHECK menu.
+ */
+function OperationCheckMineModal({ token, langCd, item, onClose, onCompleted }) {
+  const labels = copyFor(langCd);
+  const [checkedMemo, setCheckedMemo] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleComplete = async () => {
+    setError("");
+    setIsCompleting(true);
+
+    try {
+      await adminApi.completeOperationCheck(token, item.id, {
+        checkedMemo: checkedMemo.trim() || null,
+      });
+      onCompleted(item);
+    } catch (nextError) {
+      setError(nextError.message);
+      setIsCompleting(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-swing-ink/40 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-md rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-lg">
+        <p className="text-xs font-semibold text-swing-muted">
+          {formatAssigneeSummary(item, labels, langCd)} · {formatDate(item.createdAt, langCd)}
+        </p>
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-swing-ink">{item.content}</p>
+
+        {item.canComplete ? (
+          <textarea
+            value={checkedMemo}
+            onChange={(event) => setCheckedMemo(event.target.value)}
+            placeholder={labels.completeMemoPlaceholder}
+            rows={2}
+            disabled={isCompleting}
+            className="mt-4 min-h-[64px] w-full resize-y rounded-lg border border-swing-border/70 bg-swing-cream px-3 py-2 text-sm leading-6 text-swing-ink outline-none transition placeholder:text-swing-muted focus:border-swing-teal focus:ring-2 focus:ring-swing-teal/40"
+          />
+        ) : null}
+
+        <div className="mt-3 grid gap-2" aria-live="polite">
+          <Notice>{error}</Notice>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isCompleting}
+            className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-3 text-xs font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50 disabled:cursor-not-allowed disabled:text-swing-muted/45"
+          >
+            {labels.close}
+          </button>
+          {item.canComplete ? (
+            <button
+              type="button"
+              onClick={handleComplete}
+              disabled={isCompleting}
+              className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-xs font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
+            >
+              {isCompleting ? labels.completing : labels.confirmComplete}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Dashboard companion to the quick input above it. The OPERATION_CHECK menu
  * shows everything; this shows only what the signed-in account is on the hook
  * for, and shrinks to a single line of text when that is nothing — a dashboard
  * should not spend a card on "there is nothing here".
  */
-export function OperationCheckMineList({ token, langCd, currentUserId, refreshKey = 0, onSelect }) {
+export function OperationCheckMineList({ token, langCd, currentUserId, refreshKey = 0, onChanged }) {
   const labels = copyFor(langCd);
   const [items, setItems] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const selectedItem = items.find((item) => item.id === selectedItemId) || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -408,7 +507,7 @@ export function OperationCheckMineList({ token, langCd, currentUserId, refreshKe
           <li key={item.id}>
             <button
               type="button"
-              onClick={onSelect}
+              onClick={() => setSelectedItemId(item.id)}
               className="flex w-full flex-col gap-1 rounded-lg border border-swing-border/30 px-3 py-2 text-left transition hover:bg-swing-cream/50"
             >
               <span className="text-sm leading-5 text-swing-ink">{formatContentPreview(item.content)}</span>
@@ -419,6 +518,22 @@ export function OperationCheckMineList({ token, langCd, currentUserId, refreshKe
           </li>
         ))}
       </ul>
+
+      {selectedItem ? (
+        <OperationCheckMineModal
+          token={token}
+          langCd={langCd}
+          item={selectedItem}
+          onClose={() => setSelectedItemId(null)}
+          onCompleted={(completedItem) => {
+            // Drop it here right away — the list only ever shows OPEN items, so
+            // waiting for a reload would leave a done item on screen.
+            setItems((current) => current.filter((item) => item.id !== completedItem.id));
+            setSelectedItemId(null);
+            onChanged?.();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
