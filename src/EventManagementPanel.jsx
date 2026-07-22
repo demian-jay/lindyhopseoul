@@ -584,14 +584,6 @@ function monthRange() {
   };
 }
 
-function defaultTeacherLessonFilters() {
-  return {
-    from: toDateInput(new Date()),
-    to: "",
-    status: "PUBLISHED",
-  };
-}
-
 function emptyEventFilters() {
   return {
     from: "",
@@ -2658,66 +2650,30 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
 export function TeacherDashboardPanel({ token, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
-  const [filters, setFilters] = useState(() => defaultTeacherLessonFilters());
   const [lessons, setLessons] = useState([]);
   const [error, setError] = useState("");
 
   const loadLessons = useCallback(async () => {
     try {
-      setLessons(await adminApi.findTeacherLessons(token, filters));
+      // No filter controls: just every published lesson assigned to this
+      // teacher, which the server already scopes by permission.
+      setLessons(await adminApi.findTeacherLessons(token, { status: "PUBLISHED" }));
       setError("");
     } catch (nextError) {
       setError(nextError.message);
     }
-  }, [filters, token]);
+  }, [token]);
 
   useEffect(() => {
     loadLessons();
   }, [loadLessons]);
 
-  const handleFilterChange = (event) => {
-    const { name, value } = event.target;
-    setFilters((current) => {
-      if (name === "status" && value === "FINISHED" && current.status !== "FINISHED") {
-        const currentMonth = monthRange();
-        return { ...current, status: value, from: currentMonth.from, to: toDateInput(new Date()) };
-      }
-      if (name === "status" && value === "PUBLISHED" && current.status !== "PUBLISHED") {
-        return { ...current, status: value, from: toDateInput(new Date()), to: "" };
-      }
-      return { ...current, [name]: value };
-    });
-  };
-
   return (
     <section className="grid gap-5">
       <Notice>{error}</Notice>
       <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+        <div className="border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{copy.teachingSchedule}</h2>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-end">
-            <div className="sm:w-36">
-              <Field label={copy.lessonStatusFilter}>
-                <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
-                  {LESSON_STATUSES.map((value) => (
-                    <option key={value} value={value}>
-                      {eventStatusLabel(value, langCd)}
-                    </option>
-                  ))}
-                </SelectInput>
-              </Field>
-            </div>
-            <div className="sm:w-[150px]">
-              <Field label={copy.from}>
-                <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-              </Field>
-            </div>
-            <div className="sm:w-[150px]">
-              <Field label={copy.to}>
-                <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-              </Field>
-            </div>
-          </div>
         </div>
         <div className="mt-4">
           <LessonDashboardRows lessons={lessons} copy={copy} langCd={langCd} languageCode={languageCode} token={token} />

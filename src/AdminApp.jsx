@@ -1589,42 +1589,6 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
   );
 }
 
-function DashboardPanel({ session, labels }) {
-  return (
-    <section className="grid gap-5">
-      <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-swing-border/30 pb-4">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-swing-ink">{labels.dashboard.title}</h2>
-            <div className="mt-2 text-sm text-swing-muted">{session.user.userNm}</div>
-          </div>
-          <RoleBadges item={session.user} labels={labels} />
-        </div>
-
-        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
-            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.loginId}</dt>
-            <dd className="mt-1 text-sm font-semibold text-swing-ink">{session.user.loginId}</dd>
-          </div>
-          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
-            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.role}</dt>
-            <dd className="mt-1 text-sm font-semibold text-swing-ink">
-              {normalizeRoles(session.user)
-                .map((role) => labels.roles[role] || role)
-                .join(", ")}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
-            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.language}</dt>
-            <dd className="mt-1 text-sm font-semibold text-swing-ink">{labels.languages[session.user.langCd]}</dd>
-          </div>
-        </dl>
-      </div>
-
-    </section>
-  );
-}
-
 function AdminUsersPanel({ token, currentUser, langCd, labels }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(() => ({ ...createAdminForm(), langCd }));
@@ -3686,9 +3650,9 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "DASHBOARD" ? (
             <div className="grid gap-5">
-              {hasAnyRole(session.user, ["SUPER_ADMIN", "STAFF"]) || !hasRole(session.user, "TEACHER") ? (
-                <DashboardPanel session={session} labels={labels} />
-              ) : null}
+              {/* The account-summary panel was dropped: 아이디 / 권한 / 표시 언어
+                  now live on the 설정 › 내 정보 screen, so repeating them here was
+                  duplicate. Teachers still get their lesson dashboard. */}
               {hasRole(session.user, "TEACHER") ? <TeacherDashboardPanel token={token} langCd={langCd} /> : null}
             </div>
           ) : null}
