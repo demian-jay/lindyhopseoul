@@ -124,18 +124,28 @@ public class PushNotificationService {
      */
     @Transactional
     public void send(Collection<String> userIds, NotificationType type, String title, String body, String url) {
-        if (!isEnabled() || userIds == null || userIds.isEmpty()) {
+        if (!isEnabled()) {
+            log.info("push send skipped ({}): web push disabled", type);
+            return;
+        }
+        if (userIds == null || userIds.isEmpty()) {
+            log.info("push send skipped ({}): no target users", type);
             return;
         }
         Set<String> recipients = new LinkedHashSet<>(userIds);
         recipients.removeIf(id -> id == null || id.isBlank());
+        int requested = recipients.size();
         recipients.removeIf(id -> !type.isEnabledFor(settingsFor(id)));
         if (recipients.isEmpty()) {
+            log.info("push send skipped ({}): all {} target user(s) opted out", type, requested);
             return;
         }
 
+        List<PushSubscription> subscriptions = subscriptionRepository.findByUserIdIn(List.copyOf(recipients));
+        log.info("push send ({}): {} of {} user(s) opted in, {} device subscription(s)",
+                type, recipients.size(), requested, subscriptions.size());
         String payload = payload(title, body, url);
-        for (PushSubscription subscription : subscriptionRepository.findByUserIdIn(List.copyOf(recipients))) {
+        for (PushSubscription subscription : subscriptions) {
             deliver(subscription, payload);
         }
     }
@@ -155,11 +165,16 @@ public class PushNotificationService {
             // 404/410 mean the browser dropped the subscription; stop pushing to it.
             if (status == 404 || status == 410) {
                 subscriptionRepository.deleteByEndpoint(subscription.getEndpoint());
+                log.info("push subscription pruned (status {}) for user {}", status, subscription.getUserId());
             } else if (status >= 400) {
-                log.warn("Push send returned {} for endpoint {}", status, subscription.getEndpoint());
+                log.warn("push send returned {} for user {} endpoint {}",
+                        status, subscription.getUserId(), subscription.getEndpoint());
+            } else {
+                log.info("push delivered (status {}) to user {}", status, subscription.getUserId());
             }
         } catch (Exception exception) {
-            log.warn("Push send failed for endpoint {}", subscription.getEndpoint(), exception);
+            log.warn("push send failed for user {} endpoint {}",
+                    subscription.getUserId(), subscription.getEndpoint(), exception);
         }
     }
 
