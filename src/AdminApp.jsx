@@ -1412,7 +1412,7 @@ function LanguageModal({ token, currentLangCd, labels, commonLabels, languageNam
 
 // The 내 정보 (설정) menu content: an account summary plus the three
 // self-service actions, each opening one of the modals above.
-function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLanguageChanged }) {
+function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLanguageChanged, onLogout }) {
   const copy = labels.myAccount;
   // null | loginId | password | language
   const [openModal, setOpenModal] = useState(null);
@@ -1476,6 +1476,19 @@ function AccountSettingsPanel({ token, session, labels, onRequireRelogin, onLang
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Logout lives at the foot of the account screen rather than the header:
+          it is a rare, deliberate action, so it sits below the settings as a
+          small, quiet button. */}
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="rounded-lg border border-swing-border/55 bg-swing-paper px-4 py-2 text-xs font-semibold text-swing-muted transition hover:bg-swing-cream/50 hover:text-swing-ink"
+        >
+          {labels.common.logout}
+        </button>
       </div>
 
       {openModal === "loginId" ? (
@@ -3489,18 +3502,11 @@ export default function AdminApp() {
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-swing-ink">{pageTitle}</h1>
             </div>
           </div>
+          {/* 내 정보 and 로그아웃 both moved into the 설정 › 내 정보 screen, so the
+              header only identifies who is signed in. */}
           <div className="flex flex-wrap items-center gap-3">
             <RoleBadges item={session.user} labels={labels} />
             <span className="text-sm font-semibold text-swing-ink/80">{session.user.userNm}</span>
-            {/* 내 정보 moved into the 설정 sidebar category; the header keeps only
-                logout. */}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
-            >
-              {labels.common.logout}
-            </button>
           </div>
         </div>
       </header>
@@ -3625,6 +3631,7 @@ export default function AdminApp() {
               labels={labels}
               onRequireRelogin={handleLogout}
               onLanguageChanged={handleOwnLanguageChanged}
+              onLogout={handleLogout}
             />
           ) : null}
           {safeActiveMenu === "EVENT_VIEW" ? <LessonBoardPanel token={token} langCd={langCd} /> : null}
