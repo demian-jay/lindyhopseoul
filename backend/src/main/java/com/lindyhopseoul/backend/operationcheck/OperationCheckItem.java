@@ -90,30 +90,36 @@ public class OperationCheckItem {
     }
 
     public void replaceAssignees(Collection<UserAccount> nextAssignees) {
-        assignees.clear();
-        assignedToUserId = null;
-        assignedToName = null;
-
-        if (nextAssignees == null) {
-            return;
+        // Desired assignees, de-duplicated by user id with order preserved.
+        java.util.Map<String, UserAccount> desired = new java.util.LinkedHashMap<>();
+        if (nextAssignees != null) {
+            for (UserAccount user : nextAssignees) {
+                if (user != null && user.getUserId() != null) {
+                    desired.putIfAbsent(user.getUserId(), user);
+                }
+            }
         }
 
-        nextAssignees.stream()
-                .filter(user -> user != null)
-                .collect(java.util.stream.Collectors.toMap(
-                        UserAccount::getUserId,
-                        user -> user,
-                        (left, right) -> left,
-                        java.util.LinkedHashMap::new
-                ))
-                .values()
-                .forEach(user -> {
-                    if (assignedToUserId == null) {
-                        assignedToUserId = user.getUserId();
-                        assignedToName = user.getName();
-                    }
-                    assignees.add(OperationCheckAssignee.create(this, user));
-                });
+        // Diff rather than clear-and-re-add: an assignee that stays is left
+        // untouched, so re-saving the same one does not delete-then-reinsert it
+        // within one flush — which trips the unique (item, user) constraint
+        // because Hibernate can order the insert before the delete.
+        assignees.removeIf(assignee -> !desired.containsKey(assignee.getAssigneeUserId()));
+
+        java.util.Set<String> present = new java.util.HashSet<>();
+        for (OperationCheckAssignee assignee : assignees) {
+            present.add(assignee.getAssigneeUserId());
+        }
+        desired.forEach((userId, user) -> {
+            if (!present.contains(userId)) {
+                assignees.add(OperationCheckAssignee.create(this, user));
+            }
+        });
+
+        // The legacy single-assignee columns mirror the first desired assignee.
+        UserAccount first = desired.values().stream().findFirst().orElse(null);
+        assignedToUserId = first == null ? null : first.getUserId();
+        assignedToName = first == null ? null : first.getName();
     }
 
     public void markDone(AdminPrincipal actor, String checkedMemo) {
