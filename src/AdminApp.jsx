@@ -747,6 +747,22 @@ function formatDateTimeLines(value, langCd) {
   };
 }
 
+// A thread row is one line, so the stamp gets the least room and has to earn
+// it: today's threads show the time, older ones the date. A full "2026. 7. 22.
+// 오후 5:44" in that spot would leave the preview almost nothing.
+function formatThreadTimestamp(value, langCd) {
+  if (!value) {
+    return getLabels(langCd).common.empty;
+  }
+
+  const date = new Date(value);
+  const isToday = date.toDateString() === new Date().toDateString();
+  if (isToday) {
+    return new Intl.DateTimeFormat(langCd === "Eng" ? "en-US" : "ko-KR", { timeStyle: "short" }).format(date);
+  }
+  return new Intl.DateTimeFormat("en-CA", { month: "2-digit", day: "2-digit" }).format(date);
+}
+
 function formatStaffSenderLabel(message, labels) {
   const displayName =
     typeof message?.senderAdminDisplayName === "string" ? message.senderAdminDisplayName.trim() : "";
@@ -3330,12 +3346,14 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
       const nextThreads = await adminApi.findMemberMessageThreads(token);
       const safeThreads = Array.isArray(nextThreads) ? nextThreads : [];
       setThreads(safeThreads);
-      setSelectedThreadId((currentThreadId) => {
-        if (currentThreadId && safeThreads.some((thread) => thread.threadId === currentThreadId)) {
-          return currentThreadId;
-        }
-        return safeThreads[0]?.threadId ?? null;
-      });
+      // Nothing is opened for the reader: landing on the newest thread marked
+      // it read before anyone had chosen to look at it. A thread already open
+      // stays open across a refresh; one that disappeared closes.
+      setSelectedThreadId((currentThreadId) =>
+        currentThreadId && safeThreads.some((thread) => thread.threadId === currentThreadId)
+          ? currentThreadId
+          : null
+      );
     } catch (nextError) {
       setError(nextError.message || messageLabels.loadError);
       setThreads([]);
@@ -3427,39 +3445,38 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                     setNotice("");
                     setError("");
                   }}
-                  className={`rounded-lg border p-3 text-left transition ${
+                  className={`flex items-center gap-2 overflow-hidden rounded-lg border px-3 py-2 text-left transition ${
                     isSelected
                       ? "border-swing-teal bg-swing-teal/10"
                       : isUnread
                         ? "border-swing-teal/40 bg-swing-teal/5 hover:border-swing-teal/60 hover:bg-swing-teal/10"
                       : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
                   }`}
+                  title={thread.lastMessagePreview || undefined}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <MemberNameLabel
-                          member={thread}
-                          fallback={labels.common.empty}
-                          className={`${isUnread ? "font-bold" : "font-semibold"} text-swing-ink`}
-                        />
-                        {isUnread ? (
-                          <span className="inline-flex items-center rounded-full bg-swing-teal-deep px-2 py-0.5 text-[11px] font-bold text-swing-paper">
-                            {thread.unreadMessageCountForAdmin > 1
-                              ? `${messageLabels.unread} ${thread.unreadMessageCountForAdmin}`
-                              : messageLabels.unread}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-1 text-xs text-swing-muted">{thread.memberEmail}</div>
-                    </div>
-                    <div className="shrink-0 text-xs text-swing-muted/70">
-                      {formatDate(thread.lastMessageAt, langCd)}
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-swing-muted">
+                  {/* One row per thread: name, unread count, preview, time. The
+                      preview is the elastic part and simply cuts off — the whole
+                      message is one click away, and a scannable list is worth
+                      more here than two lines of it. The address moved to the
+                      detail pane, which already prints it. */}
+                  <MemberNameLabel
+                    member={thread}
+                    fallback={labels.common.empty}
+                    className={`max-w-[40%] shrink-0 flex-nowrap overflow-hidden text-sm ${
+                      isUnread ? "font-bold" : "font-semibold"
+                    } text-swing-ink [&>span]:truncate`}
+                  />
+                  {isUnread ? (
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-swing-teal-deep px-1.5 py-0.5 text-[11px] font-bold text-swing-paper">
+                      {thread.unreadMessageCountForAdmin > 1 ? thread.unreadMessageCountForAdmin : messageLabels.unread}
+                    </span>
+                  ) : null}
+                  <span className="min-w-0 flex-1 truncate text-xs text-swing-muted">
                     {thread.lastMessagePreview || labels.common.empty}
-                  </p>
+                  </span>
+                  <span className="shrink-0 text-[11px] text-swing-muted/70">
+                    {formatThreadTimestamp(thread.lastMessageAt, langCd)}
+                  </span>
                 </button>
               );
             })}
