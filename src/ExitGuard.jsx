@@ -3,6 +3,11 @@ import React, { useEffect, useRef, useState } from "react";
 // Marks the history entries this guard owns, so a back press that lands on one
 // is known to be a press at the app's outer edge rather than in-app navigation.
 const GUARD_STATE_KEY = "swingpopExitGuard";
+// Marks the entry the app opened on — the one below the guard. Landing there is
+// the only press with nothing left to go back to. It needs its own marker
+// because an unmarked entry is not distinctive: a fragment link (#schedule) also
+// pushes an entry whose state is null, and Chrome fires popstate for it.
+const OPENING_STATE_KEY = "swingpopExitGuardOpening";
 
 /**
  * Stops Android's back gesture from throwing the app away mid-sentence.
@@ -13,9 +18,10 @@ const GUARD_STATE_KEY = "swingpopExitGuard";
  * Answering 취소 puts the guard back, so holding down back never walks out of
  * the app; only 종료 does.
  *
- * In-app navigation is untouched: those entries carry no marker, so going back
- * from /me or out of a modal behaves exactly as before, and the question only
- * appears once there is nothing left to go back to.
+ * In-app navigation is untouched: the question is asked only on the entry the
+ * app opened on, so going back from /me, out of a modal, or over a fragment
+ * link behaves exactly as before — those presses land above that entry, having
+ * been consumed by the layer they closed.
  */
 export default function ExitGuard() {
   const [isAsking, setIsAsking] = useState(false);
@@ -23,7 +29,6 @@ export default function ExitGuard() {
   // leaving is a pop of exactly two.
   const guardDepthRef = useRef(0);
   const isLeavingRef = useRef(false);
-  const lastPathRef = useRef(typeof window === "undefined" ? "/" : window.location.pathname);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -35,57 +40,44 @@ export default function ExitGuard() {
       window.history.pushState({ [GUARD_STATE_KEY]: true }, "");
     };
 
-    // The app navigates with pushState, which fires no event, so without this
-    // the last known path would go stale the moment anyone opened a screen —
-    // and a back press returning home would be mistaken for one aimed out of
-    // the app.
-    const originalPushState = window.history.pushState;
+    // The app replaces state of its own accord (see main.jsx), which would drop
+    // the marker and leave the outermost entry unrecognisable, so carry it over.
     const originalReplaceState = window.history.replaceState;
-    const trackPath = (original) =>
-      function trackedHistoryMethod(...args) {
-        const result = original.apply(this, args);
-        lastPathRef.current = window.location.pathname;
-        return result;
-      };
-    window.history.pushState = trackPath(originalPushState);
-    window.history.replaceState = trackPath(originalReplaceState);
+    window.history.replaceState = function markedReplaceState(state, ...rest) {
+      const carried = window.history.state?.[OPENING_STATE_KEY] === true
+        ? { ...(state || {}), [OPENING_STATE_KEY]: true }
+        : state;
+      return originalReplaceState.call(this, carried, ...rest);
+    };
 
     const handlePopState = (event) => {
       if (isLeavingRef.current) {
         return;
       }
 
-      const previousPath = lastPathRef.current;
-      lastPathRef.current = window.location.pathname;
-
-      const isGuardEntry = event.state?.[GUARD_STATE_KEY] === true;
-      const isOpeningEntry = event.state === null;
-      if (!isGuardEntry && !isOpeningEntry) {
-        // An entry the app pushed for a screen of its own: ordinary back
-        // navigation, and there is still somewhere to go back to.
+      // Landing anywhere above the opening entry means the press was consumed by
+      // something of the app's own — a modal closing, a screen going back, a
+      // fragment link unwinding — and there is still somewhere to go back to.
+      // Only the opening entry has nothing underneath it.
+      if (event.state?.[OPENING_STATE_KEY] !== true) {
         return;
       }
 
-      // On the opening entry there is nothing underneath, so re-arm at once:
-      // no number of further presses can then walk out without an answer.
-      if (isOpeningEntry) {
-        guardDepthRef.current = 0;
-        pushGuard();
-      }
-
-      // Coming from another screen, this press meant "go back one" and has
-      // already done it — the app is simply home now. Only a press that moved
-      // nothing was aimed out of the app.
-      if (previousPath === window.location.pathname) {
-        setIsAsking(true);
-      }
+      // Nothing underneath, so re-arm at once: no number of further presses can
+      // then walk out without an answer.
+      guardDepthRef.current = 0;
+      pushGuard();
+      setIsAsking(true);
     };
 
+    window.history.replaceState(
+      { ...(window.history.state || {}), [OPENING_STATE_KEY]: true },
+      ""
+    );
     pushGuard();
     window.addEventListener("popstate", handlePopState);
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
     };
   }, []);
