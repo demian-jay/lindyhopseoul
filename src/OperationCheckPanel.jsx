@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { adminApi } from "./api/admin";
+import useModalBackDismiss from "./useModalBackDismiss";
 
 const COPY = {
   Kor: {
@@ -352,6 +353,10 @@ function OperationCheckMineModal({ token, langCd, item, onClose, onCompleted }) 
   const [checkedMemo, setCheckedMemo] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState("");
+
+  // Mounted only while open, so back closes this rather than reaching the exit
+  // prompt behind it.
+  useModalBackDismiss(true, "admin-operation-check", onClose);
 
   useEffect(() => {
     const handleKeyDown = (event) => {

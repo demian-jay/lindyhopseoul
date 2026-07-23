@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminApi } from "./api/admin";
 import MemberNameLabel from "./MemberNameLabel";
+import useModalBackDismiss from "./useModalBackDismiss";
 
 const SUPPORTED_LANGUAGES = ["ko", "en"];
 const EVENT_TYPES = ["REGULAR_CLASS", "PARTY", "DIALOGUE_PARTY"];
@@ -1584,6 +1585,10 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
  * produced it.
  */
 function LessonDetailModal({ token, lesson, copy, languageCode, onClose }) {
+  // Mounted only while open, so the entry lives exactly as long as the modal:
+  // back closes this rather than reaching the exit prompt behind it.
+  useModalBackDismiss(true, "admin-lesson-detail", onClose);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {

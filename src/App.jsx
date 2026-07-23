@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
+import useModalBackDismiss from "./useModalBackDismiss";
 // Landing-page section slideshows: every jpg in the folder, sorted by filename.
 // Drop numbered files into the folder to add/reorder slides.
 const sortedGlob = (modules) =>
@@ -4261,30 +4262,11 @@ function PublicApp() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // The application modal covers the whole screen on a phone, so the back
-  // gesture has to dismiss it. Without an entry of its own, back skips past the
-  // modal and navigates the page still sitting behind it.
-  useEffect(() => {
-    if (typeof window === "undefined" || !selectedApplication) {
-      return undefined;
-    }
-
-    window.history.pushState({ swingModal: "application" }, "");
-
-    const handleModalPop = () => setSelectedApplication(null);
-
-    window.addEventListener("popstate", handleModalPop);
-
-    return () => {
-      window.removeEventListener("popstate", handleModalPop);
-
-      // Closed from the UI instead of by going back: drop the entry we added,
-      // or the user's next back press would be spent undoing this modal.
-      if (window.history.state?.swingModal === "application") {
-        window.history.back();
-      }
-    };
-  }, [selectedApplication]);
+  // Each open modal owns a history entry, so back closes the one on top and
+  // leaves the rest — the class list stays put while the apply modal above it
+  // goes, and only the last press reaches the page behind them.
+  useModalBackDismiss(Boolean(selectedEvent), "event-lessons", () => setSelectedEvent(null));
+  useModalBackDismiss(Boolean(selectedApplication), "application", () => setSelectedApplication(null));
 
   useEffect(() => {
     if (!accountNotice) {
@@ -5051,7 +5033,8 @@ function PublicApp() {
           labels={t.application}
           onClose={() => setSelectedEvent(null)}
           onSelectLesson={(lesson) => {
-            setSelectedEvent(null);
+            // The class list stays open underneath: the apply modal covers it,
+            // and going back from there returns here rather than to the page.
             setSelectedApplication(lesson);
           }}
         />

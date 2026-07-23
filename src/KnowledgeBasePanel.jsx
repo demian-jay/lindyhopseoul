@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminApi } from "./api/admin";
+import useModalBackDismiss from "./useModalBackDismiss";
 
 const STATUS_OPTIONS = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 const FALLBACK_SUPPORTED_LANGUAGES = ["ko", "en"];
@@ -258,6 +259,10 @@ function Highlight({ text, query }) {
  */
 function KnowledgeItemReaderModal({ item, itemTranslation, categoryTranslation, kb, labels, query, manualLanguage, onClose }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Mounted only while open, so back closes this rather than reaching the exit
+  // prompt behind it.
+  useModalBackDismiss(true, "admin-knowledge-item", onClose);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
