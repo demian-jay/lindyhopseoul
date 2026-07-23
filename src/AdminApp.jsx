@@ -255,7 +255,7 @@ const I18N = {
       replying: "보내는 중",
       loading: "불러오는 중",
       emptyThreads: "아직 회원 메시지가 없습니다.",
-      selectThread: "왼쪽에서 대화방을 선택해주세요.",
+      selectThread: "대화방을 선택해주세요.",
       noMessages: "메시지가 없습니다.",
       sent: "답변이 전송되었습니다.",
       loadError: "메시지를 불러오지 못했습니다.",
@@ -596,7 +596,7 @@ const I18N = {
       replying: "Sending",
       loading: "Loading",
       emptyThreads: "No member messages yet.",
-      selectThread: "Select a thread from the left.",
+      selectThread: "Select a thread.",
       noMessages: "No messages.",
       sent: "Reply sent.",
       loadError: "Could not load messages.",
@@ -3441,7 +3441,11 @@ function AdminMemberMessagesPanel({ token, langCd, labels, onUnreadChanged }) {
                   key={thread.threadId}
                   type="button"
                   onClick={() => {
-                    setSelectedThreadId(thread.threadId);
+                    // Tapping the open thread closes it again, so the reader can
+                    // put the conversation away without picking another one.
+                    setSelectedThreadId((currentThreadId) =>
+                      currentThreadId === thread.threadId ? null : thread.threadId
+                    );
                     setNotice("");
                     setError("");
                   }}
