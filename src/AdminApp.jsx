@@ -135,12 +135,15 @@ const I18N = {
       themeDesc: "밝은 화면과 어두운 화면 중에서 고릅니다.",
       themeTitle: "화면 테마",
       themeNames: { light: "라이트", dark: "다크" },
+      // Captions for the current value shown on each change button.
+      currentValueLabels: { language: "현재 언어", theme: "현재 테마" },
       notifications: {
         action: "알림 설정",
         actionDesc: "이벤트별 푸시 알림을 켜고 끕니다.",
         title: "알림 설정",
         device: "이 기기에서 푸시 알림 받기",
         deviceHint: "알림은 기기마다 따로 켜야 합니다.",
+        deviceFirst: "먼저 [이 기기에서 푸시 알림 받기]를 켜주세요. 켜야 아래 항목을 설정할 수 있습니다.",
         unsupported: "이 브라우저는 푸시 알림을 지원하지 않습니다.",
         permissionDenied: "브라우저 알림이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.",
         notConfigured: "서버에 푸시 알림이 설정되어 있지 않습니다.",
@@ -456,12 +459,14 @@ const I18N = {
       themeDesc: "Choose between a light and a dark screen.",
       themeTitle: "Theme",
       themeNames: { light: "Light", dark: "Dark" },
+      currentValueLabels: { language: "Current language", theme: "Current theme" },
       notifications: {
         action: "Notifications",
         actionDesc: "Turn push notifications on or off per event.",
         title: "Notifications",
         device: "Receive push notifications on this device",
         deviceHint: "Notifications must be turned on per device.",
+        deviceFirst: "Turn on \"Receive push notifications on this device\" first — the settings below need it.",
         unsupported: "This browser does not support push notifications.",
         permissionDenied: "Browser notifications are blocked. Allow them in your browser settings.",
         notConfigured: "Push notifications are not configured on the server.",
@@ -1526,6 +1531,9 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Shown when the locked preferences are clicked; cleared as soon as the
+  // device toggle it asks for goes on.
+  const [hint, setHint] = useState("");
   const supported = isPushSupported();
 
   useEffect(() => {
@@ -1574,6 +1582,7 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
   const toggleDevice = async () => {
     setBusy(true);
     setError("");
+    setHint("");
     try {
       if (subscribed) {
         await unsubscribeThisDevice(token);
@@ -1629,12 +1638,30 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
       <input
         type="checkbox"
         checked={Boolean(settings?.[key])}
-        disabled={busy}
+        disabled={busy || !subscribed}
         onChange={() => toggleType(key)}
         className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
       />
     </label>
   );
+
+  // Every preference below the device toggle only decides what a subscribed
+  // device receives, so without a subscription they decide nothing. They stay
+  // visible but fogged, and a click on the fog says what to do instead of
+  // silently doing nothing.
+  const preferencesLocked = !subscribed;
+  const preferenceFog = (children) =>
+    preferencesLocked ? (
+      <div
+        onClick={() => setHint(copy.deviceFirst)}
+        className="cursor-not-allowed opacity-45 [&_*]:pointer-events-none"
+        aria-disabled="true"
+      >
+        {children}
+      </div>
+    ) : (
+      children
+    );
 
   return (
     <AccountModalShell title={copy.title} onClose={onClose} commonLabels={commonLabels}>
@@ -1663,50 +1690,61 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
           </div>
 
           {error ? <Notice type="error">{error}</Notice> : null}
+          {hint && !error ? (
+            <p className="rounded-lg border border-swing-teal/30 bg-swing-teal/10 px-3 py-2 text-sm leading-6 text-swing-teal-deep">
+              {hint}
+            </p>
+          ) : null}
 
           {/* Applies across every type below, so it sits above them. The warning
               is always visible rather than only once it is switched on: what it
               costs — notifications that never arrive at all — is the thing to
               know *before* turning it on. */}
-          <div className="grid gap-2">
-            <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
-              {copy.quietSection}
+          {preferenceFog(
+            <div className="grid gap-2">
+              <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                {copy.quietSection}
+              </div>
+              <label className="flex items-start justify-between gap-3 rounded-lg border border-swing-border/40 bg-swing-paper px-4 py-3">
+                <span>
+                  <span className="block text-sm font-semibold text-swing-ink">{copy.quietTitle}</span>
+                  <span className="mt-0.5 block text-xs text-swing-muted">{copy.quietDesc}</span>
+                  <span className="mt-2 block text-xs leading-5 text-swing-muted/90">{copy.quietWarning}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(settings?.quietHours)}
+                  disabled={busy || !subscribed}
+                  onChange={() => toggleType("quietHours")}
+                  className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
+                />
+              </label>
             </div>
-            <label className="flex items-start justify-between gap-3 rounded-lg border border-swing-border/40 bg-swing-paper px-4 py-3">
-              <span>
-                <span className="block text-sm font-semibold text-swing-ink">{copy.quietTitle}</span>
-                <span className="mt-0.5 block text-xs text-swing-muted">{copy.quietDesc}</span>
-                <span className="mt-2 block text-xs leading-5 text-swing-muted/90">{copy.quietWarning}</span>
-              </span>
-              <input
-                type="checkbox"
-                checked={Boolean(settings?.quietHours)}
-                disabled={busy}
-                onChange={() => toggleType("quietHours")}
-                className="mt-1 h-5 w-5 shrink-0 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
-              />
-            </label>
-          </div>
+          )}
 
-          {isTeacher ? (
-            <div className="grid gap-2">
-              <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
-                {copy.teacherSection}
-              </div>
-              {typeRow("newApplication")}
-              {typeRow("lessonReminder")}
-            </div>
-          ) : null}
-          {isStaff ? (
-            <div className="grid gap-2">
-              <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
-                {copy.staffSection}
-              </div>
-              {typeRow("memberMessage")}
-              {typeRow("operationCheckTagged")}
-              {typeRow("operationCheckCompleted")}
-            </div>
-          ) : null}
+          {isTeacher
+            ? preferenceFog(
+                <div className="grid gap-2">
+                  <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                    {copy.teacherSection}
+                  </div>
+                  {typeRow("newApplication")}
+                  {typeRow("lessonReminder")}
+                </div>
+              )
+            : null}
+          {isStaff
+            ? preferenceFog(
+                <div className="grid gap-2">
+                  <div className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-swing-muted/70">
+                    {copy.staffSection}
+                  </div>
+                  {typeRow("memberMessage")}
+                  {typeRow("operationCheckTagged")}
+                  {typeRow("operationCheckCompleted")}
+                </div>
+              )
+            : null}
         </div>
       )}
     </AccountModalShell>
@@ -1721,19 +1759,30 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
   const [openModal, setOpenModal] = useState(null);
   const user = session.user;
 
+  // The current value rides on the button that changes it, captioned with what
+  // it is. It used to be repeated in a summary tile above as well, which said
+  // the same thing twice and left the reader looking for the difference.
   const actions = [
-    { key: "loginId", title: copy.changeLoginIdAction, desc: copy.changeLoginIdDesc },
+    {
+      key: "loginId",
+      title: copy.changeLoginIdAction,
+      desc: copy.changeLoginIdDesc,
+      valueLabel: labels.fields.loginId,
+      value: user.loginId,
+    },
     { key: "password", title: copy.changePasswordAction, desc: copy.changePasswordDesc },
     {
       key: "language",
       title: copy.languageAction,
       desc: copy.languageDesc,
+      valueLabel: copy.currentValueLabels.language,
       value: labels.languages[user.langCd] || user.langCd,
     },
     {
       key: "theme",
       title: copy.themeAction,
       desc: copy.themeDesc,
+      valueLabel: copy.currentValueLabels.theme,
       value: copy.themeNames[theme] || theme,
     },
     {
@@ -1754,18 +1803,12 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
           <RoleBadges item={user} labels={labels} />
         </div>
 
-        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        {/* Only 이름 is left here: 아이디 and 표시 언어 now sit on the buttons
+            that change them. */}
+        <dl className="mt-5">
           <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
             <dt className="text-xs font-semibold text-swing-muted">{labels.fields.name}</dt>
             <dd className="mt-1 text-sm font-semibold text-swing-ink">{user.userNm}</dd>
-          </div>
-          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
-            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.loginId}</dt>
-            <dd className="mt-1 text-sm font-semibold text-swing-ink">{user.loginId}</dd>
-          </div>
-          <div className="rounded-lg border border-swing-border/30 bg-swing-cream/50 p-4">
-            <dt className="text-xs font-semibold text-swing-muted">{labels.fields.language}</dt>
-            <dd className="mt-1 text-sm font-semibold text-swing-ink">{labels.languages[user.langCd]}</dd>
           </div>
         </dl>
 
@@ -1782,7 +1825,12 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
                 <span className="mt-0.5 block text-xs text-swing-muted">{action.desc}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2 text-swing-muted">
-                {action.value ? <span className="text-xs font-semibold text-swing-ink/70">{action.value}</span> : null}
+                {action.value ? (
+                  <span className="text-right">
+                    <span className="block text-[11px] text-swing-muted/80">{action.valueLabel}</span>
+                    <span className="block text-xs font-semibold text-swing-ink/70">{action.value}</span>
+                  </span>
+                ) : null}
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
