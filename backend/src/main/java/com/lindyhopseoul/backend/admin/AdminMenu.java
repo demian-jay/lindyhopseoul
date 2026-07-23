@@ -17,6 +17,7 @@ public enum AdminMenu {
     MEMBER_MESSAGES,
     MEMBER_ACTION_LOGS,
     KNOWLEDGE_BASE,
+    KNOWLEDGE_BASE_REGISTRATION,
     MESSAGE_TEMPLATE_VIEW,
     MESSAGE_TEMPLATE_REGISTRATION,
     ADMIN_USERS,
@@ -53,7 +54,8 @@ public enum AdminMenu {
                     ADMIN_USERS,
                     EVENT_REGISTRATION,
                     MEMBER_ACTION_LOGS,
-                    MESSAGE_TEMPLATE_REGISTRATION
+                    MESSAGE_TEMPLATE_REGISTRATION,
+                    KNOWLEDGE_BASE_REGISTRATION
             );
             // Same as super admin minus MEMBER_ACTION_LOGS, which stays super
             // admin only.
@@ -68,7 +70,8 @@ public enum AdminMenu {
                     CORKBOARD,
                     ADMIN_USERS,
                     EVENT_REGISTRATION,
-                    MESSAGE_TEMPLATE_REGISTRATION
+                    MESSAGE_TEMPLATE_REGISTRATION,
+                    KNOWLEDGE_BASE_REGISTRATION
             );
             case TEACHER -> List.of(DASHBOARD, EVENT_VIEW, MESSAGE_TEMPLATE_VIEW);
         };

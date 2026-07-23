@@ -40,6 +40,7 @@ const I18N = {
       MEMBER_MESSAGES: "회원 메시지",
       MEMBER_ACTION_LOGS: "수강생 처리 로그",
       KNOWLEDGE_BASE: "메뉴얼 저장소",
+      KNOWLEDGE_BASE_REGISTRATION: "메뉴얼 저장소",
       MESSAGE_TEMPLATE_VIEW: "메시지 템플릿",
       MESSAGE_TEMPLATE_REGISTRATION: "메시지 템플릿 등록",
       ADMIN_USERS: "관리자 계정",
@@ -241,6 +242,11 @@ const I18N = {
       categoryDeleted: "카테고리가 삭제되었습니다.",
       confirmDeleteItem: (title) => `${title} 문서를 삭제할까요?`,
       confirmDeleteCategory: (name) => `${name} 카테고리를 삭제할까요?`,
+      openItem: "문서를 눌러 내용을 확인하세요.",
+      detailToggleOpen: "상세보기",
+      detailToggleClose: "상세 접기",
+      detailSectionTitle: "문서 정보",
+      close: "닫기",
     },
     dashboard: {
       title: "관리자 홈",
@@ -385,6 +391,7 @@ const I18N = {
       MEMBER_MESSAGES: "Member Messages",
       MEMBER_ACTION_LOGS: "Student Action Logs",
       KNOWLEDGE_BASE: "Manual Repository",
+      KNOWLEDGE_BASE_REGISTRATION: "Manual Repository",
       MESSAGE_TEMPLATE_VIEW: "Message Templates",
       MESSAGE_TEMPLATE_REGISTRATION: "Register Message Templates",
       ADMIN_USERS: "Admin Accounts",
@@ -582,6 +589,11 @@ const I18N = {
       categoryDeleted: "Category has been deleted.",
       confirmDeleteItem: (title) => `Delete ${title}?`,
       confirmDeleteCategory: (name) => `Delete ${name} category?`,
+      openItem: "Select a document to read it.",
+      detailToggleOpen: "Details",
+      detailToggleClose: "Hide details",
+      detailSectionTitle: "Document info",
+      close: "Close",
     },
     dashboard: {
       title: "Dashboard",
@@ -815,6 +827,7 @@ const MENU_CATEGORIES = [
       "EVENT_REGISTRATION",
       "MEMBER_ACTION_LOGS",
       "MESSAGE_TEMPLATE_REGISTRATION",
+      "KNOWLEDGE_BASE_REGISTRATION",
     ],
   },
 ];
@@ -4035,8 +4048,14 @@ export default function AdminApp() {
           {safeActiveMenu === "MEMBERS" ? (
             <AdminMembersPanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
           ) : null}
-          {safeActiveMenu === "KNOWLEDGE_BASE" ? (
-            <KnowledgeBasePanel token={token} currentUser={session.user} langCd={langCd} labels={labels} />
+          {safeActiveMenu === "KNOWLEDGE_BASE" || safeActiveMenu === "KNOWLEDGE_BASE_REGISTRATION" ? (
+            <KnowledgeBasePanel
+              token={token}
+              currentUser={session.user}
+              langCd={langCd}
+              labels={labels}
+              readOnly={safeActiveMenu === "KNOWLEDGE_BASE"}
+            />
           ) : null}
           {safeActiveMenu === "MESSAGE_TEMPLATE_VIEW" || safeActiveMenu === "MESSAGE_TEMPLATE_REGISTRATION" ? (
             <MessageTemplatePanel

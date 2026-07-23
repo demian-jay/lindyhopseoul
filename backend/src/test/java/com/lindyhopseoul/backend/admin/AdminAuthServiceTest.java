@@ -64,7 +64,8 @@ class AdminAuthServiceTest {
                 AdminMenu.ADMIN_USERS,
                 AdminMenu.EVENT_REGISTRATION,
                 AdminMenu.MEMBER_ACTION_LOGS,
-                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION
+                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION,
+                AdminMenu.KNOWLEDGE_BASE_REGISTRATION
         );
     }
 
@@ -121,7 +122,8 @@ class AdminAuthServiceTest {
                 AdminMenu.CORKBOARD,
                 AdminMenu.ADMIN_USERS,
                 AdminMenu.EVENT_REGISTRATION,
-                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION
+                AdminMenu.MESSAGE_TEMPLATE_REGISTRATION,
+                AdminMenu.KNOWLEDGE_BASE_REGISTRATION
         );
     }
 

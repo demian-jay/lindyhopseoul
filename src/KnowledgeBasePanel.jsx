@@ -196,7 +196,7 @@ function LanguageTabs({ supportedLanguages, activeLanguage, onChange }) {
   );
 }
 
-function TagList({ tags }) {
+function TagList({ tags, query }) {
   if (!tags?.length) {
     return null;
   }
@@ -205,16 +205,158 @@ function TagList({ tags }) {
     <div className="flex flex-wrap gap-1.5">
       {tags.map((tag) => (
         <span key={tag} className="rounded-full border border-swing-teal/20 bg-swing-teal/10 px-2.5 py-1 text-xs font-semibold text-swing-teal-deep">
-          {tag}
+          {/* Tags are part of what the search matches on, so they are part of
+              what it marks. */}
+          <Highlight text={tag} query={query} />
         </span>
       ))}
     </div>
   );
 }
 
-export default function KnowledgeBasePanel({ token, currentUser, labels, langCd }) {
+// Marks every occurrence of the search term in a block of text. The reader
+// arrived here from a filtered list, so the word that put the document in front
+// of them is the one they are looking for — in a long manual entry, finding it
+// unaided is the whole job.
+function Highlight({ text, query }) {
+  const value = String(text ?? "");
+  const needle = String(query || "").trim();
+  if (!needle) {
+    return value;
+  }
+
+  const segments = [];
+  const haystack = value.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  let cursor = 0;
+
+  while (cursor <= value.length) {
+    const found = haystack.indexOf(lowerNeedle, cursor);
+    if (found === -1) {
+      segments.push(value.slice(cursor));
+      break;
+    }
+    if (found > cursor) {
+      segments.push(value.slice(cursor, found));
+    }
+    segments.push(
+      <mark key={`${found}-${segments.length}`} className="rounded bg-amber-200 px-0.5 text-swing-ink">
+        {value.slice(found, found + needle.length)}
+      </mark>
+    );
+    cursor = found + needle.length;
+  }
+
+  return segments;
+}
+
+/**
+ * Read-only view of one document, opened from the search results. It carries no
+ * edit or delete action — those live on the 설정 copy of this screen — and it
+ * folds the dates and source note away behind 상세보기, so what opens first is
+ * the thing worth reading rather than a wall of metadata.
+ */
+function KnowledgeItemReaderModal({ item, itemTranslation, categoryTranslation, kb, labels, query, manualLanguage, onClose }) {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-swing-ink/40 p-4 sm:p-8"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-3xl rounded-lg border border-swing-border/30 bg-swing-paper shadow-lg">
+        <div className="flex items-start justify-between gap-3 border-b border-swing-border/30 p-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-swing-teal-deep">
+                <Highlight text={categoryTranslation.value.name} query={query} />
+              </span>
+              <MissingBadge show={categoryTranslation.missing || itemTranslation.missing} label={kb.translationMissing} />
+            </div>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-swing-ink">
+              <Highlight text={itemTranslation.value.title} query={query} />
+            </h2>
+            {itemTranslation.value.summary ? (
+              <p className="mt-2 text-sm leading-6 text-swing-muted">
+                <Highlight text={itemTranslation.value.summary} query={query} />
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={kb.close}
+            className="shrink-0 rounded-lg border border-swing-border/45 px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+          >
+            {kb.close}
+          </button>
+        </div>
+
+        <div className="p-5">
+          {itemTranslation.value.tags?.length ? (
+            <div className="mb-4">
+              <TagList tags={itemTranslation.value.tags} query={query} />
+            </div>
+          ) : null}
+
+          <div className="whitespace-pre-wrap rounded-lg border border-swing-border/30 bg-swing-cream/50 p-5 text-sm leading-7 text-swing-ink">
+            <Highlight text={itemTranslation.value.content} query={query} />
+          </div>
+
+          <div className="mt-4 rounded-lg border border-swing-border/30">
+            <button
+              type="button"
+              onClick={() => setIsDetailOpen((current) => !current)}
+              aria-expanded={isDetailOpen}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+            >
+              <span>{kb.detailSectionTitle}</span>
+              <span className="text-xs font-bold text-swing-muted">
+                {isDetailOpen ? kb.detailToggleClose : kb.detailToggleOpen}
+              </span>
+            </button>
+            {isDetailOpen ? (
+              <div className="border-t border-swing-border/20 p-4">
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <Info label={kb.decisionDate} value={formatDate(item.decisionDate, manualLanguage, labels.common.empty)} />
+                  <Info label={kb.effectiveFrom} value={formatDate(item.effectiveFrom, manualLanguage, labels.common.empty)} />
+                  <Info label={kb.effectiveTo} value={formatDate(item.effectiveTo, manualLanguage, labels.common.empty)} />
+                  <Info label={kb.lastUpdated} value={formatDateTime(item.updatedAt, manualLanguage, labels.common.empty)} />
+                  <div className="sm:col-span-2">
+                    <Info label={kb.sourceNote} value={item.sourceNote || labels.common.empty} />
+                  </div>
+                </dl>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function KnowledgeBasePanel({ token, currentUser, labels, langCd, readOnly = false }) {
   const kb = labels.knowledgeBase;
-  const canManage = hasAnyRole(currentUser, ["SUPER_ADMIN", "STAFF"]);
+  // Read-only is the 운영진 copy of this screen: search and results only, with
+  // a document opening in a modal. Registering and editing live on the 설정
+  // copy, which renders the detail pane and the forms below it.
+  const canManage = !readOnly && hasAnyRole(currentUser, ["SUPER_ADMIN", "STAFF"]);
   const preferredLanguage = langCd === "Eng" ? "en" : "ko";
 
   const [defaultLanguage, setDefaultLanguage] = useState("ko");
@@ -226,6 +368,9 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
   const [categoryId, setCategoryId] = useState("ALL");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  // Read-only mode only: which document the reader opened. Kept apart from
+  // selectedItemId, which the detail pane wants defaulted to the first result.
+  const [openedItemId, setOpenedItemId] = useState(null);
   const [activeItemFormLanguage, setActiveItemFormLanguage] = useState(preferredLanguage);
   const [activeCategoryFormLanguage, setActiveCategoryFormLanguage] = useState(preferredLanguage);
   const [itemForm, setItemForm] = useState(() => createItemForm("", FALLBACK_SUPPORTED_LANGUAGES));
@@ -516,6 +661,10 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
     }
   };
 
+  // A filter change can drop the open document out of the results; it closes
+  // rather than lingering over a list it is no longer part of.
+  const openedItem = readOnly ? filteredItems.find((item) => item.id === openedItemId) || null : null;
+
   const selectedItemTranslation = getTranslation(selectedItem, manualLanguage, defaultLanguage, {
     title: "",
     summary: "",
@@ -533,16 +682,22 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
       <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-swing-ink">{kb.searchLabel}</h2>
-          <button
-            type="button"
-            onClick={() => setShowFilters((current) => !current)}
-            className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
-          >
-            {showFilters ? labels.common.hideFilters : labels.common.showFilters}
-          </button>
+          {/* Searching is the whole point of the read-only screen, so its
+              fields are never folded away behind a toggle. */}
+          {readOnly ? null : (
+            <button
+              type="button"
+              onClick={() => setShowFilters((current) => !current)}
+              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+            >
+              {showFilters ? labels.common.hideFilters : labels.common.showFilters}
+            </button>
+          )}
         </div>
         <div
-          className={`mt-4 gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px] ${showFilters ? "grid" : "hidden"}`}
+          className={`mt-4 gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px] ${
+            showFilters || readOnly ? "grid" : "hidden"
+          }`}
         >
           <Field label={kb.searchLabel}>
             <TextInput
@@ -584,7 +739,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
+      <div className={`grid gap-5 ${readOnly ? "" : "xl:grid-cols-[390px_minmax(0,1fr)]"}`}>
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
             <h2 className="text-lg font-bold text-swing-ink">{kb.resultsTitle}</h2>
@@ -593,9 +748,15 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
             </span>
           </div>
 
-          <div className="mt-4 grid max-h-[640px] gap-3 overflow-y-auto pr-1">
+          <div
+            className={
+              readOnly
+                ? "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                : "mt-4 grid max-h-[640px] gap-3 overflow-y-auto pr-1"
+            }
+          >
             {filteredItems.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-swing-border/45 bg-swing-cream/50 p-5 text-sm leading-6 text-swing-muted">
+              <div className="rounded-lg border border-dashed border-swing-border/45 bg-swing-cream/50 p-5 text-sm leading-6 text-swing-muted sm:col-span-2 xl:col-span-3">
                 {kb.noResults}
               </div>
             ) : null}
@@ -617,21 +778,27 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setSelectedItemId(item.id)}
+                  onClick={() => (readOnly ? setOpenedItemId(item.id) : setSelectedItemId(item.id))}
                   className={`rounded-lg border p-4 text-left transition ${
-                    selectedItem?.id === item.id
+                    !readOnly && selectedItem?.id === item.id
                       ? "border-swing-teal/40 bg-swing-teal/10"
                       : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-swing-teal-deep">{categoryTranslation.value.name}</span>
+                    <span className="text-xs font-semibold text-swing-teal-deep">
+                      <Highlight text={categoryTranslation.value.name} query={query} />
+                    </span>
                     <MissingBadge show={categoryTranslation.missing || itemTranslation.missing} label={kb.translationMissing} />
                   </div>
-                  <div className="mt-1 text-base font-bold text-swing-ink">{itemTranslation.value.title}</div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-swing-muted">{itemTranslation.value.summary}</p>
+                  <div className="mt-1 text-base font-bold text-swing-ink">
+                    <Highlight text={itemTranslation.value.title} query={query} />
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-swing-muted">
+                    <Highlight text={itemTranslation.value.summary} query={query} />
+                  </p>
                   <div className="mt-3">
-                    <TagList tags={itemTranslation.value.tags} />
+                    <TagList tags={itemTranslation.value.tags} query={query} />
                   </div>
                 </button>
               );
@@ -639,6 +806,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
           </div>
         </div>
 
+        {readOnly ? null : (
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           {selectedItem ? (
             <>
@@ -697,6 +865,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
             </div>
           )}
         </div>
+        )}
       </div>
 
       {canManage ? (
@@ -902,6 +1071,29 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd 
             </div>
           </div>
         </div>
+      ) : null}
+
+      {openedItem ? (
+        <KnowledgeItemReaderModal
+          item={openedItem}
+          itemTranslation={getTranslation(openedItem, manualLanguage, defaultLanguage, {
+            title: "",
+            summary: "",
+            content: "",
+            tags: [],
+          })}
+          categoryTranslation={getTranslation(
+            categories.find((category) => category.id === openedItem.categoryId),
+            manualLanguage,
+            defaultLanguage,
+            { name: "", description: "" }
+          )}
+          kb={kb}
+          labels={labels}
+          query={query}
+          manualLanguage={manualLanguage}
+          onClose={() => setOpenedItemId(null)}
+        />
       ) : null}
     </section>
   );
