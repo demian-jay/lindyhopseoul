@@ -1307,7 +1307,7 @@ function PasswordChangeRequiredScreen({ token, labels, commonLabels, theme, onCh
 // a phone.
 function AccountModalShell({ title, onClose, commonLabels, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
       <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold text-swing-ink">{title}</h2>
@@ -3114,7 +3114,7 @@ function MemberMessageSendModal({
   const moreCount = Math.max(0, members.length - previewMembers.length);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
       <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
         <h2 className="text-lg font-bold text-swing-ink">{labels.sendMessageTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-swing-muted">{labels.sendMessageDescription(members.length)}</p>
@@ -3191,7 +3191,7 @@ function MemberStatusChangeModal({
 }) {
   const isSuspend = type === "suspend";
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
       <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5">
         <h2 className="text-lg font-bold text-swing-ink">
           {isSuspend ? labels.suspendTitle : labels.reactivateTitle}

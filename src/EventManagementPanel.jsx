@@ -1598,7 +1598,7 @@ function LessonDetailModal({ token, lesson, copy, languageCode, onClose }) {
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
+      className="fixed inset-0 z-[70] flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -2352,7 +2352,7 @@ function ConfirmDialog({
   onConfirm,
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-swing-ink/40 px-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-swing-ink/40 px-4">
       <div className="w-full max-w-md rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-xl">
         <h2 className="text-lg font-bold text-swing-ink">{title}</h2>
         <p className="mt-3 text-sm leading-6 text-swing-muted">{body}</p>
@@ -2636,7 +2636,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
       </div>
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-swing-ink/40 px-3 py-4 sm:items-center sm:px-4">
           <form
             onSubmit={handleSubmit}
             className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-xl sm:p-5"

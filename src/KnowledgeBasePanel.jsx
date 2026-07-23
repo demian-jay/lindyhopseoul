@@ -273,7 +273,7 @@ function KnowledgeItemReaderModal({ item, itemTranslation, categoryTranslation, 
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
+      className="fixed inset-0 z-[70] flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();

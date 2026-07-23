@@ -383,7 +383,7 @@ function OperationCheckMineModal({ token, langCd, item, onClose, onCompleted }) 
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-swing-ink/40 p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-swing-ink/40 p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
