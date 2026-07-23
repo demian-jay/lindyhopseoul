@@ -2,7 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ExitGuard from './ExitGuard';
+import { applyManifestForHost } from './adminHost';
 import './index.css';
+
+// Before render, so an install started the moment the page appears already picks
+// up the right app.
+applyManifestForHost();
 
 const REDIRECT_PATH_KEY = 'swingpop-redirect-path';
 const redirectedPath = window.sessionStorage.getItem(REDIRECT_PATH_KEY);

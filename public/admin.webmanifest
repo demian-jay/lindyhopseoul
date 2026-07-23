@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "SwingPop",
-  "short_name": "스윙팝",
-  "description": "스윙댄스로 연결되는 커뮤니티, 스윙팝. 일정 확인과 수업 신청을 한곳에서.",
+  "name": "SwingPop 운영",
+  "short_name": "스윙팝 운영",
+  "description": "스윙팝 커뮤니티 운영진용 관리 화면입니다.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "/",

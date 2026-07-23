@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
+import { isAdminHost } from "./adminHost";
 import CorkboardPage from "./CorkboardPage";
 import useModalBackDismiss from "./useModalBackDismiss";
 import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
@@ -5207,7 +5208,9 @@ function PublicApp() {
 export default function App() {
   const isAdminPath = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
 
-  if (isAdminPath) {
+  // On the admin host the whole origin is the admin app, so it answers at the
+  // root as well — that is what its installed copy opens.
+  if (isAdminPath || isAdminHost()) {
     return <AdminApp />;
   }
 
