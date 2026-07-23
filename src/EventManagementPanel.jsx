@@ -336,6 +336,7 @@ const COPY_TEXT = {
     selectEvent: "이벤트를 선택해주세요.",
     lessonBoard: "강습 목록",
     selectLesson: "강습을 선택해주세요.",
+    close: "닫기",
     noLessonsInRange: "해당 기간에 강습이 없습니다.",
     addLesson: "강습 추가",
     editLesson: "강습 수정",
@@ -454,6 +455,7 @@ const COPY_TEXT = {
     selectEvent: "Select an event.",
     lessonBoard: "Lessons",
     selectLesson: "Select a lesson.",
+    close: "Close",
     noLessonsInRange: "No lessons in this range.",
     addLesson: "Add Lesson",
     editLesson: "Edit Lesson",
@@ -1575,6 +1577,69 @@ function LessonForm({ langCd, teachers, parentEvent, initialValue, onSubmit, onC
 }
 
 /**
+ * What one lesson looks like when opened from 강습조회: who applied and what has
+ * been announced. It is a modal rather than a pane below the list because the
+ * list is the screen — a lesson is looked at, dealt with, and closed, and on a
+ * phone the old layout pushed the detail off the bottom of the index that
+ * produced it.
+ */
+function LessonDetailModal({ token, lesson, copy, languageCode, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-swing-ink/40 p-4 sm:p-8"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-3xl rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-lg">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-swing-ink">{localizedTitle(lesson.lessonTitles, languageCode)}</h2>
+            <div className="mt-1 text-sm text-swing-muted">{localizedTitle(lesson.eventTitles, languageCode)}</div>
+            {/* Teachers and time share one line: the event, type, status and
+                dates are all already on the row that got you here. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-swing-muted">
+              {lesson.teachers.length > 0 ? (
+                <span>{lesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}</span>
+              ) : null}
+              <Badge>
+                {toTimeInput(lesson.startTime)}-{toTimeInput(lesson.endTime)}
+              </Badge>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg border border-swing-border/45 px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+          >
+            {copy.close}
+          </button>
+        </div>
+
+        <ParticipantList participants={lesson.participants} copy={copy} onRemoveParticipant={null} />
+        {/* Notices are writable here, teachers included — the server allows a
+            teacher to manage notices on lessons they are assigned to. */}
+        <LessonNoticePanel token={token} lessonId={lesson.lessonId} copy={copy} />
+      </div>
+    </div>
+  );
+}
+
+/**
  * 강습조회. Lesson-first rather than event-first: the row you pick is a lesson,
  * and what you get is who applied to it and what has been announced on it. The
  * event exists here only as the second half of a label, because that is the
@@ -1614,11 +1679,11 @@ export function LessonBoardPanel({ token, langCd }) {
   const selectedLesson = lessons.find((lesson) => lesson.lessonId === selectedLessonId) || null;
 
   return (
-    <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0 xl:grid-cols-[330px_minmax(0,1fr)]">
+    <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0">
       <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
-        {/* Starts open on the lesson index. Picking a lesson collapses it down
-            to this header so the screen shows what you selected; reopening it to
-            switch lessons is a deliberate tap on the header. */}
+        {/* The list no longer collapses when a lesson is picked: the lesson
+            opens over it in a modal, so the index it came from is still there
+            underneath when the modal closes. */}
         <button
           type="button"
           onClick={() => setIsListOpen((current) => !current)}
@@ -1636,9 +1701,11 @@ export function LessonBoardPanel({ token, langCd }) {
 
         <Notice>{error}</Notice>
 
-        <div className={`mt-3 gap-2 ${isListOpen ? "grid" : "hidden"}`}>
+        <div className={`mt-3 gap-2 sm:grid-cols-2 xl:grid-cols-3 ${isListOpen ? "grid" : "hidden"}`}>
           {!isLoading && lessons.length === 0 ? (
-            <div className="py-6 text-center text-sm text-swing-muted">{copy.noLessonsInRange}</div>
+            <div className="py-6 text-center text-sm text-swing-muted sm:col-span-2 xl:col-span-3">
+              {copy.noLessonsInRange}
+            </div>
           ) : null}
           {lessons.map((lesson) => {
             const isActive = lesson.lessonId === selectedLessonId;
@@ -1647,10 +1714,7 @@ export function LessonBoardPanel({ token, langCd }) {
               <button
                 key={lesson.lessonId}
                 type="button"
-                onClick={() => {
-                  setSelectedLessonId(lesson.lessonId);
-                  setIsListOpen(false);
-                }}
+                onClick={() => setSelectedLessonId(lesson.lessonId)}
                 className={`rounded-lg border px-3 py-2 text-left transition ${
                   isActive
                     ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
@@ -1674,33 +1738,14 @@ export function LessonBoardPanel({ token, langCd }) {
       </aside>
 
       {selectedLesson ? (
-        <div className="grid min-w-0 content-start gap-5">
-          <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-            <h2 className="text-xl font-bold text-swing-ink">
-              {localizedTitle(selectedLesson.lessonTitles, languageCode)}
-            </h2>
-            {/* Teachers and time share one line: the event, type, status and
-                dates are all already on the row that got you here. */}
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-swing-muted">
-              {selectedLesson.teachers.length > 0 ? (
-                <span>{selectedLesson.teachers.map((teacher) => teacher.teacherUserNm).join(", ")}</span>
-              ) : null}
-              <Badge>
-                {toTimeInput(selectedLesson.startTime)}-{toTimeInput(selectedLesson.endTime)}
-              </Badge>
-            </div>
-
-            <ParticipantList participants={selectedLesson.participants} copy={copy} onRemoveParticipant={null} />
-            {/* Notices are writable here, teachers included — the server allows a
-                teacher to manage notices on lessons they are assigned to. */}
-            <LessonNoticePanel token={token} lessonId={selectedLesson.lessonId} copy={copy} />
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-8 text-center text-sm text-swing-muted shadow-sm">
-          {copy.selectLesson}
-        </div>
-      )}
+        <LessonDetailModal
+          token={token}
+          lesson={selectedLesson}
+          copy={copy}
+          languageCode={languageCode}
+          onClose={() => setSelectedLessonId(null)}
+        />
+      ) : null}
     </section>
   );
 }
