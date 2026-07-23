@@ -46,7 +46,8 @@ public class PushController {
             @Valid @RequestBody PushSubscriptionRequest request
     ) {
         AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
-        pushNotificationService.saveSubscription(actor.userCd(), request.endpoint(), request.p256dh(), request.auth());
+        pushNotificationService.saveSubscription(
+                actor.userCd(), request.endpoint(), request.p256dh(), request.auth(), request.timeZone());
     }
 
     @DeleteMapping("/subscriptions")

@@ -273,15 +273,17 @@ function KnowledgeItemReaderModal({ item, itemTranslation, categoryTranslation, 
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-swing-ink/40 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="w-full max-w-3xl rounded-lg border border-swing-border/30 bg-swing-paper shadow-lg">
-        <div className="flex items-start justify-between gap-3 border-b border-swing-border/30 p-5">
+      {/* Capped to the viewport with the body scrolling inside: a long manual
+          entry would otherwise carry the title and 닫기 off the top of a phone. */}
+      <div className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-swing-border/30 bg-swing-paper shadow-lg">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-swing-border/30 p-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-swing-teal-deep">
@@ -308,7 +310,7 @@ function KnowledgeItemReaderModal({ item, itemTranslation, categoryTranslation, 
           </button>
         </div>
 
-        <div className="p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {itemTranslation.value.tags?.length ? (
             <div className="mb-4">
               <TagList tags={itemTranslation.value.tags} query={query} />

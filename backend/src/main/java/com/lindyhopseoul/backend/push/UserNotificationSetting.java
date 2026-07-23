@@ -40,6 +40,12 @@ public class UserNotificationSetting {
     @Column(name = "QUIET_HOURS", nullable = false)
     private boolean quietHours = false;
 
+    // IANA zone the quiet window is measured in, taken from the device that
+    // subscribed. Null means the account has never subscribed since this was
+    // added, and falls back to Asia/Seoul.
+    @Column(name = "QUIET_HOURS_ZONE", length = 64)
+    private String quietHoursZone;
+
     protected UserNotificationSetting() {
     }
 
@@ -92,7 +98,16 @@ public class UserNotificationSetting {
         return operationCheckCompleted;
     }
 
+    /** Remembers the zone the device that just subscribed is in. */
+    public void rememberQuietHoursZone(String zoneId) {
+        this.quietHoursZone = zoneId;
+    }
+
     public boolean isQuietHours() {
         return quietHours;
+    }
+
+    public String getQuietHoursZone() {
+        return quietHoursZone;
     }
 }

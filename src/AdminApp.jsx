@@ -155,6 +155,7 @@ const I18N = {
         quietSection: "방해금지",
         quietTitle: "방해금지 모드",
         quietDesc: "밤 10시부터 다음날 아침 8시까지 알림을 받지 않습니다.",
+        quietZone: (zone) => `기준 시간대: ${zone} · 알림을 켠 기기의 시간대를 따릅니다.`,
         quietWarning:
           "이 시간에 발생한 알림은 보관되지 않고 사라집니다. 아침 8시가 되어도 다시 오지 않으니, 밤사이 내용은 직접 확인해주세요.",
         types: {
@@ -486,6 +487,7 @@ const I18N = {
         quietSection: "Do not disturb",
         quietTitle: "Do not disturb",
         quietDesc: "No notifications between 10 PM and 8 AM.",
+        quietZone: (zone) => `Measured in ${zone} — the time zone of the device you turned notifications on with.`,
         quietWarning:
           "Notifications raised during those hours are dropped, not held. They will not arrive at 8 AM either, so check anything from overnight yourself.",
         types: {
@@ -1742,6 +1744,11 @@ function NotificationSettingsModal({ token, labels, commonLabels, onClose }) {
                 <span>
                   <span className="block text-sm font-semibold text-swing-ink">{copy.quietTitle}</span>
                   <span className="mt-0.5 block text-xs text-swing-muted">{copy.quietDesc}</span>
+                  {settings?.quietHoursZone ? (
+                    <span className="mt-1 block text-xs text-swing-muted/80">
+                      {copy.quietZone(settings.quietHoursZone)}
+                    </span>
+                  ) : null}
                   <span className="mt-2 block text-xs leading-5 text-swing-muted/90">{copy.quietWarning}</span>
                 </span>
                 <input

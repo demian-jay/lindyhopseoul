@@ -34,4 +34,38 @@ class PushQuietHoursTest {
         assertThat(PushNotificationService.isWithinQuietHours(at(8, 1))).isFalse();
         assertThat(PushNotificationService.isWithinQuietHours(at(14, 30))).isFalse();
     }
+
+    @Test
+    void fallsBackToSeoulWhenNoDeviceHasReportedAZone() {
+        UserNotificationSetting setting = UserNotificationSetting.defaultsFor("U1");
+
+        assertThat(PushNotificationService.zoneOf(setting)).isEqualTo(SEOUL);
+    }
+
+    @Test
+    void usesTheZoneTheSubscribingDeviceReported() {
+        UserNotificationSetting setting = UserNotificationSetting.defaultsFor("U1");
+        setting.rememberQuietHoursZone("Europe/Berlin");
+
+        assertThat(PushNotificationService.zoneOf(setting)).isEqualTo(ZoneId.of("Europe/Berlin"));
+    }
+
+    @Test
+    void ignoresAZoneItCannotParse() {
+        UserNotificationSetting setting = UserNotificationSetting.defaultsFor("U1");
+        setting.rememberQuietHoursZone("Middle/Earth");
+
+        assertThat(PushNotificationService.zoneOf(setting)).isEqualTo(SEOUL);
+    }
+
+    // The same instant is inside one person's night and outside another's: 02:00
+    // in Berlin is 09:00 the same day in Seoul, so a Berlin-based staffer is
+    // quiet while a Seoul one is already at work.
+    @Test
+    void measuresTheWindowInEachRecipientsOwnZone() {
+        ZonedDateTime berlinNight = ZonedDateTime.of(2026, 7, 23, 2, 0, 0, 0, ZoneId.of("Europe/Berlin"));
+
+        assertThat(PushNotificationService.isWithinQuietHours(berlinNight)).isTrue();
+        assertThat(PushNotificationService.isWithinQuietHours(berlinNight.withZoneSameInstant(SEOUL))).isFalse();
+    }
 }

@@ -1,6 +1,7 @@
 package com.lindyhopseoul.backend.push;
 
 import java.security.Security;
+import java.time.DateTimeException;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -36,14 +37,16 @@ public class PushNotificationService {
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
 
     /**
-     * The quiet window for users who turned 방해금지 on: 22:00 through 08:00
-     * Asia/Seoul. It is deliberately a drop, not a queue — a notification held
-     * overnight arrives about something already hours stale, and a batch of them
-     * landing at 08:00 is worse than the silence the setting asked for.
+     * The quiet window for users who turned 방해금지 on: 22:00 through 08:00,
+     * measured in the recipient's own zone (see {@link #zoneOf}) so that staff
+     * abroad get their own night rather than Seoul's. It is deliberately a drop,
+     * not a queue — a notification held overnight arrives about something
+     * already hours stale, and a batch of them landing at 08:00 is worse than
+     * the silence the setting asked for.
      */
     static final int QUIET_HOURS_START = 22;
     static final int QUIET_HOURS_END = 8;
-    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+    static final ZoneId DEFAULT_QUIET_HOURS_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PushSubscriptionRepository subscriptionRepository;
     private final UserNotificationSettingRepository settingRepository;
@@ -94,12 +97,54 @@ public class PushNotificationService {
     // --- Subscriptions -----------------------------------------------------
 
     @Transactional
-    public void saveSubscription(String userId, String endpoint, String p256dh, String auth) {
+    public void saveSubscription(String userId, String endpoint, String p256dh, String auth, String timeZone) {
         subscriptionRepository.findByEndpoint(endpoint)
                 .ifPresentOrElse(
                         existing -> existing.refresh(userId, p256dh, auth),
                         () -> subscriptionRepository.save(new PushSubscription(userId, endpoint, p256dh, auth))
                 );
+        rememberQuietHoursZone(userId, timeZone);
+    }
+
+    /**
+     * Records the subscribing device's zone on the account. Last device to
+     * subscribe wins: someone who moves, or whose phone and laptop disagree,
+     * gets the zone of whatever they most recently turned notifications on with,
+     * which is the closest thing to "where they are now" available here.
+     */
+    private void rememberQuietHoursZone(String userId, String timeZone) {
+        ZoneId zone = parseZone(timeZone);
+        if (zone == null) {
+            return;
+        }
+        UserNotificationSetting setting = settingRepository.findByUserId(userId)
+                .orElseGet(() -> UserNotificationSetting.defaultsFor(userId));
+        if (zone.getId().equals(setting.getQuietHoursZone())) {
+            return;
+        }
+        setting.rememberQuietHoursZone(zone.getId());
+        settingRepository.save(setting);
+        log.info("quiet hours zone for user {} set to {}", userId, zone.getId());
+    }
+
+    // An unknown or malformed zone is the browser's problem, not something to
+    // fail a subscription over: the account simply keeps the zone it had.
+    private static ZoneId parseZone(String timeZone) {
+        if (timeZone == null || timeZone.isBlank()) {
+            return null;
+        }
+        try {
+            return ZoneId.of(timeZone.trim());
+        } catch (DateTimeException exception) {
+            log.warn("ignoring unusable push time zone '{}'", timeZone);
+            return null;
+        }
+    }
+
+    /** The zone a user's quiet hours are measured in; Seoul until a device says otherwise. */
+    static ZoneId zoneOf(UserNotificationSetting setting) {
+        ZoneId zone = parseZone(setting.getQuietHoursZone());
+        return zone == null ? DEFAULT_QUIET_HOURS_ZONE : zone;
     }
 
     @Transactional
@@ -160,15 +205,17 @@ public class PushNotificationService {
         recipients.removeIf(id -> id == null || id.isBlank());
         int requested = recipients.size();
         // Quiet hours drop the notification for that user; nothing is stored to
-        // be delivered once the window ends.
-        boolean quiet = isWithinQuietHours(ZonedDateTime.now(SEOUL_ZONE));
+        // be delivered once the window ends. Evaluated per recipient, since each
+        // one's night is measured in their own zone.
         recipients.removeIf(id -> {
             UserNotificationSetting setting = settingsFor(id);
-            return !type.isEnabledFor(setting) || (quiet && setting.isQuietHours());
+            if (!type.isEnabledFor(setting)) {
+                return true;
+            }
+            return setting.isQuietHours() && isWithinQuietHours(ZonedDateTime.now(zoneOf(setting)));
         });
         if (recipients.isEmpty()) {
-            log.info("push send skipped ({}): all {} target user(s) opted out{}",
-                    type, requested, quiet ? " or are in quiet hours" : "");
+            log.info("push send skipped ({}): all {} target user(s) opted out or are in quiet hours", type, requested);
             return;
         }
 

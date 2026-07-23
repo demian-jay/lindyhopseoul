@@ -16,6 +16,17 @@ export function currentPermission() {
   return isPushSupported() ? Notification.permission : "unsupported";
 }
 
+// The IANA zone this browser is set to, e.g. "Asia/Seoul", "Europe/Berlin".
+// Undetectable on a browser too old to report it, in which case the server
+// keeps whatever zone it already had for the account.
+function deviceTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
 // VAPID public keys arrive base64url; the PushManager wants raw bytes.
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -77,7 +88,12 @@ export async function subscribeThisDevice(token) {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     }));
 
-  await adminApi.savePushSubscription(token, subscription.toJSON());
+  // The device's own zone rides along: quiet hours are measured in it, so staff
+  // abroad get their own night rather than Seoul's.
+  await adminApi.savePushSubscription(token, {
+    ...subscription.toJSON(),
+    timeZone: deviceTimeZone(),
+  });
   return true;
 }
 

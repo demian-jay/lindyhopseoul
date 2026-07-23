@@ -7,8 +7,9 @@ import com.lindyhopseoul.backend.admin.AdminRole;
 /**
  * The current user's toggle values, plus the roles they hold (so the UI shows
  * only the relevant toggles) and whether the server can actually send (VAPID
- * configured). The quiet window itself is fixed (22:00-08:00), so only the
- * on/off flag travels — the screen names the hours in its own copy.
+ * configured). The quiet window's hours are fixed (22:00-08:00) and named by the
+ * screen's own copy; the zone they are measured in travels, because it is taken
+ * from the device and so is the one thing the reader cannot infer.
  */
 public record PushSettingsResponse(
         boolean newApplication,
@@ -17,6 +18,7 @@ public record PushSettingsResponse(
         boolean operationCheckTagged,
         boolean operationCheckCompleted,
         boolean quietHours,
+        String quietHoursZone,
         List<AdminRole> roles,
         boolean pushConfigured
 ) {
@@ -28,6 +30,7 @@ public record PushSettingsResponse(
                 setting.isOperationCheckTagged(),
                 setting.isOperationCheckCompleted(),
                 setting.isQuietHours(),
+                PushNotificationService.zoneOf(setting).getId(),
                 roles,
                 pushConfigured
         );
