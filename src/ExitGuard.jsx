@@ -9,6 +9,24 @@ const GUARD_STATE_KEY = "swingpopExitGuard";
 // pushes an entry whose state is null, and Chrome fires popstate for it.
 const OPENING_STATE_KEY = "swingpopExitGuardOpening";
 
+// One language at a time: whoever is reading has already told the app which one
+// they read, on the public site by picking it and in the admin app in their
+// profile, and both publish it on <html lang>.
+const COPY = {
+  ko: {
+    title: "앱을 종료하시겠습니까?",
+    warning: "작성 중인 내용은 저장되지 않습니다.",
+    cancel: "취소",
+    leave: "종료",
+  },
+  en: {
+    title: "Close the app?",
+    warning: "Anything you are part-way through writing will not be saved.",
+    cancel: "Cancel",
+    leave: "Close",
+  },
+};
+
 /**
  * Stops Android's back gesture from throwing the app away mid-sentence.
  *
@@ -104,11 +122,18 @@ export default function ExitGuard() {
     return null;
   }
 
+  // The guard sits outside both apps, so it reads their chrome off the document
+  // rather than holding state neither of them shares with it: the language each
+  // app publishes on <html lang>, and the `dark` class the admin shell puts on
+  // its own subtree — which this dialog is not inside, hence the copy.
+  const copy = document.documentElement.lang.toLowerCase().startsWith("en") ? COPY.en : COPY.ko;
+  const isDark = document.querySelector(".dark") !== null;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-swing-ink/50 p-5"
+      className={`fixed inset-0 z-[90] flex items-center justify-center bg-swing-ink/50 p-5${isDark ? " dark" : ""}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           setIsAsking(false);
@@ -116,25 +141,22 @@ export default function ExitGuard() {
       }}
     >
       <div className="w-full max-w-xs rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-lg">
-        <p className="text-base font-bold text-swing-ink">앱을 종료하시겠습니까?</p>
-        <p className="mt-1 text-sm text-swing-muted">Close the app?</p>
-        <p className="mt-3 text-xs leading-5 text-swing-muted/90">
-          작성 중인 내용은 저장되지 않습니다.
-        </p>
+        <p className="text-base font-bold text-swing-ink">{copy.title}</p>
+        <p className="mt-3 text-xs leading-5 text-swing-muted/90">{copy.warning}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={() => setIsAsking(false)}
             className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
           >
-            취소 / Cancel
+            {copy.cancel}
           </button>
           <button
             type="button"
             onClick={leave}
             className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal"
           >
-            종료 / Close
+            {copy.leave}
           </button>
         </div>
       </div>

@@ -4631,6 +4631,13 @@ function PublicApp() {
   const isLoginConsentPath = currentPath === "/login";
   const t = useMemo(() => CONTENT[effectiveLanguage] ?? CONTENT.ko, [effectiveLanguage]);
   const activeLanguage = effectiveLanguage === "en" ? "en" : "ko";
+
+  // Published for screen readers and for the exit guard, which sits outside this
+  // component and so has no other way to know which language is being read.
+  useEffect(() => {
+    document.documentElement.lang = activeLanguage;
+  }, [activeLanguage]);
+
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
   const isCorkboardPath = currentPath === "/corkboard";

@@ -3802,6 +3802,12 @@ export default function AdminApp() {
   }, []);
 
   const langCd = session?.user?.langCd || "Kor";
+
+  // Published for screen readers and for the exit guard, which renders outside
+  // this component and so has no other way to know the account's language.
+  useEffect(() => {
+    document.documentElement.lang = langCd === "Eng" ? "en" : "ko";
+  }, [langCd]);
   const labels = getLabels(langCd);
   // MY_ACCOUNT is self-service rather than backend-granted, so it is appended for
   // every signed-in admin rather than arriving in session.menus.
