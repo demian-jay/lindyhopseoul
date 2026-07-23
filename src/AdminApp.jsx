@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
+import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
 import EventManagementPanel, {
   LessonBoardPanel,
   MessageTemplatePanel,
@@ -16,6 +17,7 @@ import {
   unsubscribeThisDevice,
 } from "./pushNotifications";
 import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput } from "./OperationCheckPanel";
+import useModalBackDismiss from "./useModalBackDismiss";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 // A local UI preference, so it lives in the browser rather than the account —
@@ -138,6 +140,20 @@ const I18N = {
       themeNames: { light: "라이트", dark: "다크" },
       // Captions for the current value shown on each change button.
       currentValueLabels: { language: "현재 언어", theme: "현재 테마" },
+      install: {
+        title: "앱으로 설치하기",
+        description: "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다.",
+        action: "설치하기",
+        installedDescription: "이 기기에 설치되어 있습니다. 다른 기기에서는 그 기기에서 다시 설치해주세요.",
+        installedAction: "설치됨",
+        iosDescription:
+          "아이폰·아이패드는 사파리에서 직접 추가해주세요. 화면 아래 공유 버튼을 누른 뒤 [홈 화면에 추가]를 선택하면 됩니다.",
+        askTitle: "앱으로 설치하시겠어요?",
+        askBody:
+          "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다. 나중에 [내 정보]에서도 설치할 수 있습니다.",
+        askLater: "나중에",
+        askConfirm: "확인",
+      },
       notifications: {
         action: "알림 설정",
         actionDesc: "이벤트별 푸시 알림을 켜고 끕니다.",
@@ -470,6 +486,20 @@ const I18N = {
       themeTitle: "Theme",
       themeNames: { light: "Light", dark: "Dark" },
       currentValueLabels: { language: "Current language", theme: "Current theme" },
+      install: {
+        title: "Install the app",
+        description: "Add it to your home screen to receive notifications and open it without the browser.",
+        action: "Install",
+        installedDescription: "Installed on this device. Install it again on any other device you use.",
+        installedAction: "Installed",
+        iosDescription:
+          "On iPhone and iPad, add it from Safari: tap the Share button at the bottom of the screen, then choose Add to Home Screen.",
+        askTitle: "Install the app?",
+        askBody:
+          "Add it to your home screen to receive notifications and open it without the browser. You can also install it later from My Account.",
+        askLater: "Not now",
+        askConfirm: "OK",
+      },
       notifications: {
         action: "Notifications",
         actionDesc: "Turn push notifications on or off per event.",
@@ -1328,6 +1358,39 @@ function AccountModalShell({ title, onClose, commonLabels, children }) {
   );
 }
 
+// Asked once, on the first signed-in visit from a device that could install.
+// Answering either way is the end of it: the offer lives on 내 정보 from then on.
+function InstallAskModal({ copy, commonLabels, isIosGuide, onInstall, onDismiss }) {
+  useModalBackDismiss(true, "admin-install-ask", onDismiss);
+
+  return (
+    <AccountModalShell title={copy.askTitle} onClose={onDismiss} commonLabels={commonLabels}>
+      <p className="text-sm leading-6 text-swing-muted">
+        {isIosGuide ? copy.iosDescription : copy.askBody}
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        {/* Nothing to start on iOS, so acknowledging is the only answer there. */}
+        {isIosGuide ? null : (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-swing-border/55 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+          >
+            {copy.askLater}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={isIosGuide ? onDismiss : onInstall}
+          className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal"
+        >
+          {isIosGuide ? copy.askConfirm : copy.action}
+        </button>
+      </div>
+    </AccountModalShell>
+  );
+}
+
 // New login ID with a live availability check. Save stays disabled until the
 // backend confirms the trimmed value is free and actually different from the
 // current one; a successful save forces a re-login because the ID it was signed
@@ -1798,6 +1861,9 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
   // null | loginId | password | language | theme
   const [openModal, setOpenModal] = useState(null);
   const user = session.user;
+  // The admin app installs from its own host, so it needs its own offer: the
+  // members one lives on their My Page and never renders here.
+  const { canInstall, installed, showIosGuide } = useInstallState();
 
   // The current value rides on the button that changes it, captioned with what
   // it is. It used to be repeated in a summary tile above as well, which said
@@ -1879,6 +1945,32 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
           ))}
         </div>
       </div>
+
+      {/* Stays put once installed, saying so, rather than vanishing on success.
+          Hidden only where no install exists to speak of. */}
+      {canInstall || installed || showIosGuide ? (
+        <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+          <h2 className="text-base font-bold tracking-tight text-swing-ink">{copy.install.title}</h2>
+          <p className="mt-2 text-sm leading-6 text-swing-muted">
+            {installed
+              ? copy.install.installedDescription
+              : showIosGuide
+                ? copy.install.iosDescription
+                : copy.install.description}
+          </p>
+          {/* On iOS the steps are the whole card: there is no prompt to fire. */}
+          {showIosGuide ? null : (
+            <button
+              type="button"
+              onClick={() => promptInstall()}
+              disabled={installed}
+              className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-default disabled:border disabled:border-swing-border/30 disabled:bg-swing-cream/60 disabled:text-swing-ink/55 disabled:hover:bg-swing-cream/60"
+            >
+              {installed ? copy.install.installedAction : copy.install.action}
+            </button>
+          )}
+        </div>
+      ) : null}
 
       {/* Logout lives at the foot of the account screen rather than the header:
           it is a rare, deliberate action, so it sits below the settings as a
@@ -3803,6 +3895,34 @@ export default function AdminApp() {
 
   const langCd = session?.user?.langCd || "Kor";
 
+  // Asked once per device, after signing in: staff have no reason to look for an
+  // install in a menu they have never opened. The remembered answer is per
+  // origin, so the members app's answer has no bearing here.
+  const { canInstall, showIosGuide } = useInstallState();
+  const [isInstallAskOpen, setIsInstallAskOpen] = useState(false);
+
+  const handleInstall = useCallback(async () => {
+    setIsInstallAskOpen(false);
+    rememberInstallAsked();
+    await promptInstall();
+  }, []);
+
+  const handleInstallAskDismissed = useCallback(() => {
+    setIsInstallAskOpen(false);
+    rememberInstallAsked();
+  }, []);
+
+  useEffect(() => {
+    // Not while the password change screen is holding everything else back.
+    if (!session || passwordChangeRequired || hasBeenAskedToInstall()) {
+      return;
+    }
+    if (!canInstall && !showIosGuide) {
+      return;
+    }
+    setIsInstallAskOpen(true);
+  }, [session, passwordChangeRequired, canInstall, showIosGuide]);
+
   // Published for screen readers and for the exit guard, which renders outside
   // this component and so has no other way to know the account's language.
   useEffect(() => {
@@ -4163,6 +4283,16 @@ export default function AdminApp() {
       <div className="select-text px-5 pb-6 text-center text-[11px] leading-4 text-swing-muted/70">
         {labels.common.buildVersion} · {__BUILD_VERSION__}
       </div>
+
+      {isInstallAskOpen ? (
+        <InstallAskModal
+          copy={labels.myAccount.install}
+          commonLabels={labels.common}
+          isIosGuide={showIosGuide}
+          onInstall={handleInstall}
+          onDismiss={handleInstallAskDismissed}
+        />
+      ) : null}
     </div>
   );
 }
