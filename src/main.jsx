@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import ExitGuard from './ExitGuard';
 import './index.css';
 
 const REDIRECT_PATH_KEY = 'swingpop-redirect-path';
@@ -14,6 +15,9 @@ if (redirectedPath) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
+    {/* Outside App so it covers the admin screens too — both live in this one
+        page, and both lose whatever is half-written when back walks out. */}
+    <ExitGuard />
   </React.StrictMode>
 );
 
