@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import AdminApp from "./AdminApp";
 import CorkboardPage from "./CorkboardPage";
 import useModalBackDismiss from "./useModalBackDismiss";
+import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
 // Landing-page section slideshows: every jpg in the folder, sorted by filename.
 // Drop numbered files into the folder to add/reorder slides.
 const sortedGlob = (modules) =>
@@ -858,6 +859,14 @@ const MY_PAGE_COPY = {
     emailLabel: "이메일",
     logout: "로그아웃",
     loggingOut: "로그아웃 중",
+    installTitle: "앱으로 설치하기",
+    installDescription: "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다.",
+    installAction: "설치하기",
+    installedDescription: "이 기기에 설치되어 있습니다. 다른 기기에서는 그 기기에서 다시 설치해주세요.",
+    installedAction: "설치됨",
+    installAskTitle: "앱으로 설치하시겠어요?",
+    installAskBody: "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다. 나중에 [내 페이지]에서도 설치할 수 있습니다.",
+    installLater: "나중에",
     menu: [
       {
         id: "classes",
@@ -890,6 +899,14 @@ const MY_PAGE_COPY = {
     emailLabel: "Email",
     logout: "Logout",
     loggingOut: "Logging out",
+    installTitle: "Install the app",
+    installDescription: "Add it to your home screen to receive notifications and open it without the browser.",
+    installAction: "Install",
+    installedDescription: "Installed on this device. Install it again on any other device you use.",
+    installedAction: "Installed",
+    installAskTitle: "Install the app?",
+    installAskBody: "Add it to your home screen to receive notifications and open it without the browser. You can also install it later from My Page.",
+    installLater: "Not now",
     menu: [
       {
         id: "classes",
@@ -3742,6 +3759,9 @@ function MyPage({
   onSettings,
   onLogout,
   onPrivacy,
+  canInstall = false,
+  isInstalled = false,
+  onInstall,
   messageUnreadCount = 0,
   classNoticeUnreadCount = 0,
 }) {
@@ -3841,6 +3861,30 @@ function MyPage({
             );
           })}
         </div>
+
+        {/* Stays put once installed, saying so, rather than vanishing on success
+            and reading as a feature that disappeared. Installed state is per
+            device, so the same account on a second phone sees it live again.
+            Hidden only where no install exists to speak of — a browser that
+            never offers one, where any wording would be a dead end. */}
+        {canInstall || isInstalled ? (
+          <div className="mt-5 flex flex-col gap-3 rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <div className="text-lg font-semibold tracking-tight text-swing-ink">{labels.installTitle}</div>
+              <p className="mt-2 text-sm leading-6 text-swing-ink/62">
+                {isInstalled ? labels.installedDescription : labels.installDescription}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onInstall}
+              disabled={isInstalled}
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-default disabled:border disabled:border-swing-border/30 disabled:bg-swing-cream/60 disabled:text-swing-ink/55 disabled:shadow-none disabled:hover:bg-swing-cream/60"
+            >
+              {isInstalled ? labels.installedAction : labels.installAction}
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-6 flex justify-end">
           <button
@@ -4103,6 +4147,49 @@ function PrivacyPolicyPage({ language, onBack }) {
         </div>
       </article>
     </main>
+  );
+}
+
+// Asked once, right after signing in. Answering either way is the end of it:
+// the offer lives on My Page from then on.
+function InstallAskModal({ labels, onInstall, onDismiss }) {
+  useModalBackDismiss(true, "install-ask", onDismiss);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="install-ask-title"
+      className="fixed inset-0 z-[115] flex items-end justify-center bg-swing-ink/55 p-4 backdrop-blur-sm sm:items-center"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onDismiss();
+        }
+      }}
+    >
+      <div className="w-full max-w-sm rounded-3xl border border-swing-border/20 bg-swing-paper p-5 shadow-2xl sm:p-6">
+        <h2 id="install-ask-title" className="text-xl font-semibold tracking-tight text-swing-ink">
+          {labels.installAskTitle}
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-swing-ink/70">{labels.installAskBody}</p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/40 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/75 transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
+          >
+            {labels.installLater}
+          </button>
+          <button
+            type="button"
+            onClick={onInstall}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal"
+          >
+            {labels.installAction}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -4638,6 +4725,30 @@ function PublicApp() {
     document.documentElement.lang = activeLanguage;
   }, [activeLanguage]);
 
+  // Installing is offered to signed-in members only — the app is theirs to keep
+  // on a home screen, and a visitor who has not signed in has nothing in it yet.
+  const { canInstall, installed: isAppInstalled } = useInstallState();
+  const [isInstallAskOpen, setIsInstallAskOpen] = useState(false);
+
+  const handleInstall = useCallback(async () => {
+    setIsInstallAskOpen(false);
+    rememberInstallAsked();
+    await promptInstall();
+  }, []);
+
+  const handleInstallAskDismissed = useCallback(() => {
+    setIsInstallAskOpen(false);
+    // Asked once and answered: the card on My Page is where it lives from here.
+    rememberInstallAsked();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !canInstall || hasBeenAskedToInstall()) {
+      return;
+    }
+    setIsInstallAskOpen(true);
+  }, [isAuthenticated, canInstall]);
+
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
   const isCorkboardPath = currentPath === "/corkboard";
@@ -4748,6 +4859,9 @@ function PublicApp() {
             onSettings={handleSettingsOpen}
             onLogout={handleLogout}
             onPrivacy={handlePrivacyOpen}
+            canInstall={canInstall}
+            isInstalled={isAppInstalled}
+            onInstall={handleInstall}
             messageUnreadCount={memberMessageUnreadCount}
             classNoticeUnreadCount={lessonNoticeUnreadCount}
           />
@@ -5045,6 +5159,13 @@ function PublicApp() {
             setSelectedApplication(lesson);
           }}
         />
+        {isInstallAskOpen ? (
+          <InstallAskModal
+            labels={MY_PAGE_COPY[activeLanguage] ?? MY_PAGE_COPY.ko}
+            onInstall={handleInstall}
+            onDismiss={handleInstallAskDismissed}
+          />
+        ) : null}
         <ApplicationModal
           item={selectedApplication}
           language={activeLanguage}
