@@ -864,6 +864,9 @@ const MY_PAGE_COPY = {
     installAction: "설치하기",
     installedDescription: "이 기기에 설치되어 있습니다. 다른 기기에서는 그 기기에서 다시 설치해주세요.",
     installedAction: "설치됨",
+    iosInstallDescription:
+      "아이폰·아이패드는 사파리에서 직접 추가해주세요. 화면 아래 공유 버튼을 누른 뒤 [홈 화면에 추가]를 선택하면 됩니다.",
+    installAskConfirm: "확인",
     installAskTitle: "앱으로 설치하시겠어요?",
     installAskBody: "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다. 나중에 [내 페이지]에서도 설치할 수 있습니다.",
     installLater: "나중에",
@@ -904,6 +907,9 @@ const MY_PAGE_COPY = {
     installAction: "Install",
     installedDescription: "Installed on this device. Install it again on any other device you use.",
     installedAction: "Installed",
+    iosInstallDescription:
+      "On iPhone and iPad, add it from Safari: tap the Share button at the bottom of the screen, then choose Add to Home Screen.",
+    installAskConfirm: "OK",
     installAskTitle: "Install the app?",
     installAskBody: "Add it to your home screen to receive notifications and open it without the browser. You can also install it later from My Page.",
     installLater: "Not now",
@@ -3761,6 +3767,7 @@ function MyPage({
   onPrivacy,
   canInstall = false,
   isInstalled = false,
+  showIosGuide = false,
   onInstall,
   messageUnreadCount = 0,
   classNoticeUnreadCount = 0,
@@ -3867,22 +3874,30 @@ function MyPage({
             device, so the same account on a second phone sees it live again.
             Hidden only where no install exists to speak of — a browser that
             never offers one, where any wording would be a dead end. */}
-        {canInstall || isInstalled ? (
+        {canInstall || isInstalled || showIosGuide ? (
           <div className="mt-5 flex flex-col gap-3 rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div>
               <div className="text-lg font-semibold tracking-tight text-swing-ink">{labels.installTitle}</div>
               <p className="mt-2 text-sm leading-6 text-swing-ink/62">
-                {isInstalled ? labels.installedDescription : labels.installDescription}
+                {isInstalled
+                  ? labels.installedDescription
+                  : showIosGuide
+                    ? labels.iosInstallDescription
+                    : labels.installDescription}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onInstall}
-              disabled={isInstalled}
-              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-default disabled:border disabled:border-swing-border/30 disabled:bg-swing-cream/60 disabled:text-swing-ink/55 disabled:shadow-none disabled:hover:bg-swing-cream/60"
-            >
-              {isInstalled ? labels.installedAction : labels.installAction}
-            </button>
+            {/* On iOS the steps are the whole card: there is no prompt to fire,
+                so a button would do nothing at all. */}
+            {showIosGuide ? null : (
+              <button
+                type="button"
+                onClick={onInstall}
+                disabled={isInstalled}
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper shadow-sm transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal disabled:cursor-default disabled:border disabled:border-swing-border/30 disabled:bg-swing-cream/60 disabled:text-swing-ink/55 disabled:shadow-none disabled:hover:bg-swing-cream/60"
+              >
+                {isInstalled ? labels.installedAction : labels.installAction}
+              </button>
+            )}
           </div>
         ) : null}
 
@@ -4152,7 +4167,7 @@ function PrivacyPolicyPage({ language, onBack }) {
 
 // Asked once, right after signing in. Answering either way is the end of it:
 // the offer lives on My Page from then on.
-function InstallAskModal({ labels, onInstall, onDismiss }) {
+function InstallAskModal({ labels, isIosGuide, onInstall, onDismiss }) {
   useModalBackDismiss(true, "install-ask", onDismiss);
 
   return (
@@ -4171,21 +4186,26 @@ function InstallAskModal({ labels, onInstall, onDismiss }) {
         <h2 id="install-ask-title" className="text-xl font-semibold tracking-tight text-swing-ink">
           {labels.installAskTitle}
         </h2>
-        <p className="mt-3 text-sm leading-6 text-swing-ink/70">{labels.installAskBody}</p>
+        <p className="mt-3 text-sm leading-6 text-swing-ink/70">
+          {isIosGuide ? labels.iosInstallDescription : labels.installAskBody}
+        </p>
         <div className="mt-6 flex justify-end gap-2">
+          {/* Nothing to start on iOS, so acknowledging is the only answer there. */}
+          {isIosGuide ? null : (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/40 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/75 transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
+            >
+              {labels.installLater}
+            </button>
+          )}
           <button
             type="button"
-            onClick={onDismiss}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-swing-border/40 bg-swing-paper px-4 text-sm font-semibold text-swing-ink/75 transition hover:bg-swing-cream/50 focus:outline-none focus:ring-2 focus:ring-swing-teal"
-          >
-            {labels.installLater}
-          </button>
-          <button
-            type="button"
-            onClick={onInstall}
+            onClick={isIosGuide ? onDismiss : onInstall}
             className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-swing-teal-deep px-5 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal focus:outline-none focus:ring-2 focus:ring-swing-teal"
           >
-            {labels.installAction}
+            {isIosGuide ? labels.installAskConfirm : labels.installAction}
           </button>
         </div>
       </div>
@@ -4727,7 +4747,7 @@ function PublicApp() {
 
   // Installing is offered to signed-in members only — the app is theirs to keep
   // on a home screen, and a visitor who has not signed in has nothing in it yet.
-  const { canInstall, installed: isAppInstalled } = useInstallState();
+  const { canInstall, installed: isAppInstalled, showIosGuide } = useInstallState();
   const [isInstallAskOpen, setIsInstallAskOpen] = useState(false);
 
   const handleInstall = useCallback(async () => {
@@ -4743,11 +4763,13 @@ function PublicApp() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !canInstall || hasBeenAskedToInstall()) {
+    // iOS gets the same one-off ask, carrying the share-sheet steps: it cannot
+    // be offered a prompt, but it can be told the app is installable at all.
+    if (!isAuthenticated || (!canInstall && !showIosGuide) || hasBeenAskedToInstall()) {
       return;
     }
     setIsInstallAskOpen(true);
-  }, [isAuthenticated, canInstall]);
+  }, [isAuthenticated, canInstall, showIosGuide]);
 
   const isSettingsPath = currentPath === "/settings";
   const isMessagesPath = currentPath === "/messages";
@@ -4861,6 +4883,7 @@ function PublicApp() {
             onPrivacy={handlePrivacyOpen}
             canInstall={canInstall}
             isInstalled={isAppInstalled}
+            showIosGuide={showIosGuide}
             onInstall={handleInstall}
             messageUnreadCount={memberMessageUnreadCount}
             classNoticeUnreadCount={lessonNoticeUnreadCount}

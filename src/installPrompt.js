@@ -93,9 +93,29 @@ export async function promptInstall() {
   }
 }
 
+/**
+ * iOS, where installing exists but is never offered to the page: Safari has no
+ * `beforeinstallprompt` at all, so the only route is the share sheet and the
+ * only thing the app can do is say so.
+ */
+function isIOS() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  const ua = navigator.userAgent || "";
+  // An iPad on iPadOS 13+ reports itself as a Mac; the touch points give it away.
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
 function readState() {
   const installed = isInstalled();
-  return { installed, canInstall: deferredPrompt !== null && !installed };
+  const canInstall = deferredPrompt !== null && !installed;
+  return {
+    installed,
+    canInstall,
+    // Nothing to click, so the screens show the share-sheet steps instead.
+    showIosGuide: !installed && !canInstall && isIOS(),
+  };
 }
 
 /**
