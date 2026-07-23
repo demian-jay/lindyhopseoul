@@ -11,10 +11,12 @@
 
     <!-- iOS reads the manifest only from 16.4 on; these keep the standalone
          launch and the home-screen icon working on older versions. -->
+    <!-- The members app by default; the admin host swaps both for its own in
+         src/adminHost.js, the same way it swaps the manifest. -->
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="스윙팝 운영" />
+    <meta name="apple-mobile-web-app-title" content="스윙팝" />
   </head>
   <body>
     <div id="root"></div>
