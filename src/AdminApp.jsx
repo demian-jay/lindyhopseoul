@@ -320,6 +320,8 @@ const I18N = {
       reactivated: "회원 계정을 재활성화했습니다.",
       select: "선택",
       selectAllVisible: "현재 목록 전체 선택",
+      showDetails: "상세보기",
+      memberColumn: "닉네임(이름)",
       selectedCount: (count) => `선택된 회원 ${count}명`,
       sendMessage: "메시지 보내기",
       sendMessageTitle: "회원에게 메시지 보내기",
@@ -667,6 +669,8 @@ const I18N = {
       reactivated: "Member account has been reactivated.",
       select: "Select",
       selectAllVisible: "Select Current List",
+      showDetails: "Details",
+      memberColumn: "Nickname (Name)",
       selectedCount: (count) => `${count} selected`,
       sendMessage: "Send Message",
       sendMessageTitle: "Send Message To Members",
@@ -2478,6 +2482,10 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
   // Collapsed by default, matching the events screen: the list is what people
   // come here for, and the filters push it off a phone screen.
   const [showFilters, setShowFilters] = useState(false);
+  // Off by default: sixteen columns is a report, and the everyday question at
+  // this screen is just "who is this and are they active". The full table is one
+  // click away for the times it is the report that is wanted.
+  const [showDetails, setShowDetails] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(() => createMemberFilters());
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -2752,6 +2760,15 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
             <span className="mr-auto text-xs font-semibold text-swing-muted sm:mr-0 sm:text-sm">
               {memberLabels.selectedCount(selectedMemberIds.length)}
             </span>
+            <label className="flex items-center gap-1.5 rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-xs font-semibold text-swing-ink/80 sm:text-sm">
+              <input
+                type="checkbox"
+                checked={showDetails}
+                onChange={() => setShowDetails((current) => !current)}
+                className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
+              />
+              {memberLabels.showDetails}
+            </label>
             <SecondaryButton type="button" onClick={toggleVisibleSelection} disabled={items.length === 0}>
               {memberLabels.selectAllVisible}
             </SecondaryButton>
@@ -2788,18 +2805,31 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <MemberNameLabel
-                            name={member.displayName || labels.common.empty}
+                            name={
+                              (showDetails ? member.displayName : member.nickname || member.displayName) ||
+                              labels.common.empty
+                            }
                             status={member.memberStatus}
                             className="text-sm font-semibold text-swing-ink"
                           />
-                          <div className="mt-1 truncate text-xs text-swing-muted">
-                            {member.nickname || labels.common.empty}
-                          </div>
+                          {showDetails ? (
+                            <div className="mt-1 truncate text-xs text-swing-muted">
+                              {member.nickname || labels.common.empty}
+                            </div>
+                          ) : member.nickname && member.displayName && member.nickname !== member.displayName ? (
+                            <div className="mt-1 truncate text-xs text-swing-muted">({member.displayName})</div>
+                          ) : null}
                         </div>
                         <MemberStatusBadge status={member.memberStatus} labels={labels} />
                       </div>
-                      <div className="mt-2 truncate text-xs text-swing-muted">{member.email}</div>
-                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-5 text-swing-muted">
+                      {showDetails ? (
+                        <div className="mt-2 truncate text-xs text-swing-muted">{member.email}</div>
+                      ) : null}
+                      <dl
+                        className={`mt-3 grid gap-x-3 gap-y-1 text-[11px] leading-5 text-swing-muted ${
+                          showDetails ? "grid-cols-2" : "grid-cols-1"
+                        }`}
+                      >
                         <div className="min-w-0">
                           <dt className="inline font-semibold text-swing-muted">{labels.fields.preferredLanguage}: </dt>
                           <dd className="inline">
@@ -2808,19 +2838,24 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                               labels.common.empty}
                           </dd>
                         </div>
-                        <div className="min-w-0">
-                          <dt className="inline font-semibold text-swing-muted">{labels.fields.createdAt}: </dt>
-                          <dd className="inline">{formatDate(member.createdAt, langCd)}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="inline font-semibold text-swing-muted">{labels.fields.lastLoginAt}: </dt>
-                          <dd className="inline">{formatDate(member.lastLoginAt, langCd)}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="inline font-semibold text-swing-muted">{labels.fields.withdrawnAt}: </dt>
-                          <dd className="inline">{formatDate(member.withdrawnAt, langCd)}</dd>
-                        </div>
+                        {showDetails ? (
+                          <>
+                            <div className="min-w-0">
+                              <dt className="inline font-semibold text-swing-muted">{labels.fields.createdAt}: </dt>
+                              <dd className="inline">{formatDate(member.createdAt, langCd)}</dd>
+                            </div>
+                            <div className="min-w-0">
+                              <dt className="inline font-semibold text-swing-muted">{labels.fields.lastLoginAt}: </dt>
+                              <dd className="inline">{formatDate(member.lastLoginAt, langCd)}</dd>
+                            </div>
+                            <div className="min-w-0">
+                              <dt className="inline font-semibold text-swing-muted">{labels.fields.withdrawnAt}: </dt>
+                              <dd className="inline">{formatDate(member.withdrawnAt, langCd)}</dd>
+                            </div>
+                          </>
+                        ) : null}
                       </dl>
+                      {showDetails ? (
                       <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-swing-ink/80">
                         <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level1} {member.level1ApplicationCount}</span>
                         <span className="rounded bg-swing-cream/60 px-1.5 py-0.5">{memberLabels.level2} {member.level2ApplicationCount}</span>
@@ -2831,7 +2866,10 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                           {memberLabels.totalApplications} {member.totalApplicationCount}
                         </span>
                       </div>
-                      {canChangeMemberStatus && (member.memberStatus === "ACTIVE" || member.memberStatus === "SUSPENDED") ? (
+                      ) : null}
+                      {showDetails &&
+                      canChangeMemberStatus &&
+                      (member.memberStatus === "ACTIVE" || member.memberStatus === "SUSPENDED") ? (
                         <div className="mt-3 flex justify-end">
                           {member.memberStatus === "ACTIVE" ? (
                             <button
@@ -2859,7 +2897,11 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
             </div>
 
             <div className="mt-4 hidden overflow-x-auto md:block">
-              <table className="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-xs lg:text-sm">
+              <table
+                className={`w-full border-separate border-spacing-0 text-left text-xs lg:text-sm ${
+                  showDetails ? "min-w-[1180px]" : ""
+                }`}
+              >
               {/* whitespace-nowrap for the same reason as the action log table:
                   sixteen columns inside a 1180px floor leave the short-label
                   ones so little width that 닉네임 broke to one character per
@@ -2877,21 +2919,33 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                       className="h-4 w-4 rounded border-swing-border/60 text-swing-teal-deep focus:ring-swing-teal"
                     />
                   </th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.name}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.nickname}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.email}</th>
+                  <th className="border-b border-swing-border/30 px-3 py-2">
+                    {showDetails ? labels.fields.name : memberLabels.memberColumn}
+                  </th>
+                  {showDetails ? (
+                    <>
+                      <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.nickname}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.email}</th>
+                    </>
+                  ) : null}
                   <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.status}</th>
                   <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.preferredLanguage}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.createdAt}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.lastLoginAt}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.withdrawnAt}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level1}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level2}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level3}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level4}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.workshop}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.totalApplications}</th>
-                  <th className="border-b border-swing-border/30 px-3 py-2 text-right">{labels.fields.actions}</th>
+                  {showDetails ? (
+                    <>
+                      <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.createdAt}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.lastLoginAt}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.withdrawnAt}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level1}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level2}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level3}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.level4}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{memberLabels.workshop}</th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">
+                        {memberLabels.totalApplications}
+                      </th>
+                      <th className="border-b border-swing-border/30 px-3 py-2 text-right">{labels.fields.actions}</th>
+                    </>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -2907,22 +2961,37 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                       />
                     </td>
                     <td className="border-b border-swing-border/20 px-3 py-3">
+                      {/* Collapsed, the two name columns fold into one: the
+                          nickname is what people are called here, with the
+                          registered name after it when they differ. */}
                       <MemberNameLabel
-                        name={member.displayName || labels.common.empty}
+                        name={
+                          (showDetails ? member.displayName : member.nickname || member.displayName) ||
+                          labels.common.empty
+                        }
                         status={member.memberStatus}
                         className="font-semibold text-swing-ink"
                       />
+                      {!showDetails && member.nickname && member.displayName && member.nickname !== member.displayName ? (
+                        <span className="ml-1 text-swing-muted">({member.displayName})</span>
+                      ) : null}
                     </td>
-                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
-                      {member.nickname || labels.common.empty}
-                    </td>
-                    <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{member.email}</td>
+                    {showDetails ? (
+                      <>
+                        <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
+                          {member.nickname || labels.common.empty}
+                        </td>
+                        <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{member.email}</td>
+                      </>
+                    ) : null}
                     <td className="border-b border-swing-border/20 px-3 py-3">
                       <MemberStatusBadge status={member.memberStatus} labels={labels} />
                     </td>
                     <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       {labels.memberLanguages[member.preferredLanguage] || member.preferredLanguage || labels.common.empty}
                     </td>
+                    {showDetails ? (
+                    <>
                     <td className="whitespace-nowrap border-b border-swing-border/20 px-3 py-3 text-swing-muted">
                       <DateTimeLines value={member.createdAt} langCd={langCd} fallback={labels.common.empty} />
                     </td>
@@ -2972,6 +3041,8 @@ function AdminMembersPanel({ token, currentUser, langCd, labels }) {
                         ) : null}
                       </div>
                     </td>
+                    </>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
