@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
 import { isAdminHost } from "./adminHost";
+import { isInstalled } from "./installPrompt";
 import CorkboardPage from "./CorkboardPage";
 import useModalBackDismiss from "./useModalBackDismiss";
 import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
@@ -5206,11 +5207,27 @@ function PublicApp() {
 }
 
 export default function App() {
-  const isAdminPath = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const onAdminHost = isAdminHost();
+  const wantsAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+
+  // The members app and the admin console are separate installed apps on
+  // separate origins. A members window that finds itself at /admin — a stale
+  // home-screen shortcut, a hand-typed path — must not turn into the admin
+  // console inside the members app; reaching admin means opening the admin app.
+  // Only the *installed* members app is re-routed: a normal browser tab is left
+  // alone, because production already 301s /admin to the admin host and local
+  // dev reaches admin this same way.
+  const blockAdminInMembersApp = !onAdminHost && wantsAdmin && isInstalled();
+
+  useEffect(() => {
+    if (blockAdminInMembersApp) {
+      window.history.replaceState(null, "", "/");
+    }
+  }, [blockAdminInMembersApp]);
 
   // On the admin host the whole origin is the admin app, so it answers at the
   // root as well — that is what its installed copy opens.
-  if (isAdminPath || isAdminHost()) {
+  if (onAdminHost || (wantsAdmin && !blockAdminInMembersApp)) {
     return <AdminApp />;
   }
 

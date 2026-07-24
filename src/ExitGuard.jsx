@@ -103,19 +103,28 @@ export default function ExitGuard() {
   const leave = () => {
     isLeavingRef.current = true;
     setIsAsking(false);
-    // Past every guard entry and past the one the app opened on: where the app
-    // was opened from a link or another page, that lands back there.
-    window.history.go(-(guardDepthRef.current + 1));
 
-    // A freshly launched installed app has nothing behind its first entry, so
-    // that navigation does nothing and this document is still here. Closing the
-    // window is the only remaining way out; if the browser refuses, the guard
-    // stays disarmed, so the next press leaves the way it did before.
+    // Unwind exactly our own guard entries, landing back on the entry the app
+    // opened on with nothing above it. The old code went back one further and
+    // overshot the start of history, which is a no-op — so it stayed on a guard
+    // entry, where window.close() is refused and the dialog just reappeared.
+    if (guardDepthRef.current > 0) {
+      window.history.go(-guardDepthRef.current);
+    }
+    guardDepthRef.current = 0;
+
+    // Now on the opening entry with the guard disarmed. An installed app closes
+    // here; a browser that refuses window.close() leaves the user at the app's
+    // root with nothing intercepting, so their next back press exits the way the
+    // platform does it, instead of re-opening this dialog. The delay lets the
+    // history.go above settle first.
     window.setTimeout(() => {
-      if (!document.hidden) {
+      try {
         window.close();
+      } catch {
+        // Refused: native back now exits, nothing more to do.
       }
-    }, 200);
+    }, 50);
   };
 
   if (!isAsking) {
