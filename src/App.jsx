@@ -3,10 +3,16 @@ import { flushSync } from "react-dom";
 
 import AdminApp from "./AdminApp";
 import { isAdminHost } from "./adminHost";
-import { isInstalled } from "./installPrompt";
 import CorkboardPage from "./CorkboardPage";
 import useModalBackDismiss from "./useModalBackDismiss";
-import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
+import {
+  IN_APP_BROWSER_PATTERN,
+  hasBeenAskedToInstall,
+  isInstalled,
+  promptInstall,
+  rememberInstallAsked,
+  useInstallState,
+} from "./installPrompt";
 // Landing-page section slideshows: every jpg in the folder, sorted by filename.
 // Drop numbered files into the folder to add/reorder slides.
 const sortedGlob = (modules) =>
@@ -868,6 +874,8 @@ const MY_PAGE_COPY = {
     installedAction: "설치됨",
     iosInstallDescription:
       "아이폰·아이패드는 사파리에서 직접 추가해주세요. 화면 아래 공유 버튼을 누른 뒤 [홈 화면에 추가]를 선택하면 됩니다.",
+    inAppInstallDescription:
+      "카카오톡·네이버 등 앱 안의 브라우저에서는 설치할 수 없습니다. 오른쪽 위(또는 아래) 메뉴에서 '다른 브라우저로 열기'를 눌러 크롬이나 사파리로 연 뒤 설치해주세요.",
     installAskConfirm: "확인",
     installAskTitle: "앱으로 설치하시겠어요?",
     installAskBody: "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다. 나중에 [내 페이지]에서도 설치할 수 있습니다.",
@@ -911,6 +919,8 @@ const MY_PAGE_COPY = {
     installedAction: "Installed",
     iosInstallDescription:
       "On iPhone and iPad, add it from Safari: tap the Share button at the bottom of the screen, then choose Add to Home Screen.",
+    inAppInstallDescription:
+      "In-app browsers such as KakaoTalk or Naver cannot install the app. Use the menu (top or bottom of the screen) to open it in Chrome or Safari, then install from there.",
     installAskConfirm: "OK",
     installAskTitle: "Install the app?",
     installAskBody: "Add it to your home screen to receive notifications and open it without the browser. You can also install it later from My Page.",
@@ -936,10 +946,9 @@ const MY_PAGE_COPY = {
 };
 
 // Google blocks OAuth inside embedded webviews ("disallowed_useragent"), so the
-// in-app browsers of KakaoTalk, Naver and friends can never complete a login.
-// Naver Whale (`Whale/`) is a real browser and must not match.
-const IN_APP_BROWSER_PATTERN = /KAKAOTALK|NAVER\(inapp|DaumApps|Instagram|FBAN|FBAV|FB_IAB|Line\/|BAND\/|everytimeApp|KAKAOSTORY/i;
-
+// in-app browsers of KakaoTalk, Naver and friends can never complete a login —
+// the same webviews where the app cannot be installed. The pattern lives in
+// installPrompt.js so login and install share one detector.
 function detectInAppBrowser() {
   if (typeof navigator === "undefined") {
     return { isInApp: false, platform: "other" };
@@ -3770,6 +3779,7 @@ function MyPage({
   canInstall = false,
   isInstalled = false,
   showIosGuide = false,
+  inAppBrowser = false,
   onInstall,
   messageUnreadCount = 0,
   classNoticeUnreadCount = 0,
@@ -3876,21 +3886,23 @@ function MyPage({
             device, so the same account on a second phone sees it live again.
             Hidden only where no install exists to speak of — a browser that
             never offers one, where any wording would be a dead end. */}
-        {canInstall || isInstalled || showIosGuide ? (
+        {canInstall || isInstalled || showIosGuide || inAppBrowser ? (
           <div className="mt-5 flex flex-col gap-3 rounded-3xl border border-swing-border/20 bg-swing-paper/85 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div>
               <div className="text-lg font-semibold tracking-tight text-swing-ink">{labels.installTitle}</div>
               <p className="mt-2 text-sm leading-6 text-swing-ink/62">
                 {isInstalled
                   ? labels.installedDescription
-                  : showIosGuide
-                    ? labels.iosInstallDescription
-                    : labels.installDescription}
+                  : inAppBrowser
+                    ? labels.inAppInstallDescription
+                    : showIosGuide
+                      ? labels.iosInstallDescription
+                      : labels.installDescription}
               </p>
             </div>
-            {/* On iOS the steps are the whole card: there is no prompt to fire,
-                so a button would do nothing at all. */}
-            {showIosGuide ? null : (
+            {/* No button where there is no prompt to fire: iOS share-sheet steps,
+                or an in-app browser that must be left for a real one. */}
+            {showIosGuide || inAppBrowser ? null : (
               <button
                 type="button"
                 onClick={onInstall}
@@ -4749,7 +4761,7 @@ function PublicApp() {
 
   // Installing is offered to signed-in members only — the app is theirs to keep
   // on a home screen, and a visitor who has not signed in has nothing in it yet.
-  const { canInstall, installed: isAppInstalled, showIosGuide } = useInstallState();
+  const { canInstall, installed: isAppInstalled, showIosGuide, inAppBrowser } = useInstallState();
   const [isInstallAskOpen, setIsInstallAskOpen] = useState(false);
 
   const handleInstall = useCallback(async () => {
@@ -4886,6 +4898,7 @@ function PublicApp() {
             canInstall={canInstall}
             isInstalled={isAppInstalled}
             showIosGuide={showIosGuide}
+            inAppBrowser={inAppBrowser}
             onInstall={handleInstall}
             messageUnreadCount={memberMessageUnreadCount}
             classNoticeUnreadCount={lessonNoticeUnreadCount}

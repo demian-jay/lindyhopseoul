@@ -37,6 +37,21 @@ function notify() {
   listeners.forEach((listener) => listener());
 }
 
+// In-app browsers (KakaoTalk, Naver, Instagram, …) run an embedded webview where
+// PWA install is impossible — the same webviews where Google also blocks OAuth.
+// Single source of truth: App.jsx's login flow imports this rather than keeping
+// its own copy. Naver Whale (`Whale/`) is a real browser and must not match.
+export const IN_APP_BROWSER_PATTERN =
+  /KAKAOTALK|NAVER\(inapp|DaumApps|Instagram|FBAN|FBAV|FB_IAB|Line\/|BAND\/|everytimeApp|KAKAOSTORY/i;
+
+/** True in an embedded in-app browser, where the app cannot be installed. */
+export function isInAppBrowser() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  return IN_APP_BROWSER_PATTERN.test(navigator.userAgent || "");
+}
+
 /** True once the app is running from the home screen rather than a browser tab. */
 export function isInstalled() {
   if (typeof window === "undefined") {
@@ -109,12 +124,16 @@ function isIOS() {
 
 function readState() {
   const installed = isInstalled();
+  const inAppBrowser = isInAppBrowser();
   const canInstall = deferredPrompt !== null && !installed;
   return {
     installed,
     canInstall,
+    // In an in-app browser there is nothing to install and no iOS share sheet
+    // that would help — the screens show "open in a real browser" instead.
+    inAppBrowser: inAppBrowser && !installed,
     // Nothing to click, so the screens show the share-sheet steps instead.
-    showIosGuide: !installed && !canInstall && isIOS(),
+    showIosGuide: !installed && !canInstall && !inAppBrowser && isIOS(),
   };
 }
 

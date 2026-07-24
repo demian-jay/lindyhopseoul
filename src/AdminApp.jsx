@@ -148,6 +148,8 @@ const I18N = {
         installedAction: "설치됨",
         iosDescription:
           "아이폰·아이패드는 사파리에서 직접 추가해주세요. 화면 아래 공유 버튼을 누른 뒤 [홈 화면에 추가]를 선택하면 됩니다.",
+        inAppDescription:
+          "카카오톡·네이버 등 앱 안의 브라우저에서는 설치할 수 없습니다. 오른쪽 위(또는 아래) 메뉴에서 '다른 브라우저로 열기'를 눌러 크롬이나 사파리로 연 뒤 설치해주세요.",
         askTitle: "앱으로 설치하시겠어요?",
         askBody:
           "홈 화면에 추가하면 알림을 받을 수 있고, 브라우저 없이 바로 열립니다. 나중에 [내 정보]에서도 설치할 수 있습니다.",
@@ -494,6 +496,8 @@ const I18N = {
         installedAction: "Installed",
         iosDescription:
           "On iPhone and iPad, add it from Safari: tap the Share button at the bottom of the screen, then choose Add to Home Screen.",
+        inAppDescription:
+          "In-app browsers such as KakaoTalk or Naver cannot install the app. Use the menu (top or bottom of the screen) to open it in Chrome or Safari, then install from there.",
         askTitle: "Install the app?",
         askBody:
           "Add it to your home screen to receive notifications and open it without the browser. You can also install it later from My Account.",
@@ -1863,7 +1867,7 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
   const user = session.user;
   // The admin app installs from its own host, so it needs its own offer: the
   // members one lives on their My Page and never renders here.
-  const { canInstall, installed, showIosGuide } = useInstallState();
+  const { canInstall, installed, showIosGuide, inAppBrowser } = useInstallState();
 
   // The current value rides on the button that changes it, captioned with what
   // it is. It used to be repeated in a summary tile above as well, which said
@@ -1948,18 +1952,21 @@ function AccountSettingsPanel({ token, session, labels, theme, onThemeChanged, o
 
       {/* Stays put once installed, saying so, rather than vanishing on success.
           Hidden only where no install exists to speak of. */}
-      {canInstall || installed || showIosGuide ? (
+      {canInstall || installed || showIosGuide || inAppBrowser ? (
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <h2 className="text-base font-bold tracking-tight text-swing-ink">{copy.install.title}</h2>
           <p className="mt-2 text-sm leading-6 text-swing-muted">
             {installed
               ? copy.install.installedDescription
-              : showIosGuide
-                ? copy.install.iosDescription
-                : copy.install.description}
+              : inAppBrowser
+                ? copy.install.inAppDescription
+                : showIosGuide
+                  ? copy.install.iosDescription
+                  : copy.install.description}
           </p>
-          {/* On iOS the steps are the whole card: there is no prompt to fire. */}
-          {showIosGuide ? null : (
+          {/* No button where there is no prompt to fire: iOS share-sheet steps,
+              or an in-app browser that must be left for a real one. */}
+          {showIosGuide || inAppBrowser ? null : (
             <button
               type="button"
               onClick={() => promptInstall()}
