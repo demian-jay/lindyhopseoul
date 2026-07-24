@@ -145,12 +145,6 @@ function readState() {
  */
 export function useInstallState() {
   const [state, setState] = useState(readState);
-  // The display-mode check only ever sees the installed app *from inside it*. To
-  // say "설치됨" in an ordinary browser tab too, ask the browser whether this
-  // very app is installed — Chrome on Android answers via getInstalledRelatedApps
-  // (the manifest lists itself under related_applications). Everywhere else the
-  // call is absent or resolves empty, and this stays false.
-  const [relatedInstalled, setRelatedInstalled] = useState(false);
 
   useEffect(() => {
     const update = () => setState(readState());
@@ -162,32 +156,16 @@ export function useInstallState() {
     standalone?.addEventListener?.("change", update);
 
     update();
-
-    let active = true;
-    // Optional-chaining the call yields undefined where the API is absent, and
-    // Promise.resolve makes that safe to await instead of throwing on `.then`.
-    Promise.resolve(navigator.getInstalledRelatedApps?.())
-      .then((apps) => {
-        if (active && Array.isArray(apps) && apps.length > 0) {
-          setRelatedInstalled(true);
-        }
-      })
-      .catch(() => undefined);
-
     return () => {
-      active = false;
       listeners.delete(update);
       standalone?.removeEventListener?.("change", update);
     };
   }, []);
 
-  // An install found through related-apps counts the same as running standalone:
-  // it is installed, so nothing to offer and nothing to guide toward.
-  const installed = state.installed || relatedInstalled;
-  return {
-    installed,
-    canInstall: state.canInstall && !installed,
-    inAppBrowser: state.inAppBrowser && !installed,
-    showIosGuide: state.showIosGuide && !installed,
-  };
+  // Deliberately not using navigator.getInstalledRelatedApps() to also report
+  // "installed" from a browser tab: it needs the manifest to list itself under
+  // related_applications, and that made Android show an "install an unsafe app?"
+  // warning instead of the normal WebAPK install. So the indicator only shows
+  // while running standalone — see git history for the reverted attempt.
+  return state;
 }
