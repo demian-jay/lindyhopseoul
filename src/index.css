@@ -19,6 +19,11 @@ html {
    --------------------------------------------------------------------------- */
 
 :root {
+  /* Declare the page's own scheme so browsers with a "force dark on websites"
+     mode (Samsung Internet, Chrome Auto Dark) leave it alone instead of
+     inverting the light theme into muddy brown. The admin shell overrides this
+     on <html> to match its light/dark toggle; the public site is light only. */
+  color-scheme: light;
   --swing-ink: 46 39 32;
   --swing-muted: 103 87 72;
   --swing-paper: 255 243 215;
@@ -36,6 +41,7 @@ html {
 }
 
 .dark {
+  color-scheme: dark;
   /* Warm near-black surfaces with an off-white ink, and the accent teal
      brightened so it still reads on a dark card. Peach/coral/gold/sky keep their
      light values — used sparingly as accents, they stay legible. */

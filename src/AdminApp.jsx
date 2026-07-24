@@ -3935,6 +3935,17 @@ export default function AdminApp() {
   useEffect(() => {
     document.documentElement.lang = langCd === "Eng" ? "en" : "ko";
   }, [langCd]);
+  // Declare the active scheme on <html> so a browser's "force dark on websites"
+  // mode (Samsung Internet, Chrome Auto Dark) sees the app already handles its
+  // theme and does not repaint the light UI into muddy brown. The `.dark` class
+  // that swaps the palette sits on an inner wrapper, which is too deep for that
+  // check — this is what the root actually reads.
+  useEffect(() => {
+    document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
+    return () => {
+      document.documentElement.style.colorScheme = "";
+    };
+  }, [theme]);
   const labels = getLabels(langCd);
   // MY_ACCOUNT is self-service rather than backend-granted, so it is appended for
   // every signed-in admin rather than arriving in session.menus.
