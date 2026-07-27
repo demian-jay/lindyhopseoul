@@ -164,6 +164,12 @@ only the account id — roles, language and password state are read off the
 account on every request, so revoking a role or deactivating an account takes
 effect immediately rather than waiting out the session.
 
+Local runs get an admin session for free: `DevAdminSessionBootstrap` issues one
+at startup and logs it, so no password has to be typed to reach the admin API or
+UI. It is `@Profile("local")`, never a property — production must not be able to
+switch it on — and `DevAdminSessionBootstrapTest` fails if that guard is
+dropped. See `docs/local-dev-runtime.md` for how to use the token.
+
 For logged-in member applications, server-side member identity wins over client-sent applicant names. The backend derives the applicant name from nickname, display name, or email prefix.
 
 Only `ACTIVE` members are treated as current members. `SUSPENDED` members cannot use member-only features and are blocked during Google OAuth login. `WITHDRAWN` members are not active.
