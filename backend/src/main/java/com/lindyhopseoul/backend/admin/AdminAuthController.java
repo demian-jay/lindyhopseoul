@@ -43,9 +43,9 @@ public class AdminAuthController {
     ) {
         AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
         AdminPrincipal updated = adminAuthService.changeOwnPassword(actor, request);
-        // The session holds a snapshot, so push the cleared flag back into it;
-        // otherwise the interceptor keeps blocking until the session expires.
-        adminSessionService.refreshPrincipal(authorization, updated);
+        // Nothing to push back into the session: it stores the account id only, so
+        // the next request reads the cleared flag straight off the account and the
+        // interceptor stops blocking.
         return AdminMeResponse.from(updated);
     }
 
@@ -66,8 +66,8 @@ public class AdminAuthController {
     ) {
         AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
         adminAuthService.changeOwnLoginId(actor, request);
-        // The login ID lives in the session snapshot too, but the client is forced
-        // to sign in again after this, so the stale snapshot is discarded anyway.
+        // The client is made to sign in again under the new ID, so end the session
+        // rather than leave a live token behind for the old one.
         adminSessionService.clearSession(authorization);
     }
 
@@ -78,9 +78,6 @@ public class AdminAuthController {
     ) {
         AdminPrincipal actor = adminSessionService.requirePrincipal(authorization);
         AdminPrincipal updated = adminAuthService.changeOwnLanguage(actor, request);
-        // No re-login for a language switch, so keep the session and refresh its
-        // snapshot in place — otherwise the next `me` would report the old language.
-        adminSessionService.refreshPrincipal(authorization, updated);
         return AdminMeResponse.from(updated);
     }
 

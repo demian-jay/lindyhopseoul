@@ -25,6 +25,10 @@ const TOKEN_STORAGE_KEY = "swingpop-admin-token";
 const THEME_STORAGE_KEY = "swingpop-admin-theme";
 const THEMES = ["light", "dark"];
 
+// Backoff for re-checking a stored session the backend could not answer for.
+const SESSION_RETRY_INITIAL_MS = 2000;
+const SESSION_RETRY_MAX_MS = 30000;
+
 const LANGUAGES = ["Kor", "Eng"];
 const HIDDEN_ADMIN_MENUS = new Set(["TEACHER_USERS"]);
 const MEMBER_ACTION_TYPES = ["LESSON_APPLICATION_REMOVED", "MEMBER_SUSPENDED", "MEMBER_REACTIVATED"];
@@ -3837,34 +3841,58 @@ export default function AdminApp() {
     return () => window.removeEventListener("swingpop:password-change-required", handle);
   }, []);
 
+  // Restores the stored session on launch. Only a 401 throws the token away: it
+  // is the one answer that means the session is actually gone. Anything else is
+  // the app not being able to ask right now — launched before the phone had a
+  // network, backend mid-deploy — and discarding the token there is what made an
+  // installed app sign itself out over a blip. Keep it and retry instead; a
+  // retry that lands swaps the login screen for the app on its own.
   useEffect(() => {
     if (!token) {
       setIsChecking(false);
-      return;
+      return undefined;
     }
 
     let isMounted = true;
+    let retryTimer = null;
+    let retryDelay = SESSION_RETRY_INITIAL_MS;
 
-    adminApi
-      .me(token)
-      .then((nextSession) => {
-        if (isMounted) {
+    const check = () => {
+      adminApi
+        .me(token)
+        .then((nextSession) => {
+          if (!isMounted) {
+            return;
+          }
           applySession(nextSession);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          clearSession();
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
           setIsChecking(false);
-        }
-      });
+        })
+        .catch((error) => {
+          if (!isMounted) {
+            return;
+          }
+          setIsChecking(false);
+          if (error?.status === 401) {
+            clearSession();
+            return;
+          }
+          retryTimer = window.setTimeout(check, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, SESSION_RETRY_MAX_MS);
+        });
+    };
+
+    check();
+    const retryNow = () => {
+      window.clearTimeout(retryTimer);
+      retryDelay = SESSION_RETRY_INITIAL_MS;
+      check();
+    };
+    window.addEventListener("online", retryNow);
 
     return () => {
       isMounted = false;
+      window.clearTimeout(retryTimer);
+      window.removeEventListener("online", retryNow);
     };
   }, [applySession, clearSession, token]);
 

@@ -2,6 +2,7 @@ package com.lindyhopseoul.backend.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -13,12 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(MockitoExtension.class)
 class AdminAuthServiceTest {
 
     @Mock
     private UserAccountRepository userAccountRepository;
+
+    @Mock
+    private AdminSessionRepository adminSessionRepository;
 
     private PasswordHasher passwordHasher;
     private AdminAuthService adminAuthService;
@@ -29,7 +34,11 @@ class AdminAuthServiceTest {
         adminAuthService = new AdminAuthService(
                 userAccountRepository,
                 passwordHasher,
-                new AdminSessionService()
+                new AdminSessionService(
+                        adminSessionRepository,
+                        userAccountRepository,
+                        mock(PlatformTransactionManager.class)
+                )
         );
     }
 

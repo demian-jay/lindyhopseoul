@@ -24,6 +24,11 @@ public class AdminAuthService {
         this.adminSessionService = adminSessionService;
     }
 
+    /**
+     * Read-write despite the mostly-read shape: signing in now inserts a session
+     * row, and a read-only transaction would leave that insert unflushed.
+     */
+    @Transactional
     public AdminAuthResponse login(AdminLoginRequest request) {
         String loginId = request.loginId().trim();
 

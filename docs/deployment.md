@@ -224,10 +224,19 @@ ssh ec2-user@52.78.185.32 'systemctl is-active lindyhop-backend.service
 *old* process dying after its jar was replaced underneath it, not the new one
 failing; check the PID before chasing it.
 
-Sessions live in a `ConcurrentHashMap`, so a restart signs everyone out.
+Sessions survive a restart. Both kinds live in the database — members in
+`SPRING_SESSION`, admins in `admin_session` — so a deploy no longer signs
+everyone out. That was true until 2026-07-27, when both were an in-memory map.
 
 The prod profile uses `ddl-auto: update`, so the new jar can alter the schema
-as it starts — see Known Gaps.
+as it starts — see Known Gaps. `admin_session` is created that way;
+`SPRING_SESSION` is not a JPA entity and is created instead by Spring Session's
+own initializer (`spring.session.jdbc.initialize-schema: always`). Neither
+needs a manual migration step.
+
+The deploy that first carries this signs everyone out once, because the member
+cookie changes name from `JSESSIONID` to `SESSION` and no admin token predates
+the table. After that, restarts are invisible to signed-in users.
 
 ### Order matters when both sides change
 

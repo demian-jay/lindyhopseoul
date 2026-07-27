@@ -6,12 +6,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Collections;
 
 import com.lindyhopseoul.backend.member.Member;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class OAuth2LoginSuccessHandlerTest {
@@ -61,5 +65,26 @@ class OAuth2LoginSuccessHandlerTest {
         handler().onAuthenticationSuccess(requestFrom("swingpopseoul.com"), response, mock(Authentication.class));
 
         assertThat(response.getRedirectedUrl()).isEqualTo("https://swingpopseoul.com/oauth/success");
+    }
+
+    /**
+     * Sessions are written to the database, so whatever is left in one is Google
+     * data at rest. The member id is the only thing the app reads back.
+     */
+    @Test
+    void sessionKeepsTheMemberIdAndNothingFromGoogle() throws Exception {
+        when(memberService.handleLogin(any())).thenReturn(member(7L, false));
+        MockHttpServletRequest request = requestFrom("swingpopseoul.com");
+        request.getSession(true).setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new SecurityContextImpl(mock(Authentication.class))
+        );
+
+        handler().onAuthenticationSuccess(request, new MockHttpServletResponse(), mock(Authentication.class));
+
+        HttpSession session = request.getSession(false);
+        assertThat(session.getAttribute("AUTHENTICATED_MEMBER_ID")).isEqualTo(7L);
+        assertThat(Collections.list(session.getAttributeNames()))
+                .containsExactly("AUTHENTICATED_MEMBER_ID");
     }
 }

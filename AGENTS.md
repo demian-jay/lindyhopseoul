@@ -139,6 +139,14 @@ General members are Google OAuth members in `member`. Public members currently h
 
 Maintain guest class/event application flow unless explicitly changed. `POST /api/public/applications` supports unauthenticated applications.
 
+Both sign-ins are stored in the database and last 90 days, sliding, so a deploy
+does not sign anyone out. Members use a Spring Session JDBC cookie session; see
+`docs/google-oauth-member-login.md`. Admins use a bearer token in
+`AdminSessionService`, stored as a SHA-256 hash in `admin_session` and holding
+only the account id — roles, language and password state are read off the
+account on every request, so revoking a role or deactivating an account takes
+effect immediately rather than waiting out the session.
+
 For logged-in member applications, server-side member identity wins over client-sent applicant names. The backend derives the applicant name from nickname, display name, or email prefix.
 
 Only `ACTIVE` members are treated as current members. `SUSPENDED` members cannot use member-only features and are blocked during Google OAuth login. `WITHDRAWN` members are not active.

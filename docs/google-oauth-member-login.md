@@ -106,8 +106,32 @@ Flow:
 7. Existing member is looked up by `provider=GOOGLE` and `provider_id=<sub>`.
 8. Existing member: update `email`, `display_name`, and `last_login_at`.
 9. New member: create role `USER`, status `ACTIVE`.
-10. Session stores only internal member id under `AUTHENTICATED_MEMBER_ID`.
+10. Session stores only internal member id under `AUTHENTICATED_MEMBER_ID`. The
+    success handler removes the `SPRING_SECURITY_CONTEXT` attribute Spring
+    Security had just written, so the OIDC principal — ID token, claims, profile
+    image URL — is not what ends up in the session row.
 11. Success redirects to `APP_OAUTH2_SUCCESS_REDIRECT_URI`.
+
+## Session Lifetime
+
+Member sessions are stored in the database by Spring Session JDBC
+(`SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`), not in Tomcat's memory, so a
+backend restart does not sign members out.
+
+- `server.servlet.session.timeout` is 90 days and slides: every request pushes
+  the expiry out again.
+- `server.servlet.session.cookie.max-age` is also 90 days, but it is written
+  once at sign-in rather than re-issued per request. A member who is active
+  right up to day 90 is still asked to sign in again then.
+- The cookie is named `SESSION` (Spring Session's default), not `JSESSIONID`.
+
+Both are overridable per environment through `SESSION_TIMEOUT` and
+`SESSION_COOKIE_MAX_AGE`.
+
+The long window is deliberate: the site is installed as a phone app, where being
+signed out reads as the app being broken rather than as a session ending. It is
+also why the OIDC principal is dropped — a 90-day row should not be 90 days of
+Google identity data at rest.
 
 Important privacy/security behavior:
 

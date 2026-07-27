@@ -43,6 +43,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Member sessions live in the database rather than Tomcat's memory, so a
+             backend restart does not sign every member out. The Boot starter, not
+             spring-session-jdbc on its own: Boot 4 moved session auto-configuration
+             out of spring-boot-autoconfigure, so the bare Spring Session dependency
+             lands on the classpath and nothing wires it up. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-session-jdbc</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>

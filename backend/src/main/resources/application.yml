@@ -2,8 +2,18 @@ server:
   port: ${SERVER_PORT:8080}
   servlet:
     session:
+      # How long a member stays signed in without opening the app. Sliding: every
+      # request pushes it out again. Long on purpose — the site is installed as a
+      # phone app, where being signed out reads as the app breaking rather than as
+      # a session ending. Sessions are stored in the database (see spring.session
+      # below), so a deploy no longer signs everyone out either.
+      timeout: ${SESSION_TIMEOUT:90d}
       cookie:
         http-only: true
+        # Without this the cookie is a browser-session cookie and dies whenever the
+        # browser decides its session ended, however long the server-side session
+        # is good for. Set from login, not from last use.
+        max-age: ${SESSION_COOKIE_MAX_AGE:90d}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
         secure: ${SESSION_COOKIE_SECURE:false}
 
@@ -12,6 +22,11 @@ spring:
     name: lindyhopseoul-backend
   profiles:
     default: local
+  session:
+    jdbc:
+      # The SPRING_SESSION tables are not JPA entities, so ddl-auto does not create
+      # them. The initializer tolerates them already existing.
+      initialize-schema: always
   security:
     oauth2:
       client:
