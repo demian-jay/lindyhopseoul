@@ -2,7 +2,7 @@
 
 This file is the note to check before deploying to `swingpopseoul.com`.
 
-Last updated: 2026-07-21
+Last updated: 2026-07-27
 
 Deployment is manual. There is no CI/CD, `Dockerfile`, or deploy script in this
 repository; every step below is run by hand.
@@ -12,6 +12,9 @@ repository; every step below is run by hand.
 - Site: `https://swingpopseoul.com` is the one in use; `https://lindyhopseoul.com`
   still resolves and serves the same thing. Both answer on `www.` too, and all
   four names come off the same host, so a deploy covers them together.
+- Admin: `https://admin.swingpopseoul.com`, same host and same web root, but its
+  own HTML entry point — see "`admin.html` is a second entry point" below. A
+  deploy does **not** cover it unless `admin.html` is uploaded too.
 - Host: `ec2-user@52.78.185.32`, Amazon Linux 2023, `ap-northeast-2`
 - `sudo` on the host is `NOPASSWD`
 - HTTPS via Certbot (`/etc/letsencrypt/live/lindyhopseoul.com/`)
@@ -121,20 +124,43 @@ grep -rE 'localhost:(8080|18080)' dist/assets/*.js   # must find nothing
 TS=$(date +%Y%m%d-%H%M%S)
 ssh ec2-user@52.78.185.32 "sudo tar czf /opt/lindyhop-backup/www-lindyhop-$TS.tar.gz -C /var/www lindyhop"
 ssh ec2-user@52.78.185.32 "rm -rf ~/deploy-staging && mkdir -p ~/deploy-staging"
-scp -r dist/index.html dist/404.html dist/CNAME dist/assets \
-       dist/icons dist/manifest.webmanifest dist/sw.js \
+scp -r dist/index.html dist/admin.html dist/404.html dist/CNAME dist/assets \
+       dist/icons dist/manifest.webmanifest dist/admin.webmanifest dist/sw.js \
        ec2-user@52.78.185.32:~/deploy-staging/
 ssh ec2-user@52.78.185.32 '
   sudo cp -a ~/deploy-staging/assets/. /var/www/lindyhop/assets/
   sudo mkdir -p /var/www/lindyhop/icons
   sudo cp -a ~/deploy-staging/icons/. /var/www/lindyhop/icons/
-  sudo cp -a ~/deploy-staging/manifest.webmanifest ~/deploy-staging/sw.js /var/www/lindyhop/
-  sudo cp -a ~/deploy-staging/index.html ~/deploy-staging/404.html ~/deploy-staging/CNAME /var/www/lindyhop/
+  sudo cp -a ~/deploy-staging/manifest.webmanifest ~/deploy-staging/admin.webmanifest ~/deploy-staging/sw.js /var/www/lindyhop/
+  sudo cp -a ~/deploy-staging/index.html ~/deploy-staging/admin.html ~/deploy-staging/404.html ~/deploy-staging/CNAME /var/www/lindyhop/
   sudo chown -R nginx:nginx /var/www/lindyhop
   sudo chmod -R a+rX /var/www/lindyhop
   sudo nginx -t && sudo systemctl reload nginx
   rm -rf ~/deploy-staging'
 ```
+
+### `admin.html` is a second entry point, and it is easy to miss
+
+`admin.swingpopseoul.com` is a fifth name on the same host. It shares the web
+root and the JS bundle, but `/etc/nginx/conf.d/admin.conf` serves `/admin.html`
+at `/` rather than `index.html`, so the admin app has its own HTML file and its
+own `admin.webmanifest`.
+
+Leaving those two out does not fail anything and does not break the site. The
+members app updates, `admin.html` keeps pointing at the previous bundle — which
+is still on disk, because assets are copied in rather than swapped — and the
+admin app quietly stays on the old build. Both hostnames must be checked after
+a deploy, not just `swingpopseoul.com`:
+
+```bash
+for H in swingpopseoul.com admin.swingpopseoul.com; do
+  B=$(curl -s "https://$H/" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+  echo "$H -> $B"
+done
+```
+
+This was missed on 2026-07-27; the upload list above did not name either file
+until then.
 
 Copy the new assets in **before** replacing `index.html`, so a request landing
 mid-deploy always finds the file its `index.html` points at.
