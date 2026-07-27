@@ -11,18 +11,10 @@ const LESSON_TYPES = ["LEVEL1", "LEVEL2", "LEVEL3", "LEVEL4", "WORKSHOP", "EXPER
 const LESSON_STATUSES = ["PUBLISHED", "FINISHED"];
 const TEMPLATE_TYPES = ["EVENT_PROMOTION", "PARTY_PROMOTION", "REGULAR_CLASS_PROMOTION", "LESSON_PROMOTION"];
 const ROLE_ORDER = ["SUPER_ADMIN", "STAFF", "TEACHER"];
-// Named by venue, not by event type: regular classes and parties both run at KP.
-const KP_GOOGLE_MAP_URL = "https://maps.app.goo.gl/ypA9zfFkKVqwJoT96";
-const KP_NAVER_MAP_URL = "https://naver.me/x2jQH2Tt";
-const KP_LOCATION = "KP DANCE HALL, 서울 강남구 학동로 166 지하 1층 B호";
-const DIALOGUE_GOOGLE_MAP_URL = "https://maps.app.goo.gl/zw1a5deEpgU6t2CH9";
-const DIALOGUE_NAVER_MAP_URL = "https://naver.me/GYC9bsWA";
-const DIALOGUE_LOCATION = "Dialogue, 서울 용산구 신흥로 31 지하1층";
 // Events repeat on a fixed weekday: regular classes on Saturdays, Dialogue
 // meetups on Wednesdays. A new event defaults to next month's first and last
-// occurrence of that weekday. Values are JS getDay() numbers. Declared here
-// because EVENT_TYPE_DEFAULTS below reads it at module evaluation time.
-const WEEKDAY = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 };
+// occurrence of that weekday. Values are JS getDay() numbers, which is also how
+// the backend stores them.
 const TEMPLATE_VARIABLES = [
   "{{event.title.ko}}",
   "{{event.title.en}}",
@@ -104,219 +96,79 @@ const EVENT_STATUS_LABELS = {
   },
 };
 
-// One block per event type: everything the registration form pre-fills lives
-// here, so changing an operational value is a single-place edit. weekday is the
-// recurring day the event falls on; the form turns it into next month's first
-// and last occurrence. Types without one (parties are one-offs) leave the dates
-// empty. Address display is switched on for every type, matching how the venues
-// are actually published.
-const EVENT_TYPE_DEFAULTS = {
-  REGULAR_CLASS: {
-    weekday: WEEKDAY.SATURDAY,
-    displayOrder: 2,
-    startTime: "17:30",
-    endTime: "22:00",
-    location: KP_LOCATION,
-    addressInfoEnabled: true,
-    googleMapUrl: KP_GOOGLE_MAP_URL,
-    naverMapUrl: KP_NAVER_MAP_URL,
-    translations: {
-      ko: {
-        title: "스윙팝 토요일 정규수업",
-        shortDescription: "토요일에 진행되는 스윙팝 정규 수업입니다.",
-        description:
-          "스윙팝 토요일 정규수업은 Level 1, Level 2, Level 3 강습으로 구성됩니다. 처음 시작하는 분과 기본기를 다지는 분 모두 참여할 수 있으며 수업이 끝난 후에는 소셜댄스가 이어집니다.",
-      },
-      en: {
-        title: "SwingPop Saturday Regular Classes",
-        shortDescription: "SwingPop's regular Saturday swing dance classes.",
-        description:
-          "SwingPop Saturday Regular Classes consist of Level 1, Level 2, and Level 3 courses. Whether you're taking your first steps in swing dancing or looking to strengthen your fundamentals, there's a class for you. After the lessons, everyone is welcome to stay and enjoy social dancing.",
-      },
-    },
-    lesson: {
-      defaultLessonType: "LEVEL1",
-      byType: {
-        LEVEL1: {
-          scheduleType: "PERIOD",
-          startTime: "19:00",
-          endTime: "20:00",
-          fee: "60000",
-          displayOrder: 1,
-          roleSelectionEnabled: true,
-          translations: {
-            ko: {
-              title: "레벨 1 토요일 수업",
-              description:
-                "Level 1은 스윙댄스를 처음 시작하는 분들을 위한 입문 과정입니다. 기본 리듬과 스텝, 파트너와의 연결을 차근차근 배우며, 춤을 배우는 것을 넘어 스윙댄스 문화와 소셜댄스의 즐거움을 경험합니다. 춤을 처음 접하는 분도 부담 없이 참여할 수 있습니다, 누구나 환영합니다.",
-            },
-            en: {
-              title: "Level 1 Saturday Class",
-              description:
-                "Level 1 is an introductory course designed for those taking their first steps into swing dancing. You'll gradually learn the fundamental rhythms, footwork, and partner connection while experiencing the culture of swing dancing and the joy of social dancing. No prior dance experience is required, everyone is welcome.",
-            },
-          },
-        },
-        LEVEL2: {
-          scheduleType: "PERIOD",
-          startTime: "17:30",
-          endTime: "19:00",
-          fee: "70000",
-          displayOrder: 2,
-          roleSelectionEnabled: true,
-          translations: {
-            ko: {
-              title: "레벨 2 토요일 수업",
-              description:
-                "트리플 스텝을 시작으로 스윙아웃, 슈가 푸시, 써클 등 린디합의 대표적인 패턴을 배웁니다. 단순히 동작을 익히는 것에 그치지 않고, 소셜댄스에서 다양한 사람들과 편안하게 춤출 수 있는 연결과 리드·팔로우를 함께 연습합니다.",
-            },
-            en: {
-              title: "Level 2 Saturday Class",
-              description:
-                "Starting with the triple step, you'll learn fundamental Lindy Hop patterns such as the Swing Out, Sugar Push, and Circle. Beyond simply learning the moves, you'll also practice connection, leading, and following so you can dance comfortably with a variety of partners during social dancing.",
-            },
-          },
-        },
-        LEVEL3: {
-          scheduleType: "PERIOD",
-          startTime: "17:30",
-          endTime: "19:00",
-          fee: "80000",
-          displayOrder: 3,
-          roleSelectionEnabled: true,
-          translations: {
-            ko: {
-              title: "레벨 3 토요일 수업",
-              description:
-                "레벨 3에서는 Swing Out을 자연스럽게 출 수 있다는 것을 바탕으로 한 단계 더 깊이 있는 린디합을 배웁니다. Swing Out의 완성도를 높이고, 다양한 Variations와 리듬 변화, 방향 전환 등을 연습하며 춤의 폭을 넓혀갑니다. 새로운 동작을 배우는 것뿐만 아니라, 음악에 맞춰 더 자연스럽게 표현하고 파트너와 편안하게 소통하는 방법도 함께 익혀갑니다.",
-            },
-            en: {
-              title: "Level 3 Saturday Class",
-              description:
-                "Level 3 builds on a solid understanding of the Swing Out and takes your Lindy Hop to the next level. You'll refine your Swing Out, explore a variety of variations, rhythm changes, and directional changes, and expand your range on the dance floor. Beyond learning new moves, you'll also develop smoother musical expression and more comfortable communication with different partners through connection, leading, and following.",
-            },
-          },
-        },
-        LEVEL4: {
-          scheduleType: "PERIOD",
-          startTime: "16:00",
-          endTime: "17:30",
-          fee: "90000",
-          displayOrder: 4,
-          roleSelectionEnabled: true,
-          translations: {
-            ko: {
-              title: "레벨 4 토요일 수업",
-              description:
-                "레벨 4는 린디합을 더욱 깊이 있게 배우는 과정입니다. 움직임의 완성도와 음악성, 파트너와의 연결을 더욱 섬세하게 다듬으며, 다양한 리듬과 즉흥적인 표현을 통해 자신만의 스타일을 만들어갑니다. 새로운 동작을 익히는 것에 그치지 않고, 어떤 파트너와도 자연스럽게 호흡하며 자유롭고 즐겁게 춤출 수 있는 능력을 키우는 것을 목표로 합니다.",
-            },
-            en: {
-              title: "Level 4 Saturday Class",
-              description:
-                "Level 4 is designed for experienced dancers who are ready to deepen their understanding of Lindy Hop. Building on a strong technical foundation, you'll refine movement quality, musicality, and partner communication while exploring advanced concepts, creative variations, and improvisation. The focus is not just on learning more figures, but on developing the confidence and versatility to express yourself naturally with any partner on the social dance floor.",
-            },
-          },
-        },
-        WORKSHOP: {
-          scheduleType: "SINGLE_DAY",
-          startTime: "16:30",
-          endTime: "17:30",
-          fee: "10000",
-          displayOrder: 6,
-          translations: {
-            ko: {
-              title: "월별 워크샵",
-              description:
-                "월별 워크샵은 매월 새로운 주제로 진행되는 단기 워크샵입니다. 가요 라인댄스, 재즈 라인댄스, 찰스턴 등 다양한 장르를 가볍게 경험하며 춤의 폭을 넓혀보세요.",
-            },
-            en: {
-              title: "Monthly Workshop",
-              description:
-                "A special workshop held every month with a new theme. From swing dance to Pop Line Dance, Jazz Line Dance, Charleston, and more, it's a great opportunity to explore different styles and expand your dancing experience.",
-            },
-          },
-        },
-        EXPERIENCE: {
-          scheduleType: "SINGLE_DAY",
-          startTime: "19:00",
-          endTime: "20:00",
-          fee: "30000",
-          displayOrder: 1,
-          translations: {
-            ko: {
-              title: "레벨 1 원데이 클래스",
-              description:
-                "스윙댄스를 처음 접하는 분들을 위한 하루 체험 클래스입니다. 기본 리듬과 스텝, 파트너와 함께 춤추는 즐거움을 부담 없이 경험해 보세요. 정규 수업을 시작하기 전 스윙댄스와 스윙팝을 만나볼 수 있는 가장 좋은 첫걸음입니다.",
-            },
-            en: {
-              title: "Level 1 One-Day Class",
-              description:
-                "A one-day introductory class designed for complete beginners. Experience the basics of swing dancing, including rhythm, footwork, and partner connection, in a fun and welcoming environment. It's the perfect first step to discover swing dancing and get to know the SwingPop community before joining our regular classes.",
-            },
-          },
-        },
-      },
-    },
-  },
-  PARTY: {
-    displayOrder: 1,
-    startTime: "16:30",
-    endTime: "22:00",
-    location: KP_LOCATION,
-    addressInfoEnabled: true,
-    googleMapUrl: KP_GOOGLE_MAP_URL,
-    naverMapUrl: KP_NAVER_MAP_URL,
-    // No text defaults on purpose: every party is written from scratch.
-  },
-  DIALOGUE_PARTY: {
-    weekday: WEEKDAY.WEDNESDAY,
-    displayOrder: 3,
-    startTime: "19:30",
-    endTime: "22:00",
-    location: DIALOGUE_LOCATION,
-    addressInfoEnabled: true,
-    googleMapUrl: DIALOGUE_GOOGLE_MAP_URL,
-    naverMapUrl: DIALOGUE_NAVER_MAP_URL,
-    translations: {
-      ko: {
-        title: "Dialogue 소셜댄스",
-        shortDescription: "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다.",
-        description:
-          "해방촌 Dialogue에서 스윙댄스 체험수업과 소셜댄스 이벤트를 진행합니다. 처음 오시는 분들도 가볍게 참여할 수 있는 체험수업은 7:30~8:00에 진행되며, 이후 8:00~10:00에는 함께 음악을 즐기며 자유롭게 춤추는 소셜댄스 시간이 이어집니다. 스윙댄스를 처음 접하는 분들도 편하게 참여하실 수 있으니 많은 참여 부탁드립니다.",
-      },
-      en: {
-        title: "Dialogue Social Dance",
-        shortDescription: "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event.",
-        description:
-          "Join us at Dialogue in Haebangchon for a swing dance trial class and social dance event. The trial class will be held from 7:30 to 8:00, followed by social dancing from 8:00 to 10:00, where everyone can enjoy the music and dance freely together. Beginners are very welcome, so feel free to join us.",
-      },
-    },
-    lesson: {
-      defaultLessonType: "EXPERIENCE",
-      byType: {
-        EXPERIENCE: {
-          scheduleType: "SINGLE_DAY",
-          startTime: "19:30",
-          endTime: "20:00",
-          fee: "15000",
-          displayOrder: 1,
-          translations: {
-            ko: {
-              title: "다이얼로그 원데이 클래스",
-              description:
-                "다이얼로그 전에 진행되는 30분 체험 클래스입니다. 스윙댄스가 처음인 분도 부담 없이 기본 스텝과 리듬을 배우며 스윙댄스의 즐거움을 경험해 보세요.",
-            },
-            en: {
-              title: "Dialogue One-Day Class",
-              description:
-                "A 30-minute introductory class held before Dialogue. It's a fun and easy way to experience swing dancing before joining the social dance.",
-            },
-          },
-        },
-      },
-    },
-  },
+// The values the registration form pre-fills with. These were a literal here
+// until they became editable in 설정 › 등록 기본값; they now come from
+// GET /api/admin/event-defaults so a fee, a venue or a class description is a
+// settings change rather than a deploy.
+//
+// Module-scoped rather than component state because the form builders below are
+// plain functions called from several places. EventManagementPanel loads this
+// before it renders anything that builds a form, so it is never read empty —
+// see its defaultsReady gate.
+let EVENT_TYPE_DEFAULTS = {};
+
+// The floor a lesson falls back to when its event type and lesson type define
+// nothing more specific — a party's lessons, or a level nobody has filled in.
+// Fixed on the server too; kept in one place by arriving with the rest.
+let LESSON_COMMON = {
+  scheduleType: 'SINGLE_DAY',
+  startTime: '',
+  endTime: '',
+  fee: '0',
+  displayOrder: 10,
+  roleSelectionEnabled: false,
 };
+
+// Reshapes the API's flat lists into the nested lookup the form builders expect.
+// weekday is dropped rather than kept as null: applyEventTypeDefaults tests for
+// undefined to decide whether a type recurs, and JSON null is not that.
+function adoptEventDefaults(payload) {
+  const next = {};
+  (payload?.eventTypes || []).forEach((eventType) => {
+    const block = {
+      displayOrder: eventType.displayOrder,
+      startTime: eventType.startTime || '',
+      endTime: eventType.endTime || '',
+      location: eventType.location || '',
+      addressInfoEnabled: eventType.addressInfoEnabled,
+      googleMapUrl: eventType.googleMapUrl || '',
+      naverMapUrl: eventType.naverMapUrl || '',
+      translations: eventType.translations || {},
+      lesson: {
+        defaultLessonType: eventType.defaultLessonType || null,
+        byType: (eventType.lessons || []).reduce((byType, lesson) => {
+          byType[lesson.lessonType] = {
+            scheduleType: lesson.scheduleType,
+            startTime: lesson.startTime || '',
+            endTime: lesson.endTime || '',
+            fee: lesson.fee ?? '0',
+            displayOrder: lesson.displayOrder,
+            roleSelectionEnabled: lesson.roleSelectionEnabled,
+            translations: lesson.translations || {},
+          };
+          return byType;
+        }, {}),
+      },
+    };
+    if (eventType.weekday !== null && eventType.weekday !== undefined) {
+      block.weekday = eventType.weekday;
+    }
+    next[eventType.eventType] = block;
+  });
+
+  EVENT_TYPE_DEFAULTS = next;
+  if (payload?.lessonFallback) {
+    const fallback = payload.lessonFallback;
+    LESSON_COMMON = {
+      scheduleType: fallback.scheduleType || 'SINGLE_DAY',
+      startTime: fallback.startTime || '',
+      endTime: fallback.endTime || '',
+      fee: fallback.fee ?? '0',
+      displayOrder: fallback.displayOrder ?? 10,
+      roleSelectionEnabled: Boolean(fallback.roleSelectionEnabled),
+    };
+  }
+}
 
 const COPY_TEXT = {
   Kor: {
@@ -688,17 +540,6 @@ function applyEventTypeAddressDefaults(form, eventType) {
     naverMapUrl: form.naverMapUrl || defaults.naverMapUrl || "",
   };
 }
-
-// Floor every lesson falls back to when its event type and lesson type define
-// nothing more specific — a party's lessons, or a level nobody has filled in yet.
-const LESSON_COMMON = {
-  scheduleType: "SINGLE_DAY",
-  startTime: "",
-  endTime: "",
-  fee: "0",
-  displayOrder: 10,
-  roleSelectionEnabled: false,
-};
 
 // Resolved in one place so a lesson's defaults are LESSON_COMMON overlaid with
 // whatever the event type's lesson block says for that lesson type.
@@ -1119,7 +960,7 @@ function ParticipantList({ participants, copy, onRemoveParticipant }) {
   );
 }
 
-function Field({ label, children }) {
+export function Field({ label, children }) {
   return (
     <label className="block">
       <span className="text-xs font-semibold text-swing-muted">{label}</span>
@@ -1128,7 +969,7 @@ function Field({ label, children }) {
   );
 }
 
-function TextInput(props) {
+export function TextInput(props) {
   return (
     <input
       {...props}
@@ -1137,7 +978,7 @@ function TextInput(props) {
   );
 }
 
-function SelectInput(props) {
+export function SelectInput(props) {
   return (
     <select
       {...props}
@@ -1146,7 +987,7 @@ function SelectInput(props) {
   );
 }
 
-function TextArea(props) {
+export function TextArea(props) {
   return (
     <textarea
       {...props}
@@ -1174,7 +1015,7 @@ function Badge({ children }) {
   );
 }
 
-function PrimaryButton(props) {
+export function PrimaryButton(props) {
   return (
     <button
       {...props}
@@ -1183,7 +1024,7 @@ function PrimaryButton(props) {
   );
 }
 
-function SecondaryButton(props) {
+export function SecondaryButton(props) {
   return (
     <button
       {...props}
@@ -1783,6 +1624,9 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const [notice, setNotice] = useState("");
   const [removingParticipant, setRemovingParticipant] = useState(null);
   const [isRemovingParticipant, setIsRemovingParticipant] = useState(false);
+  // The registration defaults arrive with the other support data. Until they do
+  // a new form would open blank, so the button that opens one waits for them.
+  const [defaultsReady, setDefaultsReady] = useState(false);
   const canEdit = hasRole(currentUser, "SUPER_ADMIN") || hasRole(currentUser, "STAFF");
   const canDelete = canEdit && hasRole(currentUser, "SUPER_ADMIN");
   const canRemoveApplication = canEdit;
@@ -1810,10 +1654,15 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
 
   const loadSupportData = useCallback(async () => {
     try {
-      const [nextTeachers, nextTemplates] = await Promise.all([
+      const [nextTeachers, nextTemplates, nextDefaults] = await Promise.all([
         adminApi.findActiveTeachers(token),
         adminApi.findMessageTemplates(token),
+        adminApi.getEventDefaults(token),
       ]);
+      // Has to land before any form is built: the builders read it from module
+      // scope. startCreateEvent stays disabled until it has.
+      adoptEventDefaults(nextDefaults);
+      setDefaultsReady(true);
       setTeachers(nextTeachers);
       setTemplates(nextTemplates.filter((template) => template.useYn === "Y"));
       setPromotion((current) => ({
@@ -2039,7 +1888,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
               {showEventFilters ? copy.hideFilters : copy.showFilters}
             </SecondaryButton>
             {canEdit ? (
-              <PrimaryButton type="button" onClick={startCreateEvent}>
+              <PrimaryButton type="button" onClick={startCreateEvent} disabled={!defaultsReady}>
                 {copy.createEvent}
               </PrimaryButton>
             ) : null}

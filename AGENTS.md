@@ -139,6 +139,23 @@ General members are Google OAuth members in `member`. Public members currently h
 
 Maintain guest class/event application flow unless explicitly changed. `POST /api/public/applications` supports unauthenticated applications.
 
+## Registration Defaults
+
+What the event and lesson registration forms pre-fill with is data, not code. It
+lives in `event_type_default` / `lesson_type_default` (plus their translation
+tables) and is edited in the admin app under 설정 › 등록 기본값
+(`src/EventDefaultsPanel.jsx`, super admin only).
+
+`EventDefaultsBootstrap` seeds each event type once, and only when that type has
+no row, so it fills in a newly added type without overwriting an edit. Do not
+reintroduce these values as literals in `src/EventManagementPanel.jsx` — it
+holds them in module scope and loads them from `GET /api/admin/event-defaults`
+before it will open a form.
+
+Reading the defaults needs event-management permission, because the registration
+form itself reads them; writing needs SUPER_ADMIN. Event and lesson types stay
+backend enums: the screen edits their defaults, it does not add types.
+
 Both sign-ins are stored in the database and last 90 days, sliding, so a deploy
 does not sign anyone out. Members use a Spring Session JDBC cookie session; see
 `docs/google-oauth-member-login.md`. Admins use a bearer token in

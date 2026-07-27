@@ -283,6 +283,18 @@ export const adminApi = {
   findEvent(token, eventId) {
     return request(`/api/admin/events/${eventId}`, { token });
   },
+  // What the event and lesson registration forms open with. Readable by anyone
+  // who may register; only super admins may write, which is enforced server-side.
+  getEventDefaults(token) {
+    return request("/api/admin/event-defaults", { token });
+  },
+  updateEventDefaults(token, eventType, payload) {
+    return request(`/api/admin/event-defaults/${eventType}`, {
+      method: "PUT",
+      token,
+      body: payload,
+    });
+  },
   createEvent(token, payload) {
     return request("/api/admin/events", {
       method: "POST",

@@ -74,7 +74,8 @@ class AdminAuthServiceTest {
                 AdminMenu.EVENT_REGISTRATION,
                 AdminMenu.MEMBER_ACTION_LOGS,
                 AdminMenu.MESSAGE_TEMPLATE_REGISTRATION,
-                AdminMenu.KNOWLEDGE_BASE_REGISTRATION
+                AdminMenu.KNOWLEDGE_BASE_REGISTRATION,
+                AdminMenu.EVENT_DEFAULTS
         );
     }
 

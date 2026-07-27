@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
 import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
+import EventDefaultsPanel from "./EventDefaultsPanel";
 import EventManagementPanel, {
   LessonBoardPanel,
   MessageTemplatePanel,
@@ -52,6 +53,7 @@ const I18N = {
       ADMIN_USERS: "관리자 계정",
       MEMBERS: "회원 관리",
       TEACHER_USERS: "강사 프로필 관리",
+      EVENT_DEFAULTS: "등록 기본값",
       MY_ACCOUNT: "내 정보",
     },
     menuCategories: {
@@ -422,6 +424,7 @@ const I18N = {
       ADMIN_USERS: "Admin Accounts",
       MEMBERS: "Member Management",
       TEACHER_USERS: "Teacher Profiles",
+      EVENT_DEFAULTS: "Registration Defaults",
       MY_ACCOUNT: "My Account",
     },
     menuCategories: {
@@ -869,6 +872,7 @@ const MENU_CATEGORIES = [
       "CORKBOARD",
       "ADMIN_USERS",
       "EVENT_REGISTRATION",
+      "EVENT_DEFAULTS",
       "MEMBER_ACTION_LOGS",
       "MESSAGE_TEMPLATE_REGISTRATION",
       "KNOWLEDGE_BASE_REGISTRATION",
@@ -4280,6 +4284,9 @@ export default function AdminApp() {
           {safeActiveMenu === "EVENT_VIEW" ? <LessonBoardPanel token={token} langCd={langCd} /> : null}
           {safeActiveMenu === "EVENT_REGISTRATION" ? (
             <EventManagementPanel token={token} currentUser={session.user} langCd={langCd} />
+          ) : null}
+          {safeActiveMenu === "EVENT_DEFAULTS" ? (
+            <EventDefaultsPanel token={token} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "CORKBOARD" ? (
             <AdminCorkboardPanel token={token} currentUser={session.user} langCd={langCd} />

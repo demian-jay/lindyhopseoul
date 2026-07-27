@@ -22,7 +22,11 @@ public enum AdminMenu {
     MESSAGE_TEMPLATE_REGISTRATION,
     ADMIN_USERS,
     MEMBERS,
-    TEACHER_USERS;
+    TEACHER_USERS,
+    // What the event and lesson registration forms open with. Super admin only:
+    // changing a default changes what every later registration starts from,
+    // which reaches further than registering one event does.
+    EVENT_DEFAULTS;
 
     public static List<AdminMenu> forRoles(Collection<AdminRole> roles) {
         if (roles == null || roles.isEmpty()) {
@@ -55,10 +59,11 @@ public enum AdminMenu {
                     EVENT_REGISTRATION,
                     MEMBER_ACTION_LOGS,
                     MESSAGE_TEMPLATE_REGISTRATION,
-                    KNOWLEDGE_BASE_REGISTRATION
+                    KNOWLEDGE_BASE_REGISTRATION,
+                    EVENT_DEFAULTS
             );
-            // Same as super admin minus MEMBER_ACTION_LOGS, which stays super
-            // admin only.
+            // Same as super admin minus MEMBER_ACTION_LOGS and EVENT_DEFAULTS,
+            // which stay super admin only.
             case STAFF -> List.of(
                     DASHBOARD,
                     OPERATION_CHECK,
