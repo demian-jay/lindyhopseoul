@@ -385,6 +385,66 @@ nothing about production.
 verified against MariaDB on 2026-08-19, index `UK_USER_M_MEMBER_ID`. Existing
 rows are no obstacle: MariaDB permits many NULLs in a unique index.
 
+### Turning it on in production
+
+Not done yet as of 2026-08-19. Three things have to change, none of which lives
+in this repository, so nothing here fails while they are missing — the button
+simply answers 401 on the admin host.
+
+Start by finding out how much is actually needed. All read-only:
+
+```bash
+for U in "https://admin.swingpopseoul.com/oauth2/authorization/google" \
+         "https://admin.swingpopseoul.com/oauth/success" \
+         "https://admin.swingpopseoul.com/api/agora/corkboards/current"; do
+  echo "$(curl -s -o /dev/null -w '%{http_code}' "$U")  $U"
+done
+```
+
+The first should be `302` to accounts.google.com and the second `200`. A `404`
+on either means nginx step below is still required.
+
+**1. Google Cloud Console.** Add
+`https://admin.swingpopseoul.com/login/oauth2/code/google` to the authorised
+redirect URIs, leaving the members one in place. No JavaScript origin is needed;
+this is a server-side flow.
+
+**2. `/etc/lindyhop/backend.env`.** Add `admin.swingpopseoul.com` to
+`APP_OAUTH2_ALLOWED_REDIRECT_HOSTS` — `OAuth2RedirectResolver` consults it to
+decide whether to return the sign-in to the host it started from, and without it
+the return goes to the members host, whose cookie the admin host cannot read.
+
+Check `GOOGLE_OAUTH_REDIRECT_URI` in the same file while you are there. It must
+be the template `{baseUrl}/login/oauth2/code/{registrationId}`, or absent. Set to
+an absolute members-host URL it would send Google that URL no matter which host
+the sign-in began on, so the cookie lands on the wrong host and the feature fails
+quietly, with everything else still working.
+
+**3. The admin host's nginx.** `/etc/nginx/default.d/lindyhop.conf` proxies
+`/api/`, `/oauth2/` and `/login/oauth2/`, but the admin host has never run an
+OAuth round trip, so confirm its server block carries the last two as well as
+`/api/`, and that `/oauth/success` falls back to `admin.html` the way `/` does:
+
+```bash
+ssh ec2-user@52.78.185.32 'sudo nginx -T | grep -n "server_name admin" -A 40'
+```
+
+**Deploy the backend first, then the frontend.** That is the opposite of the
+2026-07-20 rule, and for the opposite reason: nothing here makes the backend
+refuse what the current frontend needs, so a new backend under an old frontend
+is simply an endpoint nobody calls, while a new frontend under an old backend
+shows staff a button that 404s.
+
+Verify the redirect actually names the admin host:
+
+```bash
+curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" \
+  "https://admin.swingpopseoul.com/oauth2/authorization/google"
+```
+
+The `redirect_uri` inside that location must be the admin host. If it names the
+members host, `GOOGLE_OAUTH_REDIRECT_URI` is the absolute-URL case above.
+
 ### The button, and why it does not sign anyone in by itself
 
 The exchange runs only when someone presses the button, never on load. A member
