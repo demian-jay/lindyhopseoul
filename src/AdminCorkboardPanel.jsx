@@ -833,7 +833,10 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
   const [management, setManagement] = useState(null);
   const [selectedPeriodKey, setSelectedPeriodKey] = useState("");
   const [activePageIndex, setActivePageIndex] = useState(0);
-  const [boardViewMode, setBoardViewMode] = useState("manage");
+  // Reading the notes is what opening this screen is usually for, so it lands on
+  // the view that just shows them. Moving and moderating are deliberate acts and
+  // are one tap away in 관리용 보기.
+  const [boardViewMode, setBoardViewMode] = useState("list");
   // Each period form collapses independently; both start collapsed on arrival.
   const [openForms, setOpenForms] = useState({ settings: false, create: false });
   const toggleForm = (key) => setOpenForms((current) => ({ ...current, [key]: !current[key] }));
