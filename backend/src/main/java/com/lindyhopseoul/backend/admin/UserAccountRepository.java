@@ -10,6 +10,14 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, String
 
     Optional<UserAccount> findByLoginId(String loginId);
 
+    /**
+     * The Google sign-in path: a member id off the member session, answered with
+     * the admin account it was paired with, if any.
+     */
+    Optional<UserAccount> findByMemberId(Long memberId);
+
+    List<UserAccount> findByMemberIdIsNotNull();
+
     List<UserAccount> findDistinctByRoles_RoleCodeInAndUseYnOrderByNameAsc(
             Collection<AdminRole> roleCodes,
             String useYn

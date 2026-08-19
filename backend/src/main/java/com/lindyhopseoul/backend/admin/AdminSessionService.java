@@ -71,7 +71,7 @@ public class AdminSessionService {
 
     /**
      * Resolved once per request and remembered for the rest of it. Almost every
-     * admin call asks twice — {@link AdminPasswordChangeInterceptor} before the
+     * admin call asks twice — {@link AdminApiAuthInterceptor} before the
      * controller does — and that would otherwise be two trips to the database for
      * an answer that cannot change in between.
      */

@@ -24,7 +24,10 @@ import jakarta.persistence.UniqueConstraint;
 @Entity
 @Table(
         name = "USER_M",
-        uniqueConstraints = @UniqueConstraint(name = "UK_USER_M_LOGIN_ID", columnNames = "LOGIN_ID")
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UK_USER_M_LOGIN_ID", columnNames = "LOGIN_ID"),
+                @UniqueConstraint(name = "UK_USER_M_MEMBER_ID", columnNames = "MEMBER_ID")
+        }
 )
 public class UserAccount {
 
@@ -59,6 +62,19 @@ public class UserAccount {
      */
     @Column(name = "PWD_CHANGED_AT")
     private Instant pwdChangedAt;
+
+    /**
+     * The {@code member} row this admin also signs in as, or null when the account
+     * is password-only. Set by a super admin pairing the two on purpose — never
+     * matched on email, because a Google address can change hands and matching one
+     * would turn "same string" into "same person".
+     *
+     * <p>Deliberately a plain id rather than an association: the two live in
+     * different bounded contexts, and an admin account outlives the member row's
+     * identifiers, which withdrawal masks.
+     */
+    @Column(name = "MEMBER_ID")
+    private Long memberId;
 
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private Instant createdAt;
@@ -142,6 +158,24 @@ public class UserAccount {
         this.useYn = "N";
     }
 
+    /**
+     * Pairs this account with a member, so its holder can reach the admin app by
+     * signing in with Google. Adds a way in; it does not change what the account
+     * may do, and it does not settle the password the account was handed — see
+     * {@link #mustChangePassword()}.
+     */
+    public void linkMember(Long memberId) {
+        this.memberId = memberId;
+    }
+
+    public void unlinkMember() {
+        this.memberId = null;
+    }
+
+    public boolean isLinkedToMember() {
+        return memberId != null;
+    }
+
     public void replaceRoles(Collection<AdminRole> nextRoles) {
         Set<AdminRole> nextRoleCodes = new LinkedHashSet<>();
         if (nextRoles != null) {
@@ -222,6 +256,10 @@ public class UserAccount {
 
     public Instant getPwdChangedAt() {
         return pwdChangedAt;
+    }
+
+    public Long getMemberId() {
+        return memberId;
     }
 
     public Instant getCreatedAt() {

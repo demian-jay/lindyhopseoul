@@ -62,6 +62,20 @@ export const adminApi = {
       body: payload,
     });
   },
+  /**
+   * Signs in with the member session this browser already holds, for staff whose
+   * Google member account a super admin has linked to their admin account.
+   *
+   * Sends no token — it is how one is obtained — but does send the member session
+   * cookie, which is the credential here. A 401 means there is no member session
+   * on this origin yet, which is the caller's cue to send the browser to Google.
+   */
+  signInWithGoogle() {
+    return request("/api/admin/auth/google", {
+      method: "POST",
+      credentials: "include",
+    });
+  },
   me(token) {
     return request("/api/admin/auth/me", { token });
   },
@@ -293,6 +307,24 @@ export const adminApi = {
       method: "PUT",
       token,
       body: payload,
+    });
+  },
+  // Which member account each admin may also sign in as. Super admin only for
+  // reading as well as writing, which is enforced server-side.
+  findGoogleLinks(token) {
+    return request("/api/admin/google-links", { token });
+  },
+  linkGoogleAccount(token, userId, memberId) {
+    return request(`/api/admin/google-links/${userId}`, {
+      method: "PUT",
+      token,
+      body: { memberId },
+    });
+  },
+  unlinkGoogleAccount(token, userId) {
+    return request(`/api/admin/google-links/${userId}`, {
+      method: "DELETE",
+      token,
     });
   },
   createEvent(token, payload) {

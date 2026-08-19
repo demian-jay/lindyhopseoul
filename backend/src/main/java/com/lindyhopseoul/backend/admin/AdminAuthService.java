@@ -51,7 +51,7 @@ public class AdminAuthService {
     /**
      * The account holder changing their own password. This is the only write an
      * account with a pending change is allowed to make, so it is what clears the
-     * block: see {@link AdminPasswordChangeInterceptor}.
+     * block: see {@link AdminApiAuthInterceptor}.
      */
     @Transactional
     public AdminPrincipal changeOwnPassword(AdminPrincipal actor, AdminPasswordChangeRequest request) {

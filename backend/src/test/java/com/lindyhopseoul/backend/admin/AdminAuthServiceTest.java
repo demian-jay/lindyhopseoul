@@ -75,7 +75,8 @@ class AdminAuthServiceTest {
                 AdminMenu.MEMBER_ACTION_LOGS,
                 AdminMenu.MESSAGE_TEMPLATE_REGISTRATION,
                 AdminMenu.KNOWLEDGE_BASE_REGISTRATION,
-                AdminMenu.EVENT_DEFAULTS
+                AdminMenu.EVENT_DEFAULTS,
+                AdminMenu.GOOGLE_LINKS
         );
     }
 

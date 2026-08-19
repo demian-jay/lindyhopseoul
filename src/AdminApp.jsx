@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import AdminCorkboardPanel from "./AdminCorkboardPanel";
 import { adminApi } from "./api/admin";
+import { authApi } from "./api/auth";
+import AdminGoogleLinkPanel from "./AdminGoogleLinkPanel";
 import { hasBeenAskedToInstall, promptInstall, rememberInstallAsked, useInstallState } from "./installPrompt";
 import EventDefaultsPanel from "./EventDefaultsPanel";
 import EventManagementPanel, {
@@ -21,6 +23,18 @@ import OperationCheckPanel, { OperationCheckMineList, OperationCheckQuickInput }
 import useModalBackDismiss from "./useModalBackDismiss";
 
 const TOKEN_STORAGE_KEY = "swingpop-admin-token";
+/**
+ * Set just before the browser leaves for Google, and read once it comes back, so
+ * the sign-in that resumes is one somebody asked for on this screen. Without it
+ * the app would have to try the exchange on every load, which would turn any
+ * unlocked phone holding a member session into an admin session on sight.
+ *
+ * It holds the path to return to because Google comes back to /oauth/success,
+ * which is the members app's route. On the admin host that does not matter — the
+ * whole origin is the admin app — but local dev reaches admin at /admin on the
+ * one origin, so the way back has to be remembered rather than assumed.
+ */
+const GOOGLE_RETURN_KEY = "swingpop-admin-google-return";
 // A local UI preference, so it lives in the browser rather than the account —
 // admin-scoped so it never touches the public site's theme.
 const THEME_STORAGE_KEY = "swingpop-admin-theme";
@@ -54,6 +68,7 @@ const I18N = {
       MEMBERS: "회원 관리",
       TEACHER_USERS: "강사 프로필 관리",
       EVENT_DEFAULTS: "등록 기본값",
+      GOOGLE_LINKS: "구글 계정 연동",
       MY_ACCOUNT: "내 정보",
     },
     menuCategories: {
@@ -425,6 +440,7 @@ const I18N = {
       MEMBERS: "Member Management",
       TEACHER_USERS: "Teacher Profiles",
       EVENT_DEFAULTS: "Registration Defaults",
+      GOOGLE_LINKS: "Google Account Links",
       MY_ACCOUNT: "My Account",
     },
     menuCategories: {
@@ -873,6 +889,7 @@ const MENU_CATEGORIES = [
       "ADMIN_USERS",
       "EVENT_REGISTRATION",
       "EVENT_DEFAULTS",
+      "GOOGLE_LINKS",
       "MEMBER_ACTION_LOGS",
       "MESSAGE_TEMPLATE_REGISTRATION",
       "KNOWLEDGE_BASE_REGISTRATION",
@@ -1131,10 +1148,28 @@ function LanguageOptions({ labels }) {
   ));
 }
 
+/**
+ * Google's mark, inline rather than fetched: the admin app is installable and
+ * has to render its own sign-in screen offline, and a strict CSP would block the
+ * remote copy anyway.
+ */
+function GoogleMark() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z" />
+      <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z" />
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z" />
+    </svg>
+  );
+}
+
 function LoginScreen({ onLogin, theme }) {
   const [form, setForm] = useState({ loginId: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGooglePending, setIsGooglePending] = useState(false);
+  // No language is known before sign-in, so this screen says both.
   const loginLabels = {
     brand: "SwingPop Admin",
     title: "관리자 로그인 / Admin Login",
@@ -1142,6 +1177,12 @@ function LoginScreen({ onLogin, theme }) {
     password: "비밀번호 / Password",
     submit: "로그인 / Log In",
     submitting: "로그인 중 / Logging in",
+    or: "또는 / or",
+    google: "구글 계정으로 로그인 / Sign in with Google",
+    googlePending: "구글 확인 중 / Checking Google",
+    googleUnlinked:
+      "이 구글 계정에 연결된 운영진 계정이 없습니다. 아이디와 비밀번호로 로그인한 뒤 최고관리자에게 연동을 요청하세요."
+      + " / This Google account is not linked to an admin account.",
   };
 
   const handleChange = (event) => {
@@ -1165,6 +1206,60 @@ function LoginScreen({ onLogin, theme }) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  /**
+   * Trades the member session this browser holds for an admin one.
+   *
+   * Returns false when there is no member session yet, which is the caller's cue
+   * to send the browser to Google; every other outcome is final and reported
+   * here. A 403 is the linked/not-linked answer and gets its own wording, since
+   * "not linked" is a thing a person can act on and a bare error is not.
+   */
+  const exchangeGoogleSession = useCallback(async () => {
+    const session = await adminApi.signInWithGoogle().catch((nextError) => {
+      if (nextError.status === 401) {
+        return null;
+      }
+      setError(nextError.status === 403 ? loginLabels.googleUnlinked : nextError.message);
+      return undefined;
+    });
+
+    if (session) {
+      onLogin(session);
+      return true;
+    }
+    // null means "no member session"; undefined means it failed and was reported.
+    return session === null ? false : true;
+  }, [onLogin, loginLabels.googleUnlinked]);
+
+  // Coming back from Google. The flag is cleared first so a failed exchange
+  // leaves the screen idle rather than bouncing to Google again on every reload.
+  useEffect(() => {
+    if (window.sessionStorage.getItem(GOOGLE_RETURN_KEY) === null) {
+      return;
+    }
+    window.sessionStorage.removeItem(GOOGLE_RETURN_KEY);
+    setIsGooglePending(true);
+    exchangeGoogleSession()
+      .catch(() => setError(loginLabels.googleUnlinked))
+      .finally(() => setIsGooglePending(false));
+  }, [exchangeGoogleSession, loginLabels.googleUnlinked]);
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setIsGooglePending(true);
+
+    // Try the session already here first: a staff member who signed in on this
+    // origin earlier is in without a round trip to Google.
+    const handled = await exchangeGoogleSession().catch(() => true);
+    if (handled) {
+      setIsGooglePending(false);
+      return;
+    }
+
+    window.sessionStorage.setItem(GOOGLE_RETURN_KEY, window.location.pathname);
+    window.location.href = authApi.googleLoginUrl();
   };
 
   return (
@@ -1206,10 +1301,28 @@ function LoginScreen({ onLogin, theme }) {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGooglePending}
             className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
           >
             {isSubmitting ? loginLabels.submitting : loginLabels.submit}
+          </button>
+
+          <div className="mt-5 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-swing-border/40" />
+            <span className="text-xs font-medium text-swing-ink/60">{loginLabels.or}</span>
+            <span className="h-px flex-1 bg-swing-border/40" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isSubmitting || isGooglePending}
+            className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-swing-border/40 bg-swing-paper px-4 text-sm font-semibold text-swing-ink transition hover:bg-swing-cream disabled:cursor-not-allowed disabled:text-swing-ink/50"
+          >
+            <GoogleMark />
+            <span className="min-w-0 break-words text-left">
+              {isGooglePending ? loginLabels.googlePending : loginLabels.google}
+            </span>
           </button>
         </form>
       </main>
@@ -4287,6 +4400,9 @@ export default function AdminApp() {
           ) : null}
           {safeActiveMenu === "EVENT_DEFAULTS" ? (
             <EventDefaultsPanel token={token} langCd={langCd} />
+          ) : null}
+          {safeActiveMenu === "GOOGLE_LINKS" ? (
+            <AdminGoogleLinkPanel token={token} langCd={langCd} />
           ) : null}
           {safeActiveMenu === "CORKBOARD" ? (
             <AdminCorkboardPanel token={token} currentUser={session.user} langCd={langCd} />

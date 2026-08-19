@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.lindyhopseoul.backend.exception.ForbiddenException;
+import com.lindyhopseoul.backend.exception.UnauthorizedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -22,14 +23,14 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionStatus;
 
-class AdminPasswordChangeInterceptorTest {
+class AdminApiAuthInterceptorTest {
 
     private final Map<String, AdminSession> sessions = new HashMap<>();
     private final Map<String, UserAccount> accounts = new HashMap<>();
 
     private PasswordHasher passwordHasher;
     private AdminSessionService adminSessionService;
-    private AdminPasswordChangeInterceptor interceptor;
+    private AdminApiAuthInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
@@ -38,7 +39,7 @@ class AdminPasswordChangeInterceptorTest {
         passwordHasher = new PasswordHasher();
         adminSessionService = new AdminSessionService(
                 sessionRepository(), userAccountRepository(), directTransactionManager());
-        interceptor = new AdminPasswordChangeInterceptor(adminSessionService);
+        interceptor = new AdminApiAuthInterceptor(adminSessionService);
     }
 
     @Test
@@ -92,23 +93,83 @@ class AdminPasswordChangeInterceptorTest {
         assertThat(preHandle("GET", "/api/admin/members", token)).isTrue();
     }
 
+    /**
+     * The guard, not the controller, is what closes an admin route. This used to
+     * pass an unauthenticated caller through so the handler could answer with its
+     * own 401, which meant a handler that forgot to ask was simply public.
+     */
     @Test
-    void defersToTheControllerWhenThereIsNoSession() {
-        // An unauthenticated caller is not a password problem; the controller
-        // should get to answer with its own 401.
-        assertThat(preHandle("GET", "/api/admin/members", null)).isTrue();
-        assertThat(preHandle("GET", "/api/admin/members", "not-a-real-token")).isTrue();
+    void rejectsACallerWithNoUsableSession() {
+        assertThatThrownBy(() -> preHandle("GET", "/api/admin/members", null))
+                .isInstanceOf(UnauthorizedException.class);
+        assertThatThrownBy(() -> preHandle("GET", "/api/admin/members", "not-a-real-token"))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
-    void defersToTheControllerOnceTheAccountIsDeactivated() {
+    void rejectsACallerWhoseAccountHasBeenDeactivated() {
         UserAccount user = userWithPendingChange();
         user.changePassword(passwordHasher.hash("brandnewpass"));
         String token = sessionFor(user);
 
         user.deactivate();
 
-        assertThat(preHandle("GET", "/api/admin/members", token)).isTrue();
+        assertThatThrownBy(() -> preHandle("GET", "/api/admin/members", token))
+                .isInstanceOf(UnauthorizedException.class);
+    }
+
+    /**
+     * Signing in is how a session is obtained, and signing out has to work with
+     * one that has already expired, so neither can require a live session.
+     */
+    @Test
+    void letsSignInAndSignOutThroughWithoutASession() {
+        assertThat(preHandle("POST", "/api/admin/auth/login", null)).isTrue();
+        assertThat(preHandle("POST", "/api/admin/auth/logout", null)).isTrue();
+    }
+
+    /**
+     * Google sign-in is a way in, so it cannot require the admin token it hands
+     * out. It is not open — the member session cookie is its credential, and the
+     * handler rejects the request without a live one.
+     */
+    @Test
+    void letsGoogleSignInThroughWithoutAnAdminToken() {
+        assertThat(preHandle("POST", "/api/admin/auth/google", null)).isTrue();
+    }
+
+    /**
+     * The allowlist matches a path exactly, so anything that merely resembles one
+     * of the named routes is authenticated rather than waved through.
+     */
+    @Test
+    void authenticatesPathsThatOnlyResembleTheAllowlist() {
+        assertThatThrownBy(() -> preHandle("POST", "/api/admin/auth/login/", null))
+                .isInstanceOf(UnauthorizedException.class);
+        assertThatThrownBy(() -> preHandle("POST", "/api/admin/auth/LOGIN", null))
+                .isInstanceOf(UnauthorizedException.class);
+    }
+
+    /**
+     * The routes the guard covers beyond {@code /api/admin/**}. Neither closes on
+     * its own: the teacher dashboard asks the session service from inside the
+     * handler, and the memo controller takes no Authorization header at all.
+     */
+    @Test
+    void guardsTheTeacherAndMemoRoutesToo() {
+        assertThatThrownBy(() -> preHandle("GET", "/api/teacher/dashboard", null))
+                .isInstanceOf(UnauthorizedException.class);
+        assertThatThrownBy(() -> preHandle("DELETE", "/api/memos/1", null))
+                .isInstanceOf(UnauthorizedException.class);
+    }
+
+    /**
+     * A browser preflight carries no Authorization header by design, so rejecting
+     * it would break every cross-origin admin call before it was made.
+     */
+    @Test
+    void letsPreflightThrough() {
+        assertThat(preHandle("OPTIONS", "/api/admin/members", null)).isTrue();
     }
 
     private UserAccount userWithPendingChange() {

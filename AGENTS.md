@@ -139,6 +139,35 @@ General members are Google OAuth members in `member`. Public members currently h
 
 Maintain guest class/event application flow unless explicitly changed. `POST /api/public/applications` supports unauthenticated applications.
 
+### Admin routes are closed by default
+
+`AdminApiAuthInterceptor` authenticates every request under `/api/admin/**`,
+`/api/teacher/**` and `/api/memos/**`, so a controller added under those
+prefixes is protected whether or not it remembers to ask. It keeps two
+allowlists: `/api/admin/auth/login` and `/api/admin/auth/logout` need no session
+at all, and `/api/admin/auth/me` plus `/api/admin/auth/me/password` stay
+reachable while an account still owes a password change. Both match a path
+exactly, so anything else fails closed.
+
+Handlers still call `AdminSessionService.requirePrincipal` to get the principal
+they act on — the answer is cached per request, so it costs nothing — but that
+call is no longer what stands between a stranger and the data. Do not remove the
+interceptor to "simplify"; before it, forgetting one line left a route public
+with nothing failing. `/api/memos/**` is under it because that is exactly what
+had happened there.
+
+Spring Security itself is still `permitAll` throughout (`SecurityConfig`), so a
+new prefix outside those three is public unless it is added here or guards
+itself. Member routes authenticate per handler via
+`CurrentMemberService.requireCurrentMember`.
+
+`POST /api/admin/auth/google` is the third allowlisted route: it signs staff in
+with the member session they already hold, for accounts a super admin paired via
+`USER_M.MEMBER_ID`. It is a way in, so it cannot require the admin token it
+issues — the member cookie is its credential. It does not bypass
+`mustChangePassword`. Read `docs/google-oauth-member-login.md` before touching
+it; the host-only session cookie is the part that surprises people.
+
 ## Registration Defaults
 
 What the event and lesson registration forms pre-fill with is data, not code. It

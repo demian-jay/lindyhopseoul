@@ -1,5 +1,7 @@
 package com.lindyhopseoul.backend.admin;
 
+import com.lindyhopseoul.backend.auth.CurrentMemberService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,18 +19,44 @@ public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
     private final AdminSessionService adminSessionService;
+    private final AdminGoogleSignInService adminGoogleSignInService;
+    private final CurrentMemberService currentMemberService;
 
     public AdminAuthController(
             AdminAuthService adminAuthService,
-            AdminSessionService adminSessionService
+            AdminSessionService adminSessionService,
+            AdminGoogleSignInService adminGoogleSignInService,
+            CurrentMemberService currentMemberService
     ) {
         this.adminAuthService = adminAuthService;
         this.adminSessionService = adminSessionService;
+        this.adminGoogleSignInService = adminGoogleSignInService;
+        this.currentMemberService = currentMemberService;
     }
 
     @PostMapping("/login")
     public AdminAuthResponse login(@Valid @RequestBody AdminLoginRequest request) {
         return adminAuthService.login(request);
+    }
+
+    /**
+     * Signs in with the member session this request already carries, for staff
+     * whose Google member account has been linked to theirs.
+     *
+     * <p>Carries no admin token — it is how one is obtained — so it sits in
+     * {@link AdminApiAuthInterceptor}'s anonymous allowlist next to
+     * {@code /login}. It is not unauthenticated: the member session cookie is the
+     * credential, and {@code requireCurrentMemberId} rejects the request without
+     * a live one.
+     *
+     * <p>The cookie is host-only, so this only answers on the host the member
+     * signed in to Google on. Reaching it from the admin app means the admin host
+     * runs its own OAuth round trip rather than borrowing the members' site's
+     * session — see {@code docs/google-oauth-member-login.md}.
+     */
+    @PostMapping("/google")
+    public AdminAuthResponse signInWithGoogle(HttpServletRequest request) {
+        return adminGoogleSignInService.signIn(currentMemberService.requireCurrentMemberId(request));
     }
 
     @GetMapping("/me")

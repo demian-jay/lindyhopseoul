@@ -61,7 +61,7 @@ Nothing else has to be set up — the `local` profile is the default,
 seeds the `admin` account into an empty database. One step is still manual.
 
 `UserAccount.create` does not set `pwdChangedAt`, so a freshly seeded `admin`
-reports `mustChangePassword`, and `AdminPasswordChangeInterceptor` answers
+reports `mustChangePassword`, and `AdminApiAuthInterceptor` answers
 `403 PASSWORD_CHANGE_REQUIRED` to every route except `/api/admin/auth/me` and
 `/api/admin/auth/me/password` — the dev token included. It is not silent; the
 startup log says so next to the token.

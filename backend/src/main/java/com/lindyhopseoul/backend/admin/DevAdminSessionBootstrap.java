@@ -86,7 +86,7 @@ public class DevAdminSessionBootstrap {
                     "'{}' still owes a password change, so {} rejects this token everywhere except"
                             + " /api/admin/auth/me and /api/admin/auth/me/password.",
                     DEV_LOGIN_ID,
-                    AdminPasswordChangeInterceptor.class.getSimpleName()
+                    AdminApiAuthInterceptor.class.getSimpleName()
             );
         }
     }

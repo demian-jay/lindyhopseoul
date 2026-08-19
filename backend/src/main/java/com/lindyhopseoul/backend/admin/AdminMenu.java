@@ -26,7 +26,12 @@ public enum AdminMenu {
     // What the event and lesson registration forms open with. Super admin only:
     // changing a default changes what every later registration starts from,
     // which reaches further than registering one event does.
-    EVENT_DEFAULTS;
+    EVENT_DEFAULTS,
+    // Which member account each admin may also sign in as. Super admin only, and
+    // for a stronger reason than the menus above: a link here is a way into an
+    // admin account, so granting one is the same kind of act as creating the
+    // account was.
+    GOOGLE_LINKS;
 
     public static List<AdminMenu> forRoles(Collection<AdminRole> roles) {
         if (roles == null || roles.isEmpty()) {
@@ -60,10 +65,11 @@ public enum AdminMenu {
                     MEMBER_ACTION_LOGS,
                     MESSAGE_TEMPLATE_REGISTRATION,
                     KNOWLEDGE_BASE_REGISTRATION,
-                    EVENT_DEFAULTS
+                    EVENT_DEFAULTS,
+                    GOOGLE_LINKS
             );
-            // Same as super admin minus MEMBER_ACTION_LOGS and EVENT_DEFAULTS,
-            // which stay super admin only.
+            // Same as super admin minus MEMBER_ACTION_LOGS, EVENT_DEFAULTS and
+            // GOOGLE_LINKS, which stay super admin only.
             case STAFF -> List.of(
                     DASHBOARD,
                     OPERATION_CHECK,

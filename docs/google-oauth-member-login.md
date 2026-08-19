@@ -329,9 +329,88 @@ docker exec lindyhopseoul-mariadb mariadb -ulindyhop_dev -plindyhop_dev_password
 docker exec lindyhopseoul-mariadb mariadb -ulindyhop_dev -plindyhop_dev_password lindyhopseoul -e "SHOW COLUMNS FROM member LIKE '%token%'; SHOW COLUMNS FROM member LIKE '%image%'; SHOW COLUMNS FROM member LIKE '%profile%'; SHOW INDEX FROM member WHERE Key_name='uk_member_provider_provider_id';"
 ```
 
+## Staff Signing In With Google
+
+Landed 2026-08-19, both sides.
+
+Staff who already registered as ordinary members with Google can reach the admin
+app with that account, once a super admin has paired the two rows. The pairing is
+explicit and never inferred from a matching email — a Google address can be given
+up and handed to someone else, and an admin account is worth more than a string
+it happens to share.
+
+| Piece | Where |
+| --- | --- |
+| The link | `USER_M.MEMBER_ID`, nullable, unique |
+| Sign-in exchange | `POST /api/admin/auth/google` → `AdminGoogleSignInService` |
+| Managing links | `/api/admin/google-links`, `AdminGoogleLinkService`, super admin only |
+| Sign-in button | `LoginScreen` in `src/AdminApp.jsx` |
+| Linking screen | 설정 › 구글 계정 연동, `src/AdminGoogleLinkPanel.jsx`, menu `GOOGLE_LINKS` |
+
+The exchange reads the **member** session cookie on the request and answers with
+the same `AdminAuthResponse` a password sign-in returns, so the admin app stores
+the token exactly as it already does and its auto-login keeps working unchanged.
+It sits in `AdminApiAuthInterceptor`'s anonymous allowlist because it is a way in
+and cannot require the token it hands out — the member cookie is its credential.
+
+What it refuses, all with one message so a caller cannot probe which case it hit:
+a member who is not `ACTIVE` (withdrawal keeps the row, so a link made earlier
+still points at it), a member no account is linked to, and a deactivated admin
+account.
+
+`mustChangePassword` is deliberately **not** bypassed. Arriving by Google is a
+second door into the account, not a way past the controls on it, so an account
+that still owes a password change is held at the password screen either way.
+
+### The cross-host part, which is the one that bites
+
+The member session cookie sets no `Domain`, so it is host-only. The members app
+is `swingpopseoul.com` and the admin app is `admin.swingpopseoul.com`, which
+means a member session established on the members site is **not** sent to the
+admin host and the exchange will answer 401 there.
+
+The chosen fix is for the admin host to run its own OAuth round trip rather than
+widen the cookie. That needs, before this works in production:
+
+- `https://admin.swingpopseoul.com/login/oauth2/code/google` added to the Google
+  Cloud Console authorised redirect URIs
+- `admin.swingpopseoul.com` added to `APP_OAUTH2_ALLOWED_REDIRECT_HOSTS` in
+  `/etc/lindyhop/backend.env`
+
+Neither is in this repository, so neither fails a build or a test. Locally
+everything runs on one origin, so local testing passes without them and tells you
+nothing about production.
+
+`ddl-auto: update` adds `MEMBER_ID` and its unique constraint on its own —
+verified against MariaDB on 2026-08-19, index `UK_USER_M_MEMBER_ID`. Existing
+rows are no obstacle: MariaDB permits many NULLs in a unique index.
+
+### The button, and why it does not sign anyone in by itself
+
+The exchange runs only when someone presses the button, never on load. A member
+session plus an automatic exchange would mean any unlocked phone signed in to the
+members site was also signed in to admin, which is not what linking an account is
+meant to buy.
+
+Pressing it tries the exchange first, in case a member session is already on this
+origin, and only sends the browser to Google when there is none. Before leaving it
+records `swingpop-admin-google-return` in `sessionStorage`, holding the path to
+come back to; `src/main.jsx` reads it and puts the path back before React renders,
+because Google returns to `/oauth/success` — the members app's route. On the admin
+host that is harmless, since the whole origin is the admin app, but local dev
+serves both from `localhost:5173` and would otherwise land on the public site.
+`LoginScreen` clears the flag as it resumes, so a failed exchange leaves the
+screen idle rather than bouncing to Google on every reload.
+
+Local testing therefore needs Vite on **5173**, not another port:
+`APP_OAUTH2_SUCCESS_REDIRECT_URI` in `.env` names it, and a mismatch sends the
+return trip to an origin with nothing listening. `.claude/launch.json` was moved
+to 5173 for this on 2026-08-19.
+
 ## Known Gotchas
 
 - `redirect_uri_mismatch` means Google Cloud Console and Spring Boot redirect URI differ. For current local testing, both must be `http://localhost:18080/login/oauth2/code/google`.
+- A staff Google sign-in that answers 401 on the admin host, while the same account works on the members host, is the host-only session cookie above — not a broken link row.
 - If `/api/auth/me` stays false after login, check session cookie, CORS credentials, and whether frontend is really using `VITE_API_BASE_URL=http://localhost:18080`.
 - If login succeeds but no member row is created, check `OAuth2LoginSuccessHandler` and `GoogleOAuth2MemberService`.
 - If duplicate members are created, verify `provider_id` comes from Google `sub` and the unique constraint exists.
