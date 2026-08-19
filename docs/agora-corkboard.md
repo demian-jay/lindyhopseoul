@@ -329,6 +329,10 @@ Design notes:
 - Owner content editing and soft deletion are available from a small `...` action menu on the user's own visible current-board `MEMBER` notes.
 - If a member already has an active sticker for the selected period, the write flow shows a centered replacement confirmation modal before sending `replaceExisting=true`.
 - If a member's current-period note is hidden for moderation, the write flow shows a staff-review message and does not allow replacement.
+- The admin board has three views, in this order: `메모 모아보기` / Note List, `관리용 보기` / Management View, `보드 미리보기` / Board Preview. `관리용 보기` remains the one it opens on.
+  - `메모 모아보기` is the notes on their own, sized to be read: sticker template, content, author, date, and a note count. It is deliberately read-only — moderation stays in the management view rather than being spread across two screens that would then have to agree. Hidden notes still appear, badged and dimmed, because admin sees what the public does not.
+  - Its grid floor is 140px measured against the panel's content box, not the viewport: a 375px phone leaves about 301px there and fits two columns, a 320px one falls to a single column. `min(100%, 140px)` is what allows that fall instead of a sideways scroll.
+  - The view toggle is a wrapping flexbox rather than a fixed column count, so a fourth view would need no CSS change and three Korean labels wrap to a second row on a 320px screen instead of overflowing.
 - The admin panel uses compact numeric `positionX`, `positionY`, and `rotationDeg` inputs per note card to keep the management layout operational.
 - The admin panel allows inline content editing only for `OFFICIAL` note cards.
 - Existing slot-only notes use deterministic fallback coordinates from `slotIndex`.

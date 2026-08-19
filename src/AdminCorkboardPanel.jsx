@@ -67,8 +67,10 @@ const COPY = {
     board: "Board",
     preview: "미리보기",
     view: "보기",
+    noteListView: "메모 모아보기",
     manageView: "관리용 보기",
     boardPreviewView: "보드 미리보기",
+    noteListCount: (count) => `메모 ${count}개`,
     collapse: "접기",
     hide: "숨기기",
     unhide: "숨김 해제",
@@ -169,8 +171,10 @@ const COPY = {
     board: "Board",
     preview: "Preview",
     view: "View",
+    noteListView: "Note List",
     manageView: "Management View",
     boardPreviewView: "Board Preview",
+    noteListCount: (count) => `${count} note${count === 1 ? "" : "s"}`,
     collapse: "Collapse",
     hide: "Hide",
     unhide: "Unhide",
@@ -743,6 +747,68 @@ function AdminCorkboardNoteGrid({
           onUpdateContent={onUpdateContent}
         />
       ))}
+    </div>
+  );
+}
+
+/**
+ * The notes on their own, sized to be read.
+ *
+ * The management grid answers "where does this note sit and should it stay up",
+ * and the board preview answers "what does the wall look like". Neither is a
+ * comfortable way to simply read what people wrote, which is the thing staff do
+ * most often — so this view drops the coordinates and the controls and keeps the
+ * sticker, the words, the author and the date.
+ *
+ * Read-only on purpose: moderation stays in one place rather than being spread
+ * across two screens that would then have to agree with each other.
+ */
+function AdminCorkboardNoteList({ page, labels, langCd }) {
+  const notes = sortedNotes(page);
+
+  if (!notes.length) {
+    return <div className="admin-corkboard-empty">{labels.empty}</div>;
+  }
+
+  return (
+    <div>
+      <p className="admin-corkboard-note-list-count">{labels.noteListCount(notes.length)}</p>
+      <div className="admin-corkboard-note-list">
+        {notes.map((note) => {
+          const isOfficial = note?.noteType === "OFFICIAL";
+
+          return (
+            <article
+              key={note.id}
+              className={[
+                "admin-corkboard-list-note",
+                `corkboard-template-${note?.stickerTemplateKey || "yellow"}`,
+                note?.hidden ? "is-hidden" : "",
+              ].filter(Boolean).join(" ")}
+            >
+              <div className="admin-corkboard-list-note-badges">
+                <span className={`admin-corkboard-badge ${isOfficial ? "is-official" : "is-member"}`}>
+                  {isOfficial ? labels.official : labels.member}
+                </span>
+                {/* Only when hidden. A "visible" badge on every note would be
+                    noise on a screen whose whole point is the writing. */}
+                {note?.hidden ? (
+                  <span className="admin-corkboard-badge is-hidden">{labels.hidden}</span>
+                ) : null}
+              </div>
+
+              <p className="admin-corkboard-list-note-content">{note?.content}</p>
+
+              <footer className="admin-corkboard-list-note-footer">
+                <span>{noteAuthor(note, labels)}</span>
+                <time dateTime={note?.createdAt || undefined}>
+                  {formatAdminDate(note?.createdAt, langCd)}
+                </time>
+              </footer>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1427,6 +1493,17 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
               <div className="admin-corkboard-view-toggle" role="tablist" aria-label="Corkboard view mode">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={boardViewMode === "list"}
+                  className={boardViewMode === "list" ? "is-active" : ""}
+                  onClick={() => setBoardViewMode("list")}
+                >
+                  {labels.noteListView}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={boardViewMode === "manage"}
                   className={boardViewMode === "manage" ? "is-active" : ""}
                   onClick={() => setBoardViewMode("manage")}
                 >
@@ -1434,6 +1511,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={boardViewMode === "preview"}
                   className={boardViewMode === "preview" ? "is-active" : ""}
                   onClick={() => setBoardViewMode("preview")}
                 >
@@ -1469,6 +1548,8 @@ export default function AdminCorkboardPanel({ token, currentUser, langCd = "Kor"
 
           {isLoading && !selected ? (
             <div className="grid min-h-80 place-items-center text-sm font-bold text-swing-muted">{labels.loading}</div>
+          ) : boardViewMode === "list" ? (
+            <AdminCorkboardNoteList page={activePage} labels={labels} langCd={langCd} />
           ) : boardViewMode === "preview" ? (
             <div className="admin-corkboard-preview-board">
               <CorkboardBoard
