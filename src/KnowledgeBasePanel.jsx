@@ -951,7 +951,12 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
 
             <div className="min-h-0 flex-1 overflow-y-auto p-5">
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {/* Two per row from the point the modal stops growing. Keyed to sm
+                rather than lg because the panel is capped at max-w-3xl: between
+                640 and 1024px the modal was already as wide as it ever gets
+                while a viewport-keyed lg still had it in one column, so a date
+                picker sat alone across 711px. */}
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label={kb.category}>
                 <SelectInput name="categoryId" value={itemForm.categoryId} onChange={handleCommonItemChange}>
                   {categories.map((category) => {
@@ -988,7 +993,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
               <Field label={kb.displayOrder}>
                 <TextInput name="displayOrder" type="number" value={itemForm.displayOrder} onChange={handleCommonItemChange} />
               </Field>
-              <div className="lg:col-span-2">
+              <div className="sm:col-span-2">
                 <Field label={kb.sourceNote}>
                   <TextInput name="sourceNote" value={itemForm.sourceNote} onChange={handleCommonItemChange} />
                 </Field>
