@@ -382,6 +382,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
   const [activeCategoryFormLanguage, setActiveCategoryFormLanguage] = useState(preferredLanguage);
   const [itemForm, setItemForm] = useState(() => createItemForm("", FALLBACK_SUPPORTED_LANGUAGES));
   const [editingItemId, setEditingItemId] = useState(null);
+  const [isItemFormOpen, setIsItemFormOpen] = useState(false);
   const [categoryForm, setCategoryForm] = useState(() => createCategoryForm(FALLBACK_SUPPORTED_LANGUAGES));
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -473,6 +474,35 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
     setActiveItemFormLanguage(manualLanguage);
   };
 
+  /**
+   * Writing a decision happens in a modal rather than in a form standing open
+   * below the list. One form served both "new" and "edit" before, which meant
+   * the screen always carried a full-height empty form, and whether it was
+   * about to create or overwrite depended on a piece of state nothing on screen
+   * named. Now it is only present while it is being used, and it says which of
+   * the two it is doing.
+   */
+  const openCreateItemForm = () => {
+    resetItemForm();
+    setNotice("");
+    setError("");
+    setIsItemFormOpen(true);
+  };
+
+  const closeItemForm = useCallback(() => {
+    setIsItemFormOpen(false);
+    resetItemForm();
+  // resetItemForm is redefined every render; the values it closes over are the
+  // ones this callback is meant to reset to, so leave it out rather than making
+  // the callback change identity on every keystroke.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, supportedLanguages, manualLanguage]);
+
+  // Closed by the back gesture like every other modal here, so back does not
+  // reach the exit prompt behind it. Clicking the backdrop and pressing Escape
+  // deliberately do not close it — this one holds typing.
+  useModalBackDismiss(isItemFormOpen, "admin-knowledge-item-form", closeItemForm);
+
   const resetCategoryForm = () => {
     setEditingCategoryId(null);
     setCategoryForm(createCategoryForm(supportedLanguages));
@@ -549,6 +579,7 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
     setActiveItemFormLanguage(manualLanguage);
     setNotice("");
     setError("");
+    setIsItemFormOpen(true);
   };
 
   const handleSubmitItem = async (event) => {
@@ -574,6 +605,9 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
         : await adminApi.createKnowledgeItem(token, payload);
 
       setNotice(editingItemId ? kb.itemUpdated : kb.itemCreated);
+      // Only on success: a failed save leaves the modal open with the typing
+      // still in it, so the person can fix what the error named.
+      setIsItemFormOpen(false);
       resetItemForm();
       await loadBootstrap();
       setSelectedItemId(savedItem.status === "PUBLISHED" ? savedItem.id : null);
@@ -692,17 +726,34 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
           {/* Searching is the whole point of the read-only screen, so its
               fields are never folded away behind a toggle. */}
           {readOnly ? null : (
-            <button
-              type="button"
-              onClick={() => setShowFilters((current) => !current)}
-              className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
-            >
-              {showFilters ? labels.common.hideFilters : labels.common.showFilters}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {canManage ? (
+                <button
+                  type="button"
+                  onClick={openCreateItemForm}
+                  disabled={categories.length === 0}
+                  className="rounded-lg bg-swing-teal-deep px-3 py-2 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
+                >
+                  {kb.createItemTitle}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setShowFilters((current) => !current)}
+                className="rounded-lg border border-swing-border/55 bg-swing-paper px-3 py-2 text-sm font-semibold text-swing-ink/80 transition hover:bg-swing-cream/50"
+              >
+                {showFilters ? labels.common.hideFilters : labels.common.showFilters}
+              </button>
+            </div>
           )}
         </div>
+        {/* Three conditions on one row wherever they fit. This used to widen at
+            xl, which is the viewport and not the width this panel actually gets
+            — the sidebar takes its share — so on anything short of a wide
+            desktop each field became its own full-width row. Keyed off md now,
+            with the two selects capped so the search box takes the slack. */}
         <div
-          className={`mt-4 gap-4 xl:grid-cols-[minmax(0,1fr)_260px_240px] ${
+          className={`mt-4 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_minmax(0,9rem)] ${
             showFilters || readOnly ? "grid" : "hidden"
           }`}
         >
@@ -875,19 +926,30 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
         )}
       </div>
 
-      {canManage ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <form onSubmit={handleSubmitItem} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
+      {canManage && isItemFormOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[70] flex items-start justify-center bg-swing-ink/40 p-4 sm:p-8"
+        >
+          {/* Capped to the viewport with the body scrolling inside, so the title
+              and the save button stay reachable on a phone. No backdrop-click or
+              Escape close: this holds typing, and both are easy to hit by
+              accident. */}
+          <form
+            onSubmit={handleSubmitItem}
+            className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-swing-border/30 bg-swing-paper shadow-lg"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-swing-border/30 p-5">
               <h2 className="text-lg font-bold text-swing-ink">
                 {editingItemId ? kb.editItemTitle : kb.createItemTitle}
               </h2>
-              {editingItemId ? (
-                <button type="button" onClick={resetItemForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
-                  {labels.common.cancel}
-                </button>
-              ) : null}
+              <button type="button" onClick={closeItemForm} className="text-sm font-semibold text-swing-muted hover:text-swing-ink">
+                {labels.common.cancel}
+              </button>
             </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <Field label={kb.category}>
@@ -974,15 +1036,27 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSaving || categories.length === 0}
-              className="mt-5 inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
-            >
-              {isSaving ? labels.common.saving : editingItemId ? labels.common.save : labels.common.create}
-            </button>
-          </form>
+            </div>
 
+            <div className="shrink-0 border-t border-swing-border/30 p-5">
+              <button
+                type="submit"
+                disabled={isSaving || categories.length === 0}
+                className="inline-flex min-h-[42px] w-full items-center justify-center rounded-lg bg-swing-teal-deep px-4 text-sm font-semibold text-swing-paper transition hover:bg-swing-teal disabled:cursor-not-allowed disabled:bg-swing-sage disabled:text-swing-ink/70"
+              >
+                {isSaving ? labels.common.saving : editingItemId ? labels.common.save : labels.common.create}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {/* Category management is all that is left standing on the page now that
+          writing a decision happens in a modal. Its form was built for a 390px
+          column, so it keeps that width and the list takes the room the item
+          form used to occupy, rather than both stretching across the page. */}
+      {canManage ? (
+        <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)] xl:items-start">
           <div className="grid gap-5">
             <form onSubmit={handleSubmitCategory} className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
@@ -1035,7 +1109,9 @@ export default function KnowledgeBasePanel({ token, currentUser, labels, langCd,
                 {isSaving ? labels.common.saving : editingCategoryId ? labels.common.save : labels.common.create}
               </button>
             </form>
+          </div>
 
+          <div className="grid gap-5">
             <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
               <h2 className="text-lg font-bold text-swing-ink">{kb.categoryListTitle}</h2>
               <div className="mt-4 grid gap-2">
