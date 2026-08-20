@@ -960,9 +960,9 @@ function ParticipantList({ participants, copy, onRemoveParticipant }) {
   );
 }
 
-export function Field({ label, children }) {
+export function Field({ label, children, className = "" }) {
   return (
-    <label className="block">
+    <label className={`block ${className}`}>
       <span className="text-xs font-semibold text-swing-muted">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
@@ -2431,7 +2431,10 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
         {readOnly ? (
         <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
           <h2 className="text-lg font-bold text-swing-ink">{copy.preview}</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {/* All three conditions in one grid. 언어 used to sit in a second grid
+              of its own, so it could never pair with the other two and always
+              took a full row to hold one short select. */}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label={copy.templates}>
               <SelectInput
                 value={preview.templateId}
@@ -2456,8 +2459,6 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
                 ))}
               </SelectInput>
             </Field>
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label={copy.language}>
               <SelectInput
                 value={preview.languageCode}
@@ -2498,8 +2499,12 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
             <h2 className="text-lg font-bold text-swing-ink">
               {editingId ? copy.templateEditTitle : copy.templateCreateTitle}
             </h2>
-            <div className="mt-4 grid gap-4">
-              <Field label={copy.templateName}>
+            {/* The two short selects pair up; the name and the body keep the
+                full width, which is what they actually use. Keyed to sm because
+                this panel is capped at max-w-2xl and so stops growing long
+                before a viewport-keyed md or lg would fire. */}
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label={copy.templateName} className="sm:col-span-2">
                 <TextInput name="templateName" value={form.templateName} onChange={handleChange} disabled={!canManage} />
               </Field>
               <Field label={copy.templateType}>
@@ -2517,7 +2522,7 @@ export function MessageTemplatePanel({ token, currentUser, langCd, readOnly = fa
                   <option value="N">N</option>
                 </SelectInput>
               </Field>
-              <Field label={copy.content}>
+              <Field label={copy.content} className="sm:col-span-2">
                 <div className="grid gap-3">
                   <LanguageTabs activeLanguage={activeTemplateLanguage} onChange={setActiveTemplateLanguage} />
                   <TextArea value={activeTemplateContent} onChange={handleContentChange} rows={10} disabled={!canManage} />
