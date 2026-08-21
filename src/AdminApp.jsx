@@ -2433,6 +2433,9 @@ function AdminUsersPanel({ token, currentUser, langCd, labels }) {
         getKey={(item) => item.adminUserCd}
         getName={(item) => item.adminUserNm}
         getCode={(item) => item.adminUserCd}
+        // A staff account may only edit its own row, so the columns about
+        // accounts it cannot touch are noise: it keeps 아이디, 권한 and 작업.
+        compact={!canManageSuperAdmin}
         onEdit={handleEdit}
         onDeactivate={handleDeactivate}
         canEdit={(item) => canManageSuperAdmin || isSelf(item)}
@@ -2630,6 +2633,51 @@ function TeacherUsersPanel({ token, langCd, labels }) {
   );
 }
 
+/**
+ * The columns, as data rather than as two lists of JSX that have to be kept in
+ * step. `compact` drops everything a staff account has no say over, and header
+ * and cell come from the same entry, so a hidden column cannot leave its heading
+ * behind.
+ */
+const ACCOUNT_COLUMNS = [
+  {
+    key: "name",
+    label: (labels) => labels.fields.name,
+    cell: ({ item, getName }) => getName(item),
+    className: "font-semibold text-swing-ink",
+  },
+  {
+    key: "loginId",
+    label: (labels) => labels.fields.loginId,
+    cell: ({ item }) => item.loginId,
+    className: "text-swing-muted",
+    alwaysVisible: true,
+  },
+  {
+    key: "role",
+    label: (labels) => labels.fields.role,
+    cell: ({ item, labels }) => <RoleBadges item={item} labels={labels} />,
+    alwaysVisible: true,
+  },
+  {
+    key: "language",
+    label: (labels) => labels.fields.language,
+    cell: ({ item, labels }) => labels.languages[item.langCd || "Kor"],
+    className: "text-swing-muted",
+  },
+  {
+    key: "status",
+    label: (labels) => labels.fields.status,
+    cell: ({ item, labels }) => <StatusBadge useYn={item.useYn} labels={labels} />,
+  },
+  {
+    key: "updatedAt",
+    label: (labels) => labels.fields.updatedAt,
+    cell: ({ item, langCd }) => formatDate(item.modDt, langCd),
+    className: "text-swing-muted",
+  },
+];
+
 function AccountTable({
   title,
   isLoading,
@@ -2642,7 +2690,14 @@ function AccountTable({
   onDeactivate,
   canEdit,
   canDeactivate,
+  // Staff see the account list but may only edit their own row, so the columns
+  // describing accounts they cannot touch are noise to them. Presentation only:
+  // the API still answers with the whole record, and what an account may
+  // actually do is decided server-side.
+  compact = false,
 }) {
+  const columns = compact ? ACCOUNT_COLUMNS.filter((column) => column.alwaysVisible) : ACCOUNT_COLUMNS;
+
   return (
     <div className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
@@ -2651,33 +2706,31 @@ function AccountTable({
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-[860px] w-full border-separate border-spacing-0 text-left text-sm">
+        {/* The floor exists so seven columns do not crush into a phone; three
+            columns fit without it, and keeping it would force a sideways scroll
+            over empty space. */}
+        <table className={`w-full border-separate border-spacing-0 text-left text-sm ${compact ? "" : "min-w-[860px]"}`}>
           <thead>
             <tr className="text-xs font-semibold uppercase text-swing-muted">
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.name}</th>
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.loginId}</th>
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.role}</th>
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.language}</th>
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.status}</th>
-              <th className="border-b border-swing-border/30 px-3 py-2">{labels.fields.updatedAt}</th>
+              {columns.map((column) => (
+                <th key={column.key} className="border-b border-swing-border/30 px-3 py-2">
+                  {column.label(labels)}
+                </th>
+              ))}
               <th className="border-b border-swing-border/30 px-3 py-2 text-right">{labels.fields.actions}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={getKey(item)} className="align-middle">
-                <td className="border-b border-swing-border/20 px-3 py-3 font-semibold text-swing-ink">{getName(item)}</td>
-                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{item.loginId}</td>
-                <td className="border-b border-swing-border/20 px-3 py-3">
-                  <RoleBadges item={item} labels={labels} />
-                </td>
-                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">
-                  {labels.languages[item.langCd || "Kor"]}
-                </td>
-                <td className="border-b border-swing-border/20 px-3 py-3">
-                  <StatusBadge useYn={item.useYn} labels={labels} />
-                </td>
-                <td className="border-b border-swing-border/20 px-3 py-3 text-swing-muted">{formatDate(item.modDt, langCd)}</td>
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={`border-b border-swing-border/20 px-3 py-3 ${column.className || ""}`}
+                  >
+                    {column.cell({ item, labels, langCd, getName })}
+                  </td>
+                ))}
                 <td className="border-b border-swing-border/20 px-3 py-3">
                   <div className="flex justify-end gap-2">
                     <button
