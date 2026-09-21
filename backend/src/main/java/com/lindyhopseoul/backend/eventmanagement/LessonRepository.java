@@ -77,7 +77,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             left join fetch lesson.teachers lessonTeachers
             left join fetch lessonTeachers.teacherUser
             where assignedTeacher.teacherUser.teacherUserCd = :teacherUserId
-              and lesson.status = :status
+              and (:status is null or lesson.status = :status)
               and (:from is null or lesson.endDate >= :from)
               and (:to is null or lesson.startDate <= :to)
             order by lesson.startDate asc, event.displayOrder asc, lesson.displayOrder asc, lesson.startTime asc, lesson.id asc

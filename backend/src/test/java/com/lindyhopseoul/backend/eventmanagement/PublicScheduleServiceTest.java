@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class PublicScheduleServiceTest {
@@ -26,6 +27,28 @@ class PublicScheduleServiceTest {
     @BeforeEach
     void setUp() {
         service = new PublicScheduleService(eventRepository);
+    }
+
+    @Test
+    void eventDisplayOrderWinsOverDateWithStableDateAndIdTies() {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+        Event saturday = orderedEvent(2L, EventType.REGULAR_CLASS, 2, LocalDate.of(2026, 7, 11));
+        Event dialogue = orderedEvent(1L, EventType.DIALOGUE_PARTY, 5, LocalDate.of(2026, 7, 4));
+        Event sameOrderEarlierDate = orderedEvent(3L, EventType.PARTY, 2, LocalDate.of(2026, 7, 10));
+        Event sameOrderSameDate = orderedEvent(4L, EventType.PARTY, 2, LocalDate.of(2026, 7, 11));
+        when(eventRepository.findPublishedDetails(from, null))
+                .thenReturn(List.of(dialogue, sameOrderSameDate, saturday, sameOrderEarlierDate));
+
+        assertThat(service.findOpenSchedules(from, null))
+                .extracting(PublicScheduleItemResponse::eventId)
+                .containsExactly(3L, 2L, 4L, 1L);
+    }
+
+    private Event orderedEvent(Long id, EventType type, int displayOrder, LocalDate startDate) {
+        Event event = Event.create(type, startDate, startDate, LocalTime.of(14, 0),
+                LocalTime.of(17, 0), "Studio", EventStatus.PUBLISHED, displayOrder);
+        ReflectionTestUtils.setField(event, "id", id);
+        return event;
     }
 
     @Test

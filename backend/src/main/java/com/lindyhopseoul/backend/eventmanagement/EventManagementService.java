@@ -217,7 +217,7 @@ public class EventManagementService {
 
     @Transactional
     public void deleteLesson(AdminPrincipal actor, Long lessonId) {
-        requireEventDeleter(actor);
+        requireEventEditor(actor);
         Lesson lesson = findLessonEntity(lessonId);
         List<Long> lessonIds = List.of(lessonId);
         // Same FK cleanup as deleteEvent, scoped to the single lesson.
@@ -267,12 +267,20 @@ public class EventManagementService {
             AdminPrincipal actor,
             LocalDate from,
             LocalDate to,
-            LessonStatus status
+            LessonStatus status,
+            boolean includeFinished
     ) {
         requireEventReader(actor);
-        List<Lesson> lessons = actor.canManageEvents()
-                ? lessonRepository.findLessonsInRange(from, to, status)
-                : ownTeacherLessons(actor, from, to, status);
+        LessonStatus requestedStatus = includeFinished ? status : LessonStatus.PUBLISHED;
+        List<Lesson> candidates = actor.canManageEvents()
+                ? lessonRepository.findLessonsInRange(from, to, requestedStatus)
+                : ownTeacherLessons(actor, from, to, requestedStatus);
+        List<Lesson> lessons = candidates.stream()
+                .filter(lesson -> includeFinished || (lesson.getStatus() == LessonStatus.PUBLISHED
+                        && lesson.getEvent().getStatus() == EventStatus.PUBLISHED))
+                .sorted(Comparator.comparing(Lesson::getStartDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Lesson::getId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
         Map<Long, List<EventApplicationResponse>> participantsByLessonId = participantsVisibleTo(actor, lessons);
         return lessons.stream()
                 .map(lesson -> new AdminLessonBoardResponse(
@@ -283,6 +291,7 @@ public class EventManagementService {
                         lesson.getEvent().getEventType(),
                         lesson.getLessonType(),
                         lesson.getStatus(),
+                        lesson.getEvent().getStatus(),
                         lesson.getStartDate(),
                         lesson.getEndDate(),
                         lesson.getStartTime(),
@@ -310,7 +319,7 @@ public class EventManagementService {
                         teacher.getTeacherUserCd(),
                         from,
                         to,
-                        status == null ? LessonStatus.PUBLISHED : status
+                        status
                 ))
                 .orElseGet(List::of);
     }
@@ -839,7 +848,7 @@ public class EventManagementService {
 
     private void requireEventDeleter(AdminPrincipal actor) {
         if (!actor.canDeleteEvents()) {
-            throw new ForbiddenException("Only super admins can delete events and lessons.");
+            throw new ForbiddenException("Only super admins can delete events.");
         }
     }
 

@@ -28,6 +28,10 @@ public class PublicScheduleService {
 
         return eventRepository.findPublishedDetails(searchFrom, to)
                 .stream()
+                .sorted(Comparator
+                        .comparing(Event::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Event::getStartDate)
+                        .thenComparing(Event::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                 .flatMap(event -> toPublicItems(event, searchFrom, to).stream())
                 .toList();
     }

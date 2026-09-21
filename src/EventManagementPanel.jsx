@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { adminApi } from "./api/admin";
 import MemberNameLabel from "./MemberNameLabel";
@@ -177,11 +177,16 @@ const COPY_TEXT = {
     to: "종료일",
     eventType: "이벤트 타입",
     eventStatus: "이벤트 상태",
+    includeFinishedEvents: "종료 이벤트 포함",
+    eventPeriod: "기간",
+    newestEventsFirst: "이벤트 시작일 최신순",
+    newestLessonsFirst: "강습 시작일 최신순",
     showFilters: "검색 조건",
     hideFilters: "검색 조건 닫기",
     all: "전체",
     events: "이벤트",
     createEvent: "이벤트 등록",
+    newRegistration: "신규등록",
     edit: "수정",
     editEvent: "이벤트 수정",
     eventDetail: "이벤트 상세",
@@ -193,6 +198,7 @@ const COPY_TEXT = {
     noLessonsInRange: "해당 기간에 강습이 없습니다.",
     addLesson: "강습 추가",
     editLesson: "강습 수정",
+    deleteLesson: "강습 삭제",
     promotion: "홍보 메시지 만들기",
     save: "저장",
     create: "등록",
@@ -286,7 +292,7 @@ const COPY_TEXT = {
     lessonDeleted: "강습이 삭제되었습니다.",
     templateDeleted: "템플릿이 삭제되었습니다.",
     confirmDeleteEvent: "이 이벤트를 삭제할까요?",
-    confirmDeleteLesson: "이 강습을 삭제할까요?",
+    confirmDeleteLesson: "이 강습을 삭제할까요? 해당 강습의 신청 내역과 공지사항도 함께 삭제되며 복구할 수 없습니다.",
     confirmDeleteTemplate: "이 템플릿을 삭제할까요?",
     confirmLoadEventDefaults: "선택한 이벤트 타입의 기본 정보를 불러올까요? 현재 입력한 기본 정보가 덮어쓰기 됩니다.",
   },
@@ -296,11 +302,16 @@ const COPY_TEXT = {
     to: "To",
     eventType: "Event Type",
     eventStatus: "Event Status",
+    includeFinishedEvents: "Include finished events",
+    eventPeriod: "Dates",
+    newestEventsFirst: "Latest event start date first",
+    newestLessonsFirst: "Latest lesson start date first",
     showFilters: "Filters",
     hideFilters: "Hide Filters",
     all: "All",
     events: "Events",
     createEvent: "Create Event",
+    newRegistration: "New Registration",
     edit: "Edit",
     editEvent: "Edit Event",
     eventDetail: "Event Detail",
@@ -312,6 +323,7 @@ const COPY_TEXT = {
     noLessonsInRange: "No lessons in this range.",
     addLesson: "Add Lesson",
     editLesson: "Edit Lesson",
+    deleteLesson: "Delete Lesson",
     promotion: "Create Promotion Message",
     save: "Save",
     create: "Create",
@@ -405,7 +417,7 @@ const COPY_TEXT = {
     lessonDeleted: "Lesson has been deleted.",
     templateDeleted: "Template has been deleted.",
     confirmDeleteEvent: "Delete this event?",
-    confirmDeleteLesson: "Delete this lesson?",
+    confirmDeleteLesson: "Delete this lesson? Its applications and notices will also be permanently deleted. This cannot be undone.",
     confirmDeleteTemplate: "Delete this template?",
     confirmLoadEventDefaults: "Load the default information for the selected event type? Current basic information will be overwritten.",
   },
@@ -441,10 +453,7 @@ function monthRange() {
 
 function emptyEventFilters() {
   return {
-    from: "",
-    to: "",
-    eventType: "",
-    status: "",
+    status: "PUBLISHED",
   };
 }
 
@@ -1503,25 +1512,30 @@ export function LessonBoardPanel({ token, langCd }) {
   const languageCode = toManualLanguage(langCd);
   const [lessons, setLessons] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
-  const [isListOpen, setIsListOpen] = useState(true);
+  const [includeFinished, setIncludeFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const listRequestId = useRef(0);
 
-  // No date filter: the whole published schedule, which the server already
-  // narrows to a teacher's own lessons when that is who is asking.
+  // The server filters both event and lesson status and keeps teachers scoped
+  // to their own lessons, including when finished items are requested.
   const loadLessons = useCallback(async () => {
+    const requestId = ++listRequestId.current;
     setIsLoading(true);
     try {
-      const list = await adminApi.findLessonBoard(token, { status: "PUBLISHED" });
+      const list = await adminApi.findLessonBoard(token, { includeFinished });
+      if (requestId !== listRequestId.current) return;
       setLessons(list || []);
+      setSelectedLessonId((current) => (list || []).some((lesson) => lesson.lessonId === current) ? current : null);
       setError("");
     } catch (nextError) {
+      if (requestId !== listRequestId.current) return;
       setLessons([]);
       setError(nextError.message);
     } finally {
-      setIsLoading(false);
+      if (requestId === listRequestId.current) setIsLoading(false);
     }
-  }, [token]);
+  }, [includeFinished, token]);
 
   useEffect(() => {
     loadLessons();
@@ -1532,33 +1546,38 @@ export function LessonBoardPanel({ token, langCd }) {
   return (
     <section className="grid min-w-0 content-start gap-5 [&>*]:min-w-0">
       <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm">
-        {/* The list no longer collapses when a lesson is picked: the lesson
-            opens over it in a modal, so the index it came from is still there
-            underneath when the modal closes. */}
-        <button
-          type="button"
-          onClick={() => setIsListOpen((current) => !current)}
-          aria-expanded={isListOpen}
-          className={`flex w-full flex-wrap items-center justify-between gap-2 text-left ${
-            isListOpen ? "border-b border-swing-border/30 pb-3" : ""
-          }`}
-        >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-swing-border/30 pb-3">
           <h2 className="text-lg font-bold text-swing-ink">{copy.lessonBoard}</h2>
           <span className="text-xs font-semibold text-swing-muted">
             {lessons.length}
-            <span className="ml-2 text-swing-muted/70">{isListOpen ? "▲" : "▼"}</span>
           </span>
-        </button>
+        </div>
+
+        <div className="mt-4">
+          <Field label={copy.eventStatus}>
+            <label className="flex min-h-[42px] cursor-pointer items-center gap-2 text-sm text-swing-ink">
+              <input type="checkbox" checked={includeFinished}
+                onChange={(event) => setIncludeFinished(event.target.checked)}
+                className="h-4 w-4 accent-swing-teal" />
+              {copy.includeFinishedEvents}
+            </label>
+          </Field>
+        </div>
 
         <Notice>{error}</Notice>
-
-        <div className={`mt-3 gap-2 sm:grid-cols-2 xl:grid-cols-3 ${isListOpen ? "grid" : "hidden"}`}>
+        <p className="mt-3 text-xs text-swing-muted">{copy.newestLessonsFirst}</p>
+        {isLoading ? <div className="mt-3 text-sm text-swing-muted">{copy.loading}</div> : null}
+        <div className="mt-3 overflow-hidden rounded-lg border border-swing-border/30">
+          <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] gap-3 bg-swing-cream/60 px-3 py-2 text-xs font-semibold text-swing-muted lg:grid">
+            <span>{copy.lessons}</span><span>{copy.event}</span><span>{copy.eventPeriod}</span>
+            <span>{copy.eventStatus}</span><span>{copy.lessonStatus}</span>
+          </div>
           {!isLoading && lessons.length === 0 ? (
-            <div className="py-6 text-center text-sm text-swing-muted sm:col-span-2 xl:col-span-3">
-              {copy.noLessonsInRange}
+            <div className="py-6 text-center text-sm text-swing-muted">
+              {copy.noLessons}
             </div>
           ) : null}
-          {lessons.map((lesson) => {
+          {!isLoading && lessons.map((lesson) => {
             const isActive = lesson.lessonId === selectedLessonId;
 
             return (
@@ -1566,22 +1585,22 @@ export function LessonBoardPanel({ token, langCd }) {
                 key={lesson.lessonId}
                 type="button"
                 onClick={() => setSelectedLessonId(lesson.lessonId)}
-                className={`rounded-lg border px-3 py-2 text-left transition ${
+                aria-pressed={isActive}
+                className={`grid w-full min-w-0 gap-2 border-t border-swing-border/30 px-3 py-3 text-left transition lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] lg:items-center lg:gap-3 ${
                   isActive
-                    ? "border-swing-teal-deep bg-swing-teal-deep text-swing-paper"
-                    : "border-swing-border/30 hover:bg-swing-cream/50"
+                    ? "bg-swing-teal/10"
+                    : "hover:bg-swing-cream/50"
                 }`}
               >
-                {/* Event names are long enough that they wrap anyway, so they
-                    start on their own line rather than trailing off the end of
-                    the lesson title. */}
-                <div className="text-sm font-semibold">{localizedTitle(lesson.lessonTitles, languageCode)}</div>
-                <div className={`text-xs ${isActive ? "text-swing-paper/70" : "text-swing-muted"}`}>
+                <div className="min-w-0 break-words text-sm font-semibold text-swing-ink">{localizedTitle(lesson.lessonTitles, languageCode)}</div>
+                <div className="min-w-0 break-words text-xs text-swing-muted">
                   {localizedTitle(lesson.eventTitles, languageCode)}
                 </div>
-                <div className={`mt-1 text-xs ${isActive ? "text-swing-paper/60" : "text-swing-muted/80"}`}>
+                <div className="text-xs text-swing-muted">
                   {formatDateRange(lesson.startDate, lesson.endDate)}
                 </div>
+                <div className="text-xs"><span className="mr-2 text-swing-muted lg:hidden">{copy.eventStatus}</span><Badge>{eventStatusLabel(lesson.eventStatus, langCd)}</Badge></div>
+                <div className="text-xs"><span className="mr-2 text-swing-muted lg:hidden">{copy.lessonStatus}</span><Badge>{eventStatusLabel(lesson.status, langCd)}</Badge></div>
               </button>
             );
           })}
@@ -1607,7 +1626,7 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const copy = t(langCd);
   const languageCode = toManualLanguage(langCd);
   const [filters, setFilters] = useState(() => emptyEventFilters());
-  const [showEventFilters, setShowEventFilters] = useState(false);
+  const [showEventFilters, setShowEventFilters] = useState(true);
   const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -1624,6 +1643,8 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const [notice, setNotice] = useState("");
   const [removingParticipant, setRemovingParticipant] = useState(null);
   const [isRemovingParticipant, setIsRemovingParticipant] = useState(false);
+  const [deletingLesson, setDeletingLesson] = useState(null);
+  const [isDeletingLesson, setIsDeletingLesson] = useState(false);
   // The registration defaults arrive with the other support data. Until they do
   // a new form would open blank, so the button that opens one waits for them.
   const [defaultsReady, setDefaultsReady] = useState(false);
@@ -1635,7 +1656,9 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
     setIsLoading(true);
     setError("");
     try {
-      const data = await adminApi.findEvents(token, filters);
+      const data = [...await adminApi.findEvents(token, filters)].sort((left, right) =>
+        right.startDate.localeCompare(left.startDate) || right.id - left.id
+      );
       setEvents(data);
       // Keep the current selection only while it is still in the list. Filtering
       // it away used to leave it selected, and since the detail pane fetches by
@@ -1697,11 +1720,6 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   useEffect(() => {
     loadEventDetail();
   }, [loadEventDetail]);
-
-  const handleFilterChange = (event) => {
-    const { name, value } = event.target;
-    setFilters((current) => ({ ...current, [name]: value }));
-  };
 
   const startCreateEvent = () => {
     setMode("eventForm");
@@ -1807,18 +1825,23 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
     }
   };
 
-  const deleteLesson = async (lesson) => {
-    if (!window.confirm(copy.confirmDeleteLesson)) {
+  const deleteLesson = async () => {
+    if (!deletingLesson || isDeletingLesson) {
       return;
     }
+    setIsDeletingLesson(true);
     setError("");
     setNotice("");
     try {
-      await adminApi.deleteLesson(token, lesson.id);
+      await adminApi.deleteLesson(token, deletingLesson.id);
+      setDeletingLesson(null);
       setNotice(copy.lessonDeleted);
       await loadEventDetail();
     } catch (nextError) {
+      setDeletingLesson(null);
       setError(nextError.message);
+    } finally {
+      setIsDeletingLesson(false);
     }
   };
 
@@ -1879,8 +1902,8 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
   const selectedTitle = selectedEvent ? eventTitle(selectedEvent, languageCode) : "";
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[330px_minmax(0,1fr)]">
-      <aside className="rounded-lg border border-swing-border/30 bg-swing-paper p-5 shadow-sm">
+    <section className="grid min-w-0 gap-5">
+      <aside className="min-w-0 rounded-lg border border-swing-border/30 bg-swing-paper p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-swing-border/30 pb-4">
           <h2 className="text-lg font-bold text-swing-ink">{copy.events}</h2>
           <div className="flex flex-wrap gap-2">
@@ -1889,45 +1912,38 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             </SecondaryButton>
             {canEdit ? (
               <PrimaryButton type="button" onClick={startCreateEvent} disabled={!defaultsReady}>
-                {copy.createEvent}
+                {copy.newRegistration}
               </PrimaryButton>
             ) : null}
           </div>
         </div>
         {showEventFilters ? (
-          <div className="mt-4 grid gap-3">
-            <Field label={copy.from}>
-              <TextInput type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-            </Field>
-            <Field label={copy.to}>
-              <TextInput type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-            </Field>
-            <Field label={copy.eventType}>
-              <SelectInput name="eventType" value={filters.eventType} onChange={handleFilterChange}>
-                <option value="">{copy.all}</option>
-                {EVENT_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {eventTypeLabel(value, langCd)}
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
+          <div className="mt-4">
             <Field label={copy.eventStatus}>
-              <SelectInput name="status" value={filters.status} onChange={handleFilterChange}>
-                <option value="">{copy.all}</option>
-                {EVENT_STATUSES.map((value) => (
-                  <option key={value} value={value}>
-                    {eventStatusLabel(value, langCd)}
-                  </option>
-                ))}
-              </SelectInput>
+              <label className="flex min-h-[42px] cursor-pointer items-center gap-2 text-sm text-swing-ink">
+                <input
+                  type="checkbox"
+                  checked={filters.status === ""}
+                  onChange={(event) => setFilters((current) => ({ ...current, status: event.target.checked ? "" : "PUBLISHED" }))}
+                  className="h-4 w-4 accent-swing-teal"
+                />
+                {copy.includeFinishedEvents}
+              </label>
             </Field>
           </div>
         ) : null}
-        <div className="mt-4 grid gap-2">
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-swing-muted">{copy.newestEventsFirst}</p>
           {isLoading ? <div className="text-sm text-swing-muted">{copy.loading}</div> : null}
           {!isLoading && events.length === 0 ? <div className="text-sm text-swing-muted">{copy.noEvents}</div> : null}
-          {events.map((event) => (
+          <div className="overflow-hidden rounded-lg border border-swing-border/30">
+            <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,0.8fr)] gap-3 bg-swing-cream/60 px-3 py-2 text-xs font-semibold text-swing-muted sm:grid">
+              <span>{copy.event}</span>
+              <span>{copy.eventType}</span>
+              <span>{copy.eventPeriod}</span>
+              <span>{copy.eventStatus}</span>
+            </div>
+          {!isLoading && events.map((event) => (
             <button
               key={event.id}
               type="button"
@@ -1935,21 +1951,24 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
                 setSelectedEventId(event.id);
                 setMode("detail");
               }}
-              className={`rounded-lg border px-3 py-3 text-left transition ${
+              aria-pressed={selectedEventId === event.id}
+              className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-swing-border/30 px-3 py-3 text-left transition sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,0.8fr)] ${
                 selectedEventId === event.id
-                  ? "border-swing-teal bg-swing-teal/10"
-                  : "border-swing-border/30 bg-swing-paper hover:border-swing-border/45 hover:bg-swing-cream/50"
+                  ? "bg-swing-teal/10 ring-inset focus-visible:ring-2 focus-visible:ring-swing-teal"
+                  : "bg-swing-paper hover:bg-swing-cream/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-swing-teal"
               }`}
             >
-              <div className="text-sm font-bold text-swing-ink">{eventTitle(event, languageCode)}</div>
-              <div className="mt-1 text-xs text-swing-muted">
-                {formatDateRange(event.startDate, event.endDate)} / {eventTypeLabel(event.eventType, langCd)}
+              <div className="min-w-0 break-words text-sm font-bold text-swing-ink">{eventTitle(event, languageCode)}</div>
+              <div className="col-start-1 row-start-2 text-xs text-swing-muted sm:col-auto sm:row-auto">{eventTypeLabel(event.eventType, langCd)}</div>
+              <div className="col-start-1 row-start-3 text-xs text-swing-muted sm:col-auto sm:row-auto">
+                {formatDateRange(event.startDate, event.endDate)}
               </div>
-              <div className="mt-2">
+              <div className="col-start-2 row-start-1 sm:col-auto sm:row-auto">
                 <Badge>{eventStatusLabel(event.status, langCd)}</Badge>
               </div>
             </button>
           ))}
+          </div>
         </div>
       </aside>
 
@@ -2040,10 +2059,21 @@ export default function EventManagementPanel({ token, currentUser, langCd }) {
             onDeleteEvent={deleteEvent}
             onAddLesson={startCreateLesson}
             onEditLesson={startEditLesson}
-            onDeleteLesson={deleteLesson}
+            onDeleteLesson={setDeletingLesson}
             canRemoveApplication={canRemoveApplication}
             onRemoveParticipant={startRemoveParticipant}
             onPromotion={() => setMode("promotion")}
+          />
+        ) : null}
+        {deletingLesson ? (
+          <ConfirmDialog
+            title={`${copy.deleteLesson}: ${lessonTitle(deletingLesson, languageCode)}`}
+            body={copy.confirmDeleteLesson}
+            cancelLabel={copy.cancel}
+            confirmLabel={copy.delete}
+            isSubmitting={isDeletingLesson}
+            onCancel={() => { if (!isDeletingLesson) setDeletingLesson(null); }}
+            onConfirm={deleteLesson}
           />
         ) : null}
         {removingParticipant ? (
@@ -2175,7 +2205,7 @@ function EventDetail({
                       {copy.edit}
                     </SecondaryButton>
                   ) : null}
-                  {canDelete ? (
+                  {canEdit ? (
                     <DangerButton type="button" onClick={() => onDeleteLesson(lesson)}>
                       {copy.delete}
                     </DangerButton>

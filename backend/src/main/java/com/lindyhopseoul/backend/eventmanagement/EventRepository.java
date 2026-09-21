@@ -49,7 +49,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             where event.status = com.lindyhopseoul.backend.eventmanagement.EventStatus.PUBLISHED
               and event.endDate >= :from
               and (:to is null or event.startDate <= :to)
-            order by event.startDate asc, event.displayOrder asc, event.id asc
             """)
     List<Event> findPublishedDetails(
             @Param("from") LocalDate from,

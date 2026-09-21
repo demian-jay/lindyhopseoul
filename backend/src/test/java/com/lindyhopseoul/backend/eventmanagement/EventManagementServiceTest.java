@@ -24,6 +24,7 @@ import com.lindyhopseoul.backend.admin.TeacherUser;
 import com.lindyhopseoul.backend.admin.TeacherUserRepository;
 import com.lindyhopseoul.backend.admin.UserAccount;
 import com.lindyhopseoul.backend.exception.ConflictException;
+import com.lindyhopseoul.backend.exception.ForbiddenException;
 import com.lindyhopseoul.backend.member.AdminMemberActionLog;
 import com.lindyhopseoul.backend.member.AdminMemberActionLogRepository;
 import com.lindyhopseoul.backend.member.AdminMemberActionType;
@@ -86,6 +87,100 @@ class EventManagementServiceTest {
                 List.of(AdminRole.SUPER_ADMIN),
                 AdminLanguage.Kor
         );
+    }
+
+    @Test
+    void lessonBoardDefaultsToPublishedLessonsInPublishedEvents() {
+        Lesson active = boardLesson(1L, EventStatus.PUBLISHED, LessonStatus.PUBLISHED);
+        Lesson finishedEvent = boardLesson(2L, EventStatus.FINISHED, LessonStatus.PUBLISHED);
+        Lesson finishedLesson = boardLesson(3L, EventStatus.PUBLISHED, LessonStatus.FINISHED);
+        when(lessonRepository.findLessonsInRange(null, null, LessonStatus.PUBLISHED))
+                .thenReturn(List.of(finishedEvent, active, finishedLesson));
+
+        assertThat(service.findLessonBoard(superAdmin, null, null, null, false))
+                .extracting(AdminLessonBoardResponse::lessonId).containsExactly(1L);
+        verify(eventApplicationRepository).findByLesson_IdInOrderByCreatedAtAscIdAsc(List.of(1L));
+    }
+
+    @Test
+    void lessonBoardIncludesBothFinishedStatesAndSortsNewestFirst() {
+        Lesson active = boardLesson(1L, EventStatus.PUBLISHED, LessonStatus.PUBLISHED);
+        Lesson finishedEvent = boardLesson(2L, EventStatus.FINISHED, LessonStatus.PUBLISHED);
+        Lesson finishedLesson = boardLesson(3L, EventStatus.PUBLISHED, LessonStatus.FINISHED);
+        when(lessonRepository.findLessonsInRange(null, null, null))
+                .thenReturn(List.of(active, finishedEvent, finishedLesson));
+
+        List<AdminLessonBoardResponse> rows = service.findLessonBoard(superAdmin, null, null, null, true);
+        assertThat(rows).extracting(AdminLessonBoardResponse::lessonId).containsExactly(3L, 2L, 1L);
+        assertThat(rows.get(1).eventStatus()).isEqualTo(EventStatus.FINISHED);
+        assertThat(rows.get(0).status()).isEqualTo(LessonStatus.FINISHED);
+    }
+
+    @Test
+    void includingFinishedLessonsStillUsesOnlyTheTeachersAssignments() {
+        AdminPrincipal actor = new AdminPrincipal("U1", "Teacher", "teacher", AdminRole.TEACHER,
+                List.of(AdminRole.TEACHER), AdminLanguage.Eng);
+        TeacherUser profile = TeacherUser.createProfile("T1", "Teacher", mock(UserAccount.class), "A1");
+        when(teacherUserRepository.findFirstByUserAccount_UserIdAndUseYnOrderByTeacherUserNmAsc("U1", "Y"))
+                .thenReturn(Optional.of(profile));
+        when(lessonRepository.findTeacherLessons("T1", null, null, null))
+                .thenReturn(List.of(boardLesson(2L, EventStatus.FINISHED, LessonStatus.FINISHED)));
+
+        assertThat(service.findLessonBoard(actor, null, null, null, true))
+                .extracting(AdminLessonBoardResponse::lessonId).containsExactly(2L);
+        verify(lessonRepository, never()).findLessonsInRange(any(), any(), any());
+    }
+
+    private Lesson boardLesson(Long id, EventStatus eventStatus, LessonStatus lessonStatus) {
+        LocalDate date = LocalDate.of(2026, 7, id.intValue());
+        Event event = Event.create(EventType.REGULAR_CLASS, date, date, LocalTime.NOON,
+                LocalTime.of(14, 0), "Studio", eventStatus, 1);
+        ReflectionTestUtils.setField(event, "id", id);
+        Lesson lesson = Lesson.create(event, LessonType.LEVEL1, LessonScheduleType.SINGLE_DAY,
+                date, date, LocalTime.NOON, LocalTime.of(14, 0), BigDecimal.ZERO, "KRW", lessonStatus, 1, false);
+        ReflectionTestUtils.setField(lesson, "id", id);
+        return lesson;
+    }
+
+    @Test
+    void staffCanDeleteOneLessonAndItsDependents() {
+        AdminPrincipal staff = new AdminPrincipal("S1", "Staff", "staff", AdminRole.STAFF,
+                List.of(AdminRole.STAFF), AdminLanguage.Kor);
+        Lesson lesson = mock(Lesson.class);
+        when(lessonRepository.findById(3L)).thenReturn(Optional.of(lesson));
+
+        service.deleteLesson(staff, 3L);
+
+        InOrder order = inOrder(lessonNoticeReadStateRepository, lessonNoticeRepository,
+                eventApplicationRepository, lessonRepository);
+        order.verify(lessonNoticeReadStateRepository).deleteByLessonIdIn(List.of(3L));
+        order.verify(lessonNoticeRepository).deleteByLessonIdIn(List.of(3L));
+        order.verify(eventApplicationRepository).deleteByLessonIdIn(List.of(3L));
+        order.verify(lessonRepository).delete(lesson);
+        verify(eventRepository, never()).delete(any(Event.class));
+    }
+
+    @Test
+    void teacherCannotDeleteLessons() {
+        AdminPrincipal teacher = new AdminPrincipal("T1", "Teacher", "teacher", AdminRole.TEACHER,
+                List.of(AdminRole.TEACHER), AdminLanguage.Eng);
+
+        assertThatThrownBy(() -> service.deleteLesson(teacher, 3L))
+                .isInstanceOf(ForbiddenException.class);
+        verify(lessonRepository, never()).findById(any());
+        verify(lessonRepository, never()).delete(any(Lesson.class));
+        verify(eventApplicationRepository, never()).deleteByLessonIdIn(any());
+    }
+
+    @Test
+    void staffStillCannotDeleteWholeEvents() {
+        AdminPrincipal staff = new AdminPrincipal("S1", "Staff", "staff", AdminRole.STAFF,
+                List.of(AdminRole.STAFF), AdminLanguage.Kor);
+
+        assertThatThrownBy(() -> service.deleteEvent(staff, 2L))
+                .isInstanceOf(ForbiddenException.class);
+        verify(eventRepository, never()).findById(any());
+        verify(eventRepository, never()).delete(any(Event.class));
     }
 
     @Test

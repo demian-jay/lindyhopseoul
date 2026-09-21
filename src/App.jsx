@@ -217,11 +217,6 @@ const CONTENT = {
           "스윙팝은 춤을 잘 추는 사람만을 위한 공간이 아니라, 다양한 배경의 사람들이 함께 어울리고 연결되는 커뮤니티를 지향합니다.",
           "한국인과 외국인이 자연스럽게 섞여 춤추고 대화하며, 처음 방문한 사람도 부담 없이 참여할 수 있는 따뜻하고 열린 분위기를 중요하게 생각합니다.",
         ],
-        stats: [
-          { label: "분위기", value: "Welcoming" },
-          { label: "커뮤니티", value: "International" },
-          { label: "경험", value: "Beginner Friendly" },
-        ],
       },
       {
         id: "swing",
@@ -231,7 +226,6 @@ const CONTENT = {
           "스윙댄스는 1920~30년대 미국의 재즈 문화 속에서 시작되어 오늘날까지 전 세계 사람들이 함께 즐기고 있는 소셜댄스입니다. 파트너와 호흡을 맞추며 자유롭게 리듬을 즐기고, 다양한 사람들과 춤을 나누는 것이 가장 큰 특징입니다.",
           "스윙댄스에서는 실력보다 함께 춤추고 소통하는 즐거움을 중요하게 생각합니다. 음악 한 곡이 끝날 때마다 새로운 사람과 춤을 추며 자연스럽게 사람들을 만나고, 국적과 언어를 넘어 서로 연결될 수 있다는 점이 스윙댄스의 가장 큰 매력입니다.",
         ],
-        points: ["재즈와 함께하는 리듬감", "사람과 연결되는 소셜댄스", "초보자도 시작 가능한 구조"],
       },
       {
         id: "swingpop-style",
@@ -262,16 +256,15 @@ const CONTENT = {
         title: "서울에서 스윙댄스를 즐긴다는 것",
         body: [
           "서울에는 오랫동안 이어져 온 활발한 스윙댄스 문화가 있으며, 다양한 댄스홀과 행사, 소셜 파티를 통해 여러 스타일과 사람들을 만날 수 있습니다.",
-          "처음에는 하나의 커뮤니티에서 시작하더라도, 점차 서울 전체의 스윙 씬을 경험하며 더 넓은 세계를 발견하는 즐거움이 있습니다.",
+          "처음에는 하나의 커뮤니티에서 시작하더라도, 점차 서울 전체의 스윙 씬을 경험하며 더 넓은 세계를 발견하는 즐거움이 있습니다. 서울은 스윙댄스를 배우고 즐기기에 매력적인 도시이며, 스윙팝은 그 입구가 되어줄 수 있습니다.",
         ],
-        highlight: "서울은 스윙댄스를 배우고 즐기기에 매력적인 도시이며, 스윙팝은 그 입구가 되어줄 수 있습니다.",
       },
       {
         id: "schedule",
         eyebrow: "5. 일정 및 신청",
         title: "다가오는 수업과 이벤트를 보고 바로 신청하세요",
         body: [
-          "날짜순으로 일정을 확인하고, 원하는 카드에서 바로 신청할 수 있습니다.",
+          "일정을 확인하고, 원하는 카드에서 바로 신청할 수 있습니다.",
           "처음이라면 Level 1을 먼저 추천합니다. 기존 회원은 필터로 정규수업, 워크샵, 다이얼로그 모임, 특별 이벤트를 빠르게 좁혀볼 수 있습니다.",
         ],
       },
@@ -486,11 +479,6 @@ const CONTENT = {
           "SwingPop is not only for experienced dancers. It is a community where people from different backgrounds can meet, connect, and enjoy time together through dance.",
           "We value a warm and open atmosphere where Koreans and internationals naturally mix, and where first-time visitors can feel comfortable joining without pressure.",
         ],
-        stats: [
-          { label: "Mood", value: "Welcoming" },
-          { label: "Community", value: "International" },
-          { label: "Experience", value: "Beginner Friendly" },
-        ],
       },
       {
         id: "swing",
@@ -500,7 +488,6 @@ const CONTENT = {
           "Swing dance is a social dance that began in the jazz culture of 1920s–30s America and is still enjoyed by people all over the world today. Its defining feature is moving freely to the rhythm in tune with a partner and sharing dances with all kinds of people.",
           "In swing dance, the joy of dancing and connecting together matters more than skill. Each time a song ends you dance with someone new, meeting people naturally—and its greatest charm is the way it connects people across nationalities and languages.",
         ],
-        points: ["Rhythm rooted in jazz", "A social dance built on connection", "Accessible for beginners"],
       },
       {
         id: "swingpop-style",
@@ -531,16 +518,15 @@ const CONTENT = {
         title: "Why is swing dance in Seoul special?",
         body: [
           "Seoul has a long-running and active swing dance culture, with dance halls, events, and social parties where you can discover many people and styles.",
-          "You may begin with one community, but over time you can explore the wider Seoul scene and enjoy an even bigger world of dance and connection.",
+          "You may begin with one community, but over time you can explore the wider Seoul scene and enjoy an even bigger world of dance and connection. Seoul is an exciting city for learning and enjoying swing dance, and SwingPop can be your welcoming starting point.",
         ],
-        highlight: "Seoul is an exciting city for learning and enjoying swing dance, and SwingPop can be your welcoming starting point.",
       },
       {
         id: "schedule",
         eyebrow: "5. Schedule & Apply",
         title: "View upcoming classes and events, then apply",
         body: [
-          "Check the date-based list and apply directly from the class or event card you want.",
+          "Browse the schedule and apply directly from the class or event card you want.",
           "If you are new, Level 1 is the recommended starting point. Returning members can use filters for regular classes, workshops, Dialogue Social, and special events.",
         ],
       },
@@ -1178,28 +1164,10 @@ const contactLinks = [
 
 const kpBackEntranceImages = [
   {
-    imageUrl: "",
-    altTextKo: "KP 댄스홀 뒷문 안내 사진 1",
-    altTextEn: "KP Dance Hall back entrance guide photo 1",
+    imageUrl: "/images/kp-back-entrance.png",
+    altTextKo: "학동역 7호선에서 KP 댄스홀 뒷문으로 오는 길 안내 지도",
+    altTextEn: "Map from Hakdong Station (Line 7) to the KP Dance Hall back entrance",
     sortOrder: 1,
-  },
-  {
-    imageUrl: "",
-    altTextKo: "KP 댄스홀 뒷문 안내 사진 2",
-    altTextEn: "KP Dance Hall back entrance guide photo 2",
-    sortOrder: 2,
-  },
-  {
-    imageUrl: "",
-    altTextKo: "KP 댄스홀 뒷문 안내 사진 3",
-    altTextEn: "KP Dance Hall back entrance guide photo 3",
-    sortOrder: 3,
-  },
-  {
-    imageUrl: "",
-    altTextKo: "KP 댄스홀 뒷문 안내 사진 4",
-    altTextEn: "KP Dance Hall back entrance guide photo 4",
-    sortOrder: 4,
   },
 ];
 
@@ -1308,8 +1276,18 @@ function runComponentTests() {
     throw new Error("KakaoTalk announcement link is required.");
   }
 
-  if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.anchorId && location.images.length === 4)) {
-    throw new Error("KP Dance Hall must include four back entrance image slots.");
+  if (!visitorGuideInfo.locations.some((location) => location.name === "KP 댄스홀" && location.anchorId && location.images.length > 0 && location.images.every((image) => image.imageUrl && image.altTextKo && image.altTextEn))) {
+    throw new Error("KP Dance Hall must include a back entrance guide image with Korean and English descriptions.");
+  }
+
+  const orderedSchedule = groupApplicationItemsByEvent([
+    { id: "lesson-20", target: { eventId: 2 }, startDateRaw: "2026-10-10" },
+    { id: "lesson-21", target: { eventId: 2 }, startDateRaw: "2026-10-03" },
+    { id: "lesson-10", target: { eventId: 1 }, startDateRaw: "2026-09-01" },
+  ]);
+  if (orderedSchedule.map((event) => event.eventId).join(",") !== "2,1"
+      || orderedSchedule[0].lessons.map((lesson) => lesson.id).join(",") !== "lesson-20,lesson-21") {
+    throw new Error("Public event grouping must preserve API event and lesson display order, not sort by date.");
   }
 
   return true;
@@ -1829,14 +1807,14 @@ function VisitorGuideSection({ language, labels, info }) {
                     </button>
 
                     {areImagesOpen ? (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-3">
                         {sortedImages.map((image) => (
                           <figure key={image.sortOrder} className="overflow-hidden rounded-2xl border border-swing-border/25 bg-swing-cream/60/70">
                             {image.imageUrl ? (
                               <img
                                 src={image.imageUrl}
                                 alt={language === "en" ? image.altTextEn : image.altTextKo}
-                                className="aspect-[4/3] w-full object-cover"
+                                className="mx-auto block h-auto w-full max-w-[428px]"
                               />
                             ) : (
                               <div className="flex aspect-[4/3] w-full items-center justify-center px-4 text-center text-sm font-medium leading-6 text-swing-muted/70">
@@ -2414,9 +2392,11 @@ function groupApplicationItemsByEvent(items) {
       group.endDate = item.endDateRaw;
     }
   });
+  // The API orders events by their configured display order and lessons within
+  // each event. Map insertion order preserves both; sorting by date here would
+  // override the order selected by staff.
   return Array.from(groups.values())
-    .map((group) => ({ ...group, filterIds: Array.from(group.filterIds) }))
-    .sort((left, right) => String(left.startDate).localeCompare(String(right.startDate)));
+    .map((group) => ({ ...group, filterIds: Array.from(group.filterIds) }));
 }
 
 function scheduleItemIdFromApplication(application) {
@@ -4982,7 +4962,7 @@ function PublicApp() {
           </SectionWrapper>
 
           <SectionWrapper id="about" contentClassName="py-20 md:py-24">
-            <div className="grid gap-12 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:gap-16">
+            <div className="max-w-3xl">
               <div>
                 <p className="font-display text-sm tracking-[0.2em] text-swing-teal">
                   {t.sections[0].eyebrow}
@@ -4995,27 +4975,6 @@ function PublicApp() {
                     <p key={`${activeLanguage}-about-${paragraph}`}>{paragraph}</p>
                   ))}
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-                {t.sections[0].stats.map((stat, index) => (
-                  <div
-                    key={`${activeLanguage}-${stat.label}`}
-                    className={`swing-frame rounded-sm px-1.5 py-4 text-center sm:px-4 sm:py-7 ${
-                      [
-                        "bg-swing-mint/70",
-                        "bg-swing-peach/45",
-                        "bg-swing-cream/80",
-                      ][index % 3]
-                    }`}
-                  >
-                    <div className="font-display text-sm font-bold leading-tight text-swing-ink sm:text-lg md:text-xl">
-                      {stat.label}
-                    </div>
-                    <div className="mt-1.5 break-words text-[0.55rem] uppercase leading-tight tracking-normal text-swing-muted sm:mt-2 sm:text-[0.7rem] sm:tracking-[0.1em]">
-                      {stat.value}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </SectionWrapper>
@@ -5051,16 +5010,6 @@ function PublicApp() {
                   />
                 </div>
               </div>
-            </div>
-            <div className="mt-12 grid grid-cols-3 gap-2.5 sm:gap-4">
-              {t.sections[1].points.map((point) => (
-                <span
-                  key={`${activeLanguage}-${point}`}
-                  className="swing-frame flex items-center justify-center rounded-sm bg-swing-paper/85 px-2 py-3 text-center text-xs leading-tight text-swing-ink sm:px-5 sm:py-5 sm:text-sm sm:leading-6"
-                >
-                  {point}
-                </span>
-              ))}
             </div>
           </SectionWrapper>
 
@@ -5131,9 +5080,6 @@ function PublicApp() {
                 {t.sections[3].body.map((paragraph) => (
                   <p key={`${activeLanguage}-scene-${paragraph}`}>{paragraph}</p>
                 ))}
-              </div>
-              <div className="swing-frame mx-auto mt-10 max-w-2xl rounded-sm bg-swing-paper/92 px-7 py-6 text-[0.95rem] leading-8 text-swing-ink">
-                {t.sections[3].highlight}
               </div>
             </div>
           </SectionWrapper>

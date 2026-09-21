@@ -20,6 +20,7 @@ public record AdminLessonBoardResponse(
         EventType eventType,
         LessonType lessonType,
         LessonStatus status,
+        EventStatus eventStatus,
         LocalDate startDate,
         LocalDate endDate,
         LocalTime startTime,

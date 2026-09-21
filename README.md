@@ -185,10 +185,32 @@ Event permissions:
 
 ```text
 SUPER_ADMIN: event/lesson create, update, delete; message template create, update, delete; promotion render
-STAFF:       event/lesson create, update; promotion render
+STAFF:       event create/update; lesson create/update/delete; promotion render
 TEACHER:     own lesson dashboard
 MEMBER:      reserved for future member-facing features
 ```
+
+The event/lesson registration screen shows an event grid above the selected event details,
+sorted by event start date descending (then ID descending). It requests `PUBLISHED`
+events by default; checking “종료 이벤트 포함 / Include finished events” includes
+`FINISHED` events too. This filter uses the saved status, not the current date.
+Event status is the registration screen's only search condition; the top create
+button is “신규등록 / New Registration”.
+The public website uses event `displayOrder` ascending, then start date and ID
+ascending for ties. Its grouping preserves the API order rather than re-sorting
+by lesson dates. Lessons within each event keep their own `displayOrder`.
+Deleting a lesson is available to `SUPER_ADMIN` and `STAFF`, with a bilingual
+confirmation that its applications and notices are permanently removed too.
+Deleting a whole event remains `SUPER_ADMIN` only.
+
+The lesson list uses a grid ordered by lesson start date descending, then ID
+descending. Its only filter is “종료 이벤트 포함 / Include finished events”.
+`GET /api/admin/lessons?includeFinished=false` (the default) includes only
+`PUBLISHED` lessons whose parent events are also `PUBLISHED`; `true` includes
+finished events and lessons. Status means the stored state, not a date cutoff.
+Rows include both `eventStatus` and lesson `status`. Teachers remain restricted
+to their assigned lessons even with finished items included; clicking a row
+continues to open its participants and notices in the existing detail modal.
 
 Message template render requests accept `eventId` and `languageCode`, then return `renderedText`.
 Available template variables:
