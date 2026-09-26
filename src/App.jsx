@@ -232,8 +232,8 @@ const CONTENT = {
         eyebrow: "3. 스윙팝의 스윙댄스",
         title: "스윙팝에서는 어떤 경험을 할 수 있나요",
         body: [
-          "스윙팝에서는 수업을 통해 기본기를 배우고, 이어지는 소셜댄스 시간에는 다양한 사람들과 자유롭게 춤추며 배운 내용을 자연스럽게 익혀갑니다. 춤을 처음 배우는 사람도 부담 없이 여러 사람과 춤을 추며 음악과 소셜댄스의 즐거움을 경험할 수 있습니다.",
-          "우리는 춤을 잘 추는 것보다 함께 인사하고, 서로를 존중하며, 음악을 즐기는 분위기를 더 중요하게 생각합니다. 한국인과 외국인이 함께 어울리며 새로운 사람들을 만나고, 누구나 편안하게 참여할 수 있는 커뮤니티를 만들어가고 있습니다.",
+          "수업에서 스윙댄스의 기본기를 배우고, 소셜 시간에는 배운 것을 활용해 다양한 사람들과 자유롭게 춤출 수 있습니다. 춤이 처음이어도 음악과 분위기를 즐기며 여러 파트너와 함께 연습할 수 있습니다.",
+          "우리는 완벽한 춤 기술보다 서로를 존중하고 함께 즐기는 따뜻한 환영의 분위기를 더 중요하게 생각합니다. 누구나 편안하게 참여하고 어울리며, 새로운 외국인 친구와 한국인 친구를 만날 수 있는 커뮤니티를 만들고자 합니다.",
         ],
         cards: [
           {
@@ -494,8 +494,8 @@ const CONTENT = {
         eyebrow: "3. Swing Dance at SwingPop",
         title: "What can you experience at SwingPop?",
         body: [
-          "At SwingPop, you learn the basics in class, and during the social dancing that follows, you dance freely with all kinds of people and naturally make what you learned your own. Even first-time dancers can comfortably dance with many partners and enjoy the fun of music and social dancing.",
-          "More than dancing well, we value an atmosphere of greeting one another, respecting each other, and enjoying the music together. Koreans and internationals mingle and meet new people, and we are building a community that anyone can join with ease.",
+          "You can learn the basics of swing dancing in class, and use what you learnt to dance freely with all kinds of people during social time. Even if you are a first-time dancer, you can enjoy the music and atmosphere and practice with different partners.",
+          "We value a welcoming atmosphere of respect and enjoyment more than perfect technical dancing. We aim to build a community that anyone can join with ease, where you can mingle and meet new international and Korean friends.",
         ],
         cards: [
           {
