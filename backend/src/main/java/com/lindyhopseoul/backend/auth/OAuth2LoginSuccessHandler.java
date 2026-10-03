@@ -1,6 +1,9 @@
 package com.lindyhopseoul.backend.auth;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import com.lindyhopseoul.backend.member.Member;
 import jakarta.servlet.ServletException;
@@ -18,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+    private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
 
     private final GoogleOAuth2MemberService memberService;
     private final OAuth2RedirectProperties redirectProperties;
@@ -41,6 +45,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         HttpSession session = request.getSession(true);
         session.setAttribute(AuthSessionConstants.MEMBER_ID_ATTRIBUTE, member.getId());
         dropOAuthPrincipal(session);
+        log.info("OAUTH_COMPLETE requestId={} newlyRegistered={}", MDC.get("requestId"), member.isNewlyRegistered());
         String redirectUri = OAuth2RedirectResolver.onCurrentOrigin(
                 request,
                 redirectProperties.getSuccessRedirectUri(),

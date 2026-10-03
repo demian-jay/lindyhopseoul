@@ -87,6 +87,7 @@ Use project docs before changing related code:
 - `docs/member-display-guidelines.md`: member display, withdrawal handling, `(Del)` admin badge rules.
 - `docs/admin-i18n.md`: admin Korean/English UI translation rules.
 - `docs/agora-corkboard.md`: Corkboard requirements, APIs, permissions, placement, QA checklist.
+- `docs/error-diagnostics.md`: browser/server error collection, trace IDs, privacy, retention, and diagnostic limits.
 
 `AGENTS.md` is the project-wide operating and safety guide. Feature docs contain detailed requirements and implementation notes. Do not duplicate large feature specs in `AGENTS.md`; point to the relevant document instead.
 
@@ -97,6 +98,17 @@ Before work:
 - Inspect current code and current `git status`.
 
 After behavior changes, consider updating the relevant feature doc, development log/checklist, and tests. If docs and code disagree, do not guess. Compare the actual code, the most recent docs, and the requested change, then report the mismatch.
+
+## Production SSH on John's Computer
+
+Verified on 2026-10-04: this computer already has a working production SSH key.
+
+- Use `ssh lindyhop`; the alias is configured in `C:\Users\John\.ssh\config`.
+- The alias connects as `ec2-user` to `52.78.185.32` with `C:\Users\John\.ssh\lindyhop_ec2`.
+- Explicit equivalent in PowerShell: `ssh -i "$env:USERPROFILE\.ssh\lindyhop_ec2" ec2-user@52.78.185.32`.
+- A bare `ssh ec2-user@52.78.185.32` does not select this custom-named key and previously failed authentication. Do not conclude that the key is missing or recommend generating/registering a new key before checking the existing SSH config and testing the alias or explicit key.
+- If sandbox restrictions prevent reading SSH config or making a connection, distinguish that from server authentication failure and retry the authorized read-only check with the appropriate tool permissions.
+- Never print or copy private-key contents. Read `docs/deployment.md` before deployment; a connectivity check does not authorize deployment.
 
 ## Development Rules
 

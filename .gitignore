@@ -9,6 +9,7 @@ build/
 .env.production.local
 *.log
 backend/target/
+.diagnostics-builds/
 .DS_Store
 
 # Raw source-photo dropbox (originals worked from locally; the app uses src/assets/gallery/)

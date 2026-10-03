@@ -9,6 +9,25 @@
 // current name is dropped on activate.
 const CACHE = "swingpop-v2";
 
+// Worker errors cannot be observed by the page's window error listeners.
+// Keep only type/location; never send push payloads, messages or cached data.
+let diagnosticCount = 0;
+function reportWorkerError(error) {
+  if (++diagnosticCount > 10) return;
+  const frames = String(error?.stack || '').split('\n').slice(1, 13).map(line => {
+    const frame = line.match(/\/(sw\.js)(?::(\d+))?(?::(\d+))?/);
+    return frame ? `${frame[1]}:${frame[2] || 0}:${frame[3] || 0}` : '';
+  }).filter(Boolean).join('\n');
+  fetch('/api/diagnostics/client-errors', {
+    method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId: crypto.randomUUID(), kind: 'serviceworker',
+      errorType: /^[A-Za-z][A-Za-z0-9]{0,60}$/.test(error?.name || '') ? error.name : 'Error',
+      frames, page: '/', endpoint: '', status: 0, requestId: '', build: 'service-worker-v2' }),
+  }).catch(() => {});
+}
+self.addEventListener('error', event => reportWorkerError(event.error));
+self.addEventListener('unhandledrejection', event => reportWorkerError(event.reason));
+
 // The SPA shell. nginx answers every route with index.html, so one entry is
 // enough to render any client-side route while offline.
 const SHELL = "/";

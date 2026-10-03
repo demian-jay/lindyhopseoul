@@ -51,6 +51,36 @@ behind and does not contain the backend or the Corkboard.
 
 ## What Runs Where
 
+### Canonical www hosts (2026-10-04 login incident)
+
+On 2026-10-03, login attempts from `www.swingpopseoul.com` did not return
+from Google. Read-only checks on 2026-10-04 reproduced Google's
+`redirect_uri_mismatch` for both `www.swingpopseoul.com` and
+`www.lindyhopseoul.com`; the two bare domains and the admin host reached
+Google's login page without that error.
+
+Keep the server-scope rules in `docs/nginx/www-canonical-redirect.conf`
+at the top of `/etc/nginx/default.d/lindyhop.conf`. They redirect each www
+host to its own bare domain with HTTP 308, preserving path and query before
+OAuth creates a host-only state cookie. Do not merely force the OAuth callback
+URL to another host: that would leave the state cookie on the starting host.
+
+Back up the existing nginx config, run `sudo nginx -t`, and reload nginx only
+after validation. Verify both www roots and `/oauth2/authorization/google`
+redirect to the matching bare domain, and that the resulting Google callback
+uses that bare domain. Check the bare-domain and admin routes still work.
+Existing www cookies/storage are separate from bare-domain storage, so users
+may need to sign in once after moving to the canonical host.
+
+Applied on 2026-10-04 (Asia/Seoul). Backup:
+`/opt/lindyhop-backup/nginx/lindyhop.conf.www-login-20261003-175523`
+(filename uses UTC). `nginx -t` and reload succeeded. All five hosts now
+reach Google without `redirect_uri_mismatch`; both www aliases return 308
+before OAuth. Path/query preservation passed, and root, `/api/auth/me`,
+and current Corkboard returned 200 on both bare domains and the admin host.
+No backend restart or database changes were required. An actual Google-account
+sign-in and authenticated session check still require the user's browser.
+
 | Piece | Location |
 | --- | --- |
 | Frontend (static) | `/var/www/lindyhop`, served by nginx |
@@ -206,6 +236,12 @@ that only edits docs ships nothing, so the stamp keeps naming the commit before
 it. That is correct, not a missed deploy.
 
 ## Backend Deploy
+
+For the diagnostics rollout and rollback backup from 2026-10-04, see
+`docs/error-diagnostics.md`. Production now uses a diagnostics log directory
+via a systemd drop-in and limits the public client-error endpoint to 16 KiB.
+Source maps are generated locally but must be excluded from public uploads;
+nginx rejects `.map` URLs as an additional guard.
 
 Exercised; `/opt/lindyhop-backup/backend-*.jar` is the record of past runs.
 

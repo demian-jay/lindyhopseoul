@@ -1,6 +1,10 @@
 package com.lindyhopseoul.backend.auth;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import com.lindyhopseoul.backend.diagnostics.SafeDiagnostics;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -16,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
+    private static final Logger log = LoggerFactory.getLogger(OAuth2LoginFailureHandler.class);
 
     private final OAuth2RedirectProperties redirectProperties;
     private final RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
@@ -30,6 +35,9 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
             HttpServletResponse response,
             AuthenticationException exception
     ) throws IOException, ServletException {
+        String code = exception instanceof OAuth2AuthenticationException oauth ? oauth.getError().getErrorCode() : "authentication_failed";
+        log.warn("OAUTH_FAILED requestId={} code={} exception={}", MDC.get("requestId"),
+                code != null && code.matches("[a-z_]{1,80}") ? code : "unknown", SafeDiagnostics.exception(exception));
         redirectStrategy.sendRedirect(request, response, failureRedirectUri(request, exception));
     }
 

@@ -1,0 +1,20 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <property name="DIAGNOSTICS_DIR" value="${DIAGNOSTICS_LOG_DIR:-target/diagnostics}"/>
+    <appender name="DIAGNOSTICS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${DIAGNOSTICS_DIR}/diagnostics.log</file>
+        <encoder><pattern>%date{ISO8601,Asia/Seoul} %-5level %logger{40} %msg%n</pattern></encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${DIAGNOSTICS_DIR}/diagnostics.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>5MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>64MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+    <logger name="com.lindyhopseoul.backend.diagnostics" level="INFO"><appender-ref ref="DIAGNOSTICS"/></logger>
+    <logger name="com.lindyhopseoul.backend.exception.GlobalExceptionHandler" level="INFO"><appender-ref ref="DIAGNOSTICS"/></logger>
+    <logger name="com.lindyhopseoul.backend.auth.OAuth2LoginSuccessHandler" level="INFO"><appender-ref ref="DIAGNOSTICS"/></logger>
+    <logger name="com.lindyhopseoul.backend.auth.OAuth2LoginFailureHandler" level="INFO"><appender-ref ref="DIAGNOSTICS"/></logger>
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+</configuration>

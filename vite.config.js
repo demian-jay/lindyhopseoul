@@ -46,7 +46,8 @@ function buildVersion() {
     const sha = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim()
-    return `${stamp} · ${sha}`
+    const changed = execSync('git status --porcelain -- src/ public/ index.html vite.config.js', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+    return `${stamp} · ${sha}${changed ? '-modified' : ''}`
   } catch {
     // Building outside a git checkout is fine; the timestamp alone still tells
     // one build from another.
@@ -57,6 +58,9 @@ function buildVersion() {
 export default defineConfig({
   plugins: [react(), emitAdminHtml()],
   base: '/',
+  // Retained locally for investigating minified stack locations; do not upload
+  // .map files to the public web root.
+  build: { sourcemap: 'hidden' },
   define: {
     __BUILD_VERSION__: JSON.stringify(buildVersion()),
   },

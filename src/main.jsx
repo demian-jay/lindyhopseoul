@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ExitGuard from './ExitGuard';
+import ErrorBoundary from './ErrorBoundary';
 import { applyManifestForHost } from './adminHost';
 import './index.css';
 
@@ -32,10 +33,12 @@ if (adminReturnPath && window.location.pathname.startsWith('/oauth/')) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    <ErrorBoundary>
     <App />
     {/* Outside App so it covers the admin screens too — both live in this one
         page, and both lose whatever is half-written when back walks out. */}
     <ExitGuard />
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

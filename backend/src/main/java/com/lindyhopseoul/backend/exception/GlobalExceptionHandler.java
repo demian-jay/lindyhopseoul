@@ -1,6 +1,10 @@
 package com.lindyhopseoul.backend.exception;
 
 import java.time.Instant;
+import com.lindyhopseoul.backend.diagnostics.SafeDiagnostics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -11,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BadRequestException.class)
     ResponseEntity<ApiErrorResponse> handleBadRequest(
@@ -69,6 +74,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
+        if (exception instanceof org.springframework.http.converter.HttpMessageNotReadableException) {
+            return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request body.", request.getRequestURI());
+        }
+        if (exception instanceof org.springframework.web.ErrorResponse frameworkError) {
+            HttpStatus status = HttpStatus.valueOf(frameworkError.getStatusCode().value());
+            return buildResponse(status, status.getReasonPhrase(), request.getRequestURI());
+        }
+        log.error("SERVER_ERROR requestId={} method={} path={} exception={}", MDC.get("requestId"),
+                request.getMethod(), SafeDiagnostics.path(request.getRequestURI()), SafeDiagnostics.exception(exception));
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error.", request.getRequestURI());
     }
 
@@ -79,7 +93,7 @@ public class GlobalExceptionHandler {
                         status.value(),
                         status.getReasonPhrase(),
                         message,
-                        path
+                        SafeDiagnostics.path(path)
                 ));
     }
 }
